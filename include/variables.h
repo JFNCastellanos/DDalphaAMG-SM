@@ -1,0 +1,133 @@
+#ifndef VARIABLES_H_INCLUDED
+#define VARIABLES_H_INCLUDED
+#include "config.h"
+#include <iostream>
+#include <vector>
+#include <complex>
+#include <iomanip>
+#include "mpi.h"
+
+typedef std::complex<double> c_double;
+extern double pi;
+extern c_double I_number; //imaginary number
+
+
+
+
+//For scattering and gathering information from the 2D rank topology
+extern MPI_Datatype sub_block_type;
+extern MPI_Datatype sub_block_resized;
+extern MPI_Datatype column_type;
+
+namespace mpi{
+    extern int rank;
+    extern int size; 
+    extern int maxSize;
+    extern int maxSizeH; //maxSize with halos included
+    extern int sitesH;
+    extern int ranks_x;
+    extern int ranks_t;
+    extern int width_x;
+    extern int width_t;
+    extern int rank2d; //Rank id in the 2D communicator
+    extern int coords[2];
+    extern int top; 
+    extern int bot; 
+    extern int right; 
+    extern int left;
+    //Diagonal ranks necessary for staples
+    extern int bot_left;
+    extern int bot_right;
+    extern int top_left;
+    extern int top_right;
+    extern MPI_Comm cart_comm;
+}
+
+
+//------------Lattice parameters--------------//
+namespace LV {
+    //Lattice dimensions//
+    constexpr int Nx= NS; //We extract this value from config.h
+    constexpr int Nt = NT; //We extract this value from config.h
+    constexpr int Ntot = Nx*Nt; //Total number of lattice points
+    constexpr int dof = 2;
+}
+
+namespace CG{
+    extern int max_iter; //Maximum number of iterations for the conjugate gradient method
+    extern double tol; //Tolerance for convergence
+}
+
+namespace BiCG{
+    extern int max_iter; //Maximum number of iterations for the conjugate gradient method
+    extern double tol; //Tolerance for convergence
+}
+
+
+//------------Schwarz alternating procedure parameters--------------//
+namespace SAPV {
+    using namespace LV; 
+    constexpr int sap_block_x = 4; //Default values for SAP as a preconditioner for FGMRES (not multigrid)
+    constexpr int sap_block_t = 4; 
+    //Parameters for GMRES in SAP
+    extern int sap_gmres_restart_length; //GMRES restart length for the Schwarz blocks.
+    extern int sap_gmres_restarts; //GMRES iterations for the Schwarz blocks
+    extern double sap_gmres_tolerance; //GMRES tolerance for the Schwarz blocks 
+    extern double sap_tolerance; //tolerance for the SAP method
+}
+
+//Flattened spinor
+struct spinor {
+    c_double* val;  //Array with values
+    int size;       //Size of array 
+    //Constructor
+    spinor(int N = LV::Ntot) : size(N) {
+        val = new c_double[N]();
+    }
+
+    //Copy constructor (deep copy)
+    spinor(const spinor& other) : size(other.size) {
+        val = new c_double[size];
+        std::copy(other.val, other.val + size, val);
+    }
+
+    //Assignment operator (deep copy)
+    spinor& operator=(const spinor& other) {
+        if (this != &other) {
+            if (size != other.size) {
+                delete[] val;
+                size = other.size;
+                val = new c_double[size];
+            }
+            std::copy(other.val, other.val + size, val);
+        }
+        return *this;
+    }
+
+    // Destructor
+    ~spinor() {
+        delete[] val;
+    }
+
+    inline void clearBuffer(){
+        for(int n = 0; n<size; n++){
+            val[n] = 0;
+        }
+    }
+};
+
+
+//Boundary conditions with padding.
+extern int* lpb;
+extern int* rpb;
+extern c_double* lsign;
+extern c_double* rsign;
+
+//Allocation for boundary arrays
+void allocate_lattice_arrays();
+void free_lattice_arrays();
+
+
+
+
+#endif 
