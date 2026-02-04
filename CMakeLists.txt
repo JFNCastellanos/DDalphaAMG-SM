@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.26.5)
 set(CMAKE_CXX_STANDARD 20) 
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-project(SAP VERSION 1.0)
+project(DDalphaAMG VERSION 1.0)
 
 
 set(SOURCES
@@ -10,32 +10,33 @@ set(SOURCES
     src/halo_exchange.cpp       #Implementation of the halo exchange for a field
     src/dirac_operator.cpp      #Implementation of D, D^+ and 2* Re ( left^+ d D / d omega(z) right )
     src/conjugate_gradient.cpp  #Conjugate gradient and Bi-cgstab
-    src/fgmres.cpp
-    src/sap.cpp
+    src/fgmres.cpp              #FGMRES class
+    src/sap.cpp                 #SAP class
+    src/level.cpp               #Multigrid level class
     src/main.cpp                #Main program
 )
 
-set(NS "1024")   #Lattice dimension x
-set(NT "1024")   #Lattice dimension t
+set(NS "8")   #Lattice dimension x
+set(NT "8")   #Lattice dimension t
 
 configure_file(${CMAKE_SOURCE_DIR}/include/config.h.in ${CMAKE_SOURCE_DIR}/include/config.h)
 
 
-add_executable("SM_${NS}x${NT}" ${SOURCES})
+add_executable("DDAlpha_${NS}x${NT}" ${SOURCES})
 
 
-target_include_directories("SM_${NS}x${NT}"
+target_include_directories("DDAlpha_${NS}x${NT}"
         PUBLIC 
         ${PROJECT_SOURCE_DIR}/include
 )
-target_compile_options("SM_${NS}x${NT}" PRIVATE
+target_compile_options("DDAlpha_${NS}x${NT}" PRIVATE
 			-O3
             #-g #For profiling
 )
 
 
 find_package(MPI REQUIRED)
-target_link_libraries("SM_${NS}x${NT}" PUBLIC MPI::MPI_CXX)
+target_link_libraries("DDAlpha_${NS}x${NT}" PUBLIC MPI::MPI_CXX)
 
 
 #PROJECT_SOURCE_DIR: it indicates where src is located

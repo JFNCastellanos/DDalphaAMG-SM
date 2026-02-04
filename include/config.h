@@ -1,5 +1,5 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#define NS 1024
-#define NT 1024
+#define NS 64
+#define NT 64
 #endif

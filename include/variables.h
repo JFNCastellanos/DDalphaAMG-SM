@@ -19,6 +19,7 @@ extern MPI_Datatype sub_block_type;
 extern MPI_Datatype sub_block_resized;
 extern MPI_Datatype column_type;
 
+//------------mpi settings-----------------//
 namespace mpi{
     extern int rank;
     extern int size; 
@@ -75,6 +76,37 @@ namespace SAPV {
     extern double sap_gmres_tolerance; //GMRES tolerance for the Schwarz blocks 
     extern double sap_tolerance; //tolerance for the SAP method
 }
+
+namespace LevelV{
+    //Description on variables.cpp
+    extern int levels;
+    extern int maxLevel;
+    extern int* BlocksX;
+    extern int* BlocksT;
+    extern int* Ntest; 
+    extern int* Nagg; 
+    extern int* NBlocks;
+    extern int* Nsites;
+    extern int* NxSites;
+    extern int* NtSites;
+    extern int* NxSitesH;
+    extern int* NtSitesH;
+    extern int* NSitesH;
+    extern int* DOF; 
+    extern int* Colors; 
+    extern int* SAP_Block_x; 
+    extern int* SAP_Block_t; 
+    extern int* SAP_elements_x;  
+    extern int* SAP_elements_t;
+    extern int* SAP_variables_per_block; 
+    extern int* GMRES_restart_len;
+    extern int* GMRES_restarts;
+    extern double* GMRES_tol;
+    extern int* RanksX;
+    extern int* RanksT;
+}
+
+
 
 //Flattened spinor
 struct spinor {
