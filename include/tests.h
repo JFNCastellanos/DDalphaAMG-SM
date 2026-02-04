@@ -45,6 +45,12 @@ void test_level_l(const int& l, const spinor& U){
         }      
     }
 
+    if (mpi::rank2d == 0){
+        std::cout << "Rank " << mpi::rank2d << std::endl;
+        std::cout << "Nx " << Nx << " Nt " << Nt << " colors " << colors << " Ntest " << Ntest << std::endl;
+        std::cout << "count " << count << std::endl;
+    }
+
     spinor ev(level.blocks_per_rank*2*Ntest); //Lives on the coarse lattice
     spinor column(Nx*Nt*2*colors);
     if (mpi::rank2d == 0){
@@ -53,7 +59,7 @@ void test_level_l(const int& l, const spinor& U){
             level.P_vc(ev,column);
             ev.val[i] = 0;
             for(int j = 0; j < Nx*Nt*2*colors; j++){
-                std::cout << ev.val[j] << " ";
+                std::cout << column.val[j] << " ";
             }
             std::cout << std::endl;
         }

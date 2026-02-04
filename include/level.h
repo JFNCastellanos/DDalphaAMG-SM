@@ -119,15 +119,15 @@ public:
     const int xblocks_per_rank = LevelV::BlocksX[level]/LevelV::RanksX[level]; //Number of blocks on x inside the current rank
     const int tblocks_per_rank = LevelV::BlocksT[level]/LevelV::RanksT[level]; //Number of blocks on t inside the current rank
     const int blocks_per_rank = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
-    const int Nx = LevelV::NxSites[level];      //Nx on the fine grid (no halo)
-    const int Nt = LevelV::NtSites[level];      //Nt on the fine grid (no halo)
+    const int Nx = LevelV::NxSites[level]/LevelV::RanksX[level];      //Nx on the fine grid (no halo)
+    const int Nt = LevelV::NtSites[level]/LevelV::RanksT[level];      //Nt on the fine grid (no halo)
     const int Ntot = Nx*Nt;
     const int colors = LevelV::Colors[level];   //Number of colors at this level
     const int Ntest = (level != LevelV::maxLevel) ? LevelV::Ntest[level]: 1;     //Number of test vectors to go to the next level
     const int DOF = 2*colors;         //Degrees of freedom at each lattice site at this level
 
-    const int x_elements = (level != LevelV::maxLevel) ?  LevelV::NxSites[level] / LevelV::BlocksX[level]: 1;
-    const int t_elements = (level != LevelV::maxLevel) ?  LevelV::NtSites[level] / LevelV::BlocksT[level]: 1; 
+    const int x_elements = (level != LevelV::maxLevel) ?  Nx / xblocks_per_rank: 1;
+    const int t_elements = (level != LevelV::maxLevel) ?  Nt / tblocks_per_rank: 1; 
     const int sites_per_block = x_elements * t_elements;
     const int NBlocks = (level != LevelV::maxLevel) ? LevelV::NBlocks[level]: 1; //Number of lattice blocks 
     

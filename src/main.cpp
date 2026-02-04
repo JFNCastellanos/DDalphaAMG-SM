@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     LevelV::maxLevel = LevelV::levels-1;
     allocate_lattice_arrays(); 
 
-    readParameters("inputs");
+    readParameters("../inputs");
 
     
 
