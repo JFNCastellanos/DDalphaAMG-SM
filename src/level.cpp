@@ -9,18 +9,19 @@ void Level::P_vc(const spinor& vc,spinor& out){
 	int bx, bt;
 	int xini, tini, xfin, tfin;
 	int idxout, idxv, idxtv; //Vectorized index of out, v and test vector
-	for(int cc = 0; cc < Ntest; cc++){
-		for(int b = 0; b<blocks_per_rank; b++){
-			bx = b / xblocks_per_rank;
-			bt = b % tblocks_per_rank;	
-			//Coordinates inside the block (bx,bt)
-			xini = x_elements*bx; xfin = xini + x_elements;
-			tini = t_elements*bt; tfin = tini + t_elements;
-			for(int t=tini; t<tfin; t++){
+	
+	for(int b = 0; b<blocks_per_rank; b++){
+		bx = b / tblocks_per_rank;
+		bt = b % tblocks_per_rank;	
+		//Coordinates inside the block (bx,bt)
+		xini = x_elements*bx; xfin = xini + x_elements;
+		tini = t_elements*bt; tfin = tini + t_elements;
+		for(int cc = 0; cc < Ntest; cc++){
 			for(int x=xini; x<xfin; x++){
-			for(int c = 0; c<colors; c++){
+			for(int t=tini; t<tfin; t++){	
+			for(int c=0; c<colors; c++){
 			for(int s=0; s<2; s++){
-				idxout 	= x*t_elements*colors*2 		+ t*colors*2 + c*2 	+ s;
+				idxout 	= x*Nt*colors*2 				+ t*colors*2 + c*2 	+ s;
 				idxtv 	= idxout*Ntest+cc;	 
 				idxv 	= bx*tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + s;
 				out.val[idxout] += tvec.val[idxtv] * vc.val[idxv];
@@ -35,7 +36,7 @@ void Level::P_vc(const spinor& vc,spinor& out){
 
 
 //Restriction operator times a spinor on the fine grid
-void Level::Pt_v(const spinor& v,spinor& out) {
+void Level::Pdagg_v(const spinor& v,spinor& out) {
 	for(int i = 0; i < blocks_per_rank*2*Ntest; i++)
 		out.val[i]= 0.0; //Initialize the output spinor
 
@@ -49,18 +50,18 @@ void Level::Pt_v(const spinor& v,spinor& out) {
 		xini = x_elements*bx; xfin = xini + x_elements;
 		tini = t_elements*bt; tfin = tini + t_elements;
 		for(int cc; cc<Ntest; cc++){
-		for(int t=tini; t<tfin; t++){
-		for(int x=xini; x<xfin; x++){
-		for(int c=0; c<colors; c++){
-		for(int s=0; s<2; s++){
-			idxout 	= bx*tblocks_per_rank*Ntest*2 		+ bt*Ntest*2 + cc*2 + s;
-			idxv 	= x*t_elements*colors*2 			+ t*colors*2 + c*2 	+ s;
-			idxtv 	= idxv*Ntest + cc;
-			out.val[idxout] += std::conj(tvec.val[idxtv]) * v.val[idxv];
-		}	
-		}
-		}
-		}
+			for(int x=xini; x<xfin; x++){
+			for(int t=tini; t<tfin; t++){	
+			for(int c=0; c<colors; c++){
+			for(int s=0; s<2; s++){
+				idxout 	= bx*tblocks_per_rank*Ntest*2 		+ bt*Ntest*2 + cc*2 + s;
+				idxv 	= x*Nt*colors*2 					+ t*colors*2 + c*2 	+ s;
+				idxtv 	= idxv*Ntest 						+ cc;
+				out.val[idxout] += std::conj(tvec.val[idxtv]) * v.val[idxv];
+			}	
+			}
+			}
+			}
 		}
 	}
 }

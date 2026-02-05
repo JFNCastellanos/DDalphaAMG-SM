@@ -30,39 +30,110 @@ void test_level_l(const int& l, const spinor& U){
     int indxtv, indx;
     int Nt, Nx, colors, Ntest;
     Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
-    int count = 0;
+    
     for(int cc = 0; cc < level.Ntest; cc++){
+        for(int x=0; x<level.Nx; x++){
         for(int t=0; t<level.Nt; t++){
-		for(int x=0; x<level.Nx; x++){
-		for(int c=0; c<level.colors; c++){
-		for(int s=0; s<2; s++){
+	    for(int c=0; c<level.colors; c++){
+	    for(int s=0; s<2; s++){
             indx 	= x*Nt*colors*2 + t*colors*2 + c*2 	+ s;
 			indxtv 	= indx*Ntest + cc;
-            level.tvec.val[indxtv] = count++;
+            level.tvec.val[indxtv] = indxtv+1;
+           /* if (mpi::rank2d == 0){
+                std::cout << "(x,t,c,s) = " << x << ", " << t << ", " << c << ", " << s <<  std::endl;
+                std::cout << "indx " << indxtv << std::endl;
+            }
+            */
+            
         }
-        }
-        }
-        }      
+    }
+    }
+    }      
     }
 
     if (mpi::rank2d == 0){
         std::cout << "Rank " << mpi::rank2d << std::endl;
         std::cout << "Nx " << Nx << " Nt " << Nt << " colors " << colors << " Ntest " << Ntest << std::endl;
-        std::cout << "count " << count << std::endl;
+        std::cout << "Blocks per rank " << level.blocks_per_rank << std::endl;
+        std::cout << "count " << indxtv-1 << std::endl;
+    
     }
 
-    spinor ev(level.blocks_per_rank*2*Ntest); //Lives on the coarse lattice
-    spinor column(Nx*Nt*2*colors);
+    
     if (mpi::rank2d == 0){
-        for(int i = 0; i < level.blocks_per_rank*2*Ntest; i++){
-            ev.val[i] = 1;
+        spinor ev(level.blocks_per_rank*2*Ntest); //Lives on the coarse lattice
+        spinor column(Nx*Nt*2*colors);
+        int indx1, indx2;
+        std::cout << "Printing P^T (transpose interpolator) " << std::endl;
+        for(int b = 0; b < level.blocks_per_rank; b++){
+            int bx = b / level.tblocks_per_rank;
+		    int bt = b % level.tblocks_per_rank; 
+            //Coordinates inside the block (bx,bt)
+			int xini = level.x_elements*bx; int xfin = xini + level.x_elements;
+			int tini = level.t_elements*bt; int tfin = tini + level.t_elements;
+        for(int sc=0; sc<2;sc++){
+        for(int cc = 0; cc<Ntest; cc++){
+            std::cout << "(bx, bt, sc, cc) = (" << bx << ", " << bt << ", " << sc << ", " << cc << ")" << std::endl;
+            indx1 = bx*level.tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + sc; 
+            ev.val[indx1] = 1;
             level.P_vc(ev,column);
-            ev.val[i] = 0;
-            for(int j = 0; j < Nx*Nt*2*colors; j++){
-                std::cout << column.val[j] << " ";
+            ev.val[indx1] = 0;
+        
+		    for(int x=0; x<Nx; x++){
+		    for(int t=0; t<Nt; t++){
+		    for(int c=0; c<colors; c++){
+		    for(int s=0; s<2; s++){
+			    indx2 	= x*Nt*colors*2 			+ t*colors*2 + c*2 	+ s;
+                std::cout << column.val[indx2] << " ";
+            }
+            }
+            }
+            }
+            std::cout << std::endl;
+
+
+        }
+        }     
+        }
+
+    }
+
+
+    //-------------------------------//
+    if (mpi::rank2d == 0){
+        spinor ev(Nx*Nt*2*colors); //Lives on the coarse lattice
+        spinor column(level.blocks_per_rank*2*Ntest);
+        int indx1, indx2;
+        std::cout << "Printing P* (conjugate interpolator) " << std::endl;
+
+        for(int x=0; x<Nx; x++){
+		for(int t=0; t<Nt; t++){
+		for(int c=0; c<colors; c++){
+		for(int s=0; s<2; s++){
+			indx2 	= x*Nt*colors*2 			+ t*colors*2 + c*2 	+ s;
+            ev.val[indx2] = 1;
+            level.Pdagg_v(ev,column);
+            ev.val[indx2] = 0;
+
+            for(int b = 0; b < level.blocks_per_rank; b++){
+                int bx = b / level.tblocks_per_rank;
+		        int bt = b % level.tblocks_per_rank; 
+                for(int sc=0; sc<2;sc++){
+                for(int cc = 0; cc<Ntest; cc++){
+                    //std::cout << "(bx, bt, sc, cc) = (" << bx << ", " << bt << ", " << sc << ", " << cc << ")" << std::endl;
+                    indx1 = bx*level.tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + sc; 
+                    std::cout << column.val[indx1] << "   ";
+                }
+                }
             }
             std::cout << std::endl;
         }
+        }
+        }     
+        }
+
     }
+
+
     
 }

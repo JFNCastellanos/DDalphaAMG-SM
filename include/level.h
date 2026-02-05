@@ -88,13 +88,17 @@ public:
     //----------------------------------------------------------------------------//
     
     //Level Constructor
-    Level(const int& level, const spinor& U) : level(level), U(U){
+    Level(const int& level, const spinor& U) : level(level), U(U),
+        Nx(LevelV::NxSites[level]/LevelV::RanksX[level]),
+        Nt(LevelV::NtSites[level]/LevelV::RanksT[level]),
+        Ntot(Nx*Nt)
+    {
         
         
         //Test vectors
 
-        tvec        = spinor(LevelV::Ntest[level]*LevelV::Nsites[level]*LevelV::DOF[level]);
-        tvec_copy   = spinor(LevelV::Ntest[level]*LevelV::Nsites[level]*LevelV::DOF[level]);
+        tvec        = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
+        tvec_copy   = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
 
          	    
         //Gauge links to define D_operator (matrix problem at this level)
@@ -119,9 +123,9 @@ public:
     const int xblocks_per_rank = LevelV::BlocksX[level]/LevelV::RanksX[level]; //Number of blocks on x inside the current rank
     const int tblocks_per_rank = LevelV::BlocksT[level]/LevelV::RanksT[level]; //Number of blocks on t inside the current rank
     const int blocks_per_rank = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
-    const int Nx = LevelV::NxSites[level]/LevelV::RanksX[level];      //Nx on the fine grid (no halo)
-    const int Nt = LevelV::NtSites[level]/LevelV::RanksT[level];      //Nt on the fine grid (no halo)
-    const int Ntot = Nx*Nt;
+    const int Nx;   //Nx on the fine grid in rank r (no halo)
+    const int Nt;   //Nt on the fine grid in rank r (no halo)
+    const int Ntot; //Nx*Nt
     const int colors = LevelV::Colors[level];   //Number of colors at this level
     const int Ntest = (level != LevelV::maxLevel) ? LevelV::Ntest[level]: 1;     //Number of test vectors to go to the next level
     const int DOF = 2*colors;         //Degrees of freedom at each lattice site at this level
@@ -153,7 +157,7 @@ public:
 	x_i = P^dagg_ij v_j. dim(P^dagg) =  Ntest Nagg x DOF Nsites,
 	dim(v) = [Nsites][DOF], dim(x) = [NBlocks][2*Ntest] 
     */
-    void Pt_v(const spinor& v,spinor& out);
+    void Pdagg_v(const spinor& v,spinor& out);
 
     //Index functions for gauge links. These correspond to the current level
 	//get index for A_coeff 1D array
