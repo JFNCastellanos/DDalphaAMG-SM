@@ -66,7 +66,79 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 	}
 }
 
+//Local orthonormalization.
+void Level::orthonormalize(){	
+    //Given a set of test vectors, returns a local orthonormalization.
+    //For the set of test vectors (v1^(1)|v2^(1)|...|v_Nv^(1)|...|v1^(Nagg)|...|v_Nv^(Nagg)), we
+    //orthonormalize the sets {v1^{a}, ..., vn^(a)} for each aggregate.
+    //This follows the steps from Section 3.1 of A. Frommer et al "Adaptive Aggregation-Based Domain Decomposition 
+    //Multigrid for the Lattice Wilson-Dirac Operator", SIAM, 36 (2014).
 
+	//Orthonormalization by applying Gram-Schmidt
+	c_double proj; 
+	c_double norm;
+
+	int bx, bt, xini, xfin, tini, tfin;
+	int indx;
+	//Lattice blocks
+	for (int b = 0; b<blocks_per_rank; b++) {	
+		bx = b / tblocks_per_rank;
+		bt = b % tblocks_per_rank; 
+		//----Coordinates of the elements inside block----//
+		xini = x_elements*bx; xfin = xini + x_elements;
+		tini = t_elements*bt; tfin = tini + t_elements; 
+		//-----------------------------------------------//
+		//Spin defining the aggregate for a particular block
+		for (int s = 0; s < 2; s++) {
+			//Looping over the test vectors
+			for (int nt = 0; nt < Ntest; nt++) {
+				for (int ntt = 0; ntt < nt; ntt++) {
+					proj = 0;
+					for(int x=xini; x<xfin; x++){
+					for(int t=tini; t<tfin; t++){	
+					for(int c=0; c<colors; c++){
+						indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
+						proj += tvec.val[indx*Ntest+nt] * std::conj(tvec.val[indx*Ntest+ntt]);
+
+					}
+					}
+					}
+					for(int x=xini; x<xfin; x++){
+					for(int t=tini; t<tfin; t++){	
+					for(int c=0; c<colors; c++){
+						indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
+						tvec.val[indx*Ntest+nt] -= proj * tvec.val[indx*Ntest+ntt];
+
+					}
+					}
+					}
+				}
+				//normalize
+				norm = 0.0;
+				for(int x=xini; x<xfin; x++){
+				for(int t=tini; t<tfin; t++){	
+				for(int c=0; c<colors; c++){
+					indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
+					norm += tvec.val[indx*Ntest+nt] * std::conj(tvec.val[indx*Ntest+nt]);
+
+				}
+				}
+				}
+				norm = sqrt(std::real(norm)) + 0.0*I_number;
+				for(int x=xini; x<xfin; x++){
+				for(int t=tini; t<tfin; t++){	
+				for(int c=0; c<colors; c++){
+					indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
+					tvec.val[indx*Ntest+nt] /= norm;
+
+				}
+				}
+				} 
+				
+			}
+		} 	
+	}
+}
 
 /*
 void Level::makeDirac(){
@@ -285,86 +357,53 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 }
 */
 
-//Orthonormalization
-/*
-void Level::orthonormalize(){	
-	//Local orthonormalization of the test vectors
-	//Each test vector is chopped into the Nagg aggregates, which yields Ntest*Nagg columns for the interpolator.
-	//Each column is orthonormalized with respect to the others that belong to the same aggregate.
-	//This follows the steps from Section 3.1 of A. Frommer et al "Adaptive Aggregation-Based Domain Decomposition 
-	//Multigrid for the Lattice Wilson-Dirac Operator", SIAM, 36 (2014).
-	int n, s, c; //block, spin and color
-	int var;
-	//Orthonormalization by applying Gram-Schmidt
-	c_double proj; 
-	c_double norm;
-	//Looping over the aggregates
-	for (int a = 0; a < Nagg; a++) {
-		//Looping over the test vectors
-		for (int nt = 0; nt < Ntest; nt++) {
-			for (int ntt = 0; ntt < nt; ntt++) {
-				proj = 0;
-				for (int j = 0; j < colors * x_elements * t_elements; j++) {
-					var = Agg[a * sites_per_block * colors + j]; 
-					n = nCoords[var]; s = sCoords[var]; c = cCoords[var];
-					proj += interpolator_columns[nt][n][2*c+s] * std::conj(interpolator_columns[ntt][n][2*c+s]);
-				}
-				for (int j = 0; j < colors * x_elements * t_elements; j++) {
-					var = Agg[a * sites_per_block * colors + j]; 
-					n = nCoords[var]; s = sCoords[var]; c = cCoords[var];
-					interpolator_columns[nt][n][2*c+s] -= proj * interpolator_columns[ntt][n][2*c+s];
-				}
-			}
-			//normalize
-			norm = 0.0;
-			for (int j = 0; j < colors * x_elements * t_elements; j++) {
-				var = Agg[a * sites_per_block * colors + j]; 
-				n = nCoords[var]; s = sCoords[var]; c = cCoords[var];
-				norm += interpolator_columns[nt][n][2*c+s] * std::conj(interpolator_columns[nt][n][2*c+s]);
-			}
-			norm = sqrt(std::real(norm)) + 0.0*c_double(0,1); 
-			FLOPS += dsq;
-			for (int j = 0; j < colors * x_elements * t_elements; j++) {
-				var = Agg[a * sites_per_block * colors + j]; 
-				n = nCoords[var]; s = sCoords[var]; c = cCoords[var];
-				interpolator_columns[nt][n][2*c+s] /= norm;
-			}
-		}
-	} 	
-}
-*/
 
-/*
+
 void Level::checkOrthogonality() {
-	//Check orthogonality of the test vectors
-	//aggregate 
-	for(int block = 0; block < NBlocks; block++){
-	for (int alf = 0; alf < 2; alf++) {
-		//checking orthogonality 
-		for (int i = 0; i < Ntest; i++) {
-		for (int j = 0; j < Ntest; j++) {
-			c_double dot_product = 0.0;
-			for (int n: LatticeBlocks[block]) {
-			for (int c = 0; c<colors; c++){
-				dot_product += std::conj(interpolator_columns[i][n][2*c+alf]) * interpolator_columns[j][n][2*c+alf];
+	int bx, bt, xini, xfin, tini, tfin;
+	c_double dot_product;
+	int indx;
+	for (int b = 0; b<blocks_per_rank; b++) {	
+		bx = b / tblocks_per_rank;
+		bt = b % tblocks_per_rank; 
+		//----Coordinates of the elements inside block----//
+		xini = x_elements*bx; xfin = xini + x_elements;
+		tini = t_elements*bt; tfin = tini + t_elements; 
+		//-----------------------------------------------//
+		//Spin defining the aggregate for a particular block
+		for (int s = 0; s < 2; s++) {
+			//Looping over the test vectors
+			for (int nt = 0; nt < Ntest; nt++) {
+			for (int ntt = 0; ntt < Ntest; ntt++) {
+				dot_product = 0.0;
+				for(int x=xini; x<xfin; x++){
+				for(int t=tini; t<tfin; t++){	
+				for(int c=0; c<colors; c++){
+					indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
+					dot_product += std::conj(tvec.val[indx*Ntest+nt]) * tvec.val[indx*Ntest+ntt]; //v_nt . v_ntt
+				}
+				}
+				}
+				if (std::abs(dot_product) > 1e-8 && nt!=ntt) {
+					if (mpi::rank2d == 0){
+						std::cout << "Block " << b << " spin " << s << std::endl;
+						std::cout << "Level " << level << std::endl;
+						std::cout << "Test vectors " << nt << " and " << ntt << " are not orthogonal: " << dot_product << std::endl;
+					}
+					exit(1);
+				}
+				else if(std::abs(dot_product-1.0) > 1e-8 && nt==ntt){
+					if (mpi::rank2d == 0){
+						std::cout << "Level " << level << std::endl;
+						std::cout << "Test vector " << nt << " not normalized " << dot_product << std::endl;
+					}
+					exit(1);
+				}
 			}
 			}
-			if (std::abs(dot_product) > 1e-8 && i!=j) {
-				std::cout << "Block " << block << " spin " << alf << std::endl;
-				std::cout << "Level " << level << std::endl;
-				std::cout << "Test vectors " << i << " and " << j << " are not orthogonal: " << dot_product << std::endl;
-				exit(1);
-			}
-			else if(std::abs(dot_product-1.0) > 1e-8 && i==j){
-				std::cout << "Level " << level << std::endl;
-				std::cout << "Test vector " << i << " not orthonormalized " << dot_product << std::endl;
-				exit(1);
-			}
-
-		}
 		}
 	}
-	}
-	std::cout << "Test vectors on level " << level << " are orthonormalized " << std::endl;
+	
+	if (mpi::rank2d == 0)
+		std::cout << "Test vectors on level " << level << " are orthonormalized " << std::endl;
 }
-*/

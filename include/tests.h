@@ -162,6 +162,8 @@ void Check_PPdagg(const int& l, const spinor& U){
     }
     }      
     }
+    level.orthonormalize();
+    level.checkOrthogonality();
 
     spinor vc(level.blocks_per_rank*2*Ntest);
     spinor temp(Nx*Nt*2*colors);
@@ -171,18 +173,20 @@ void Check_PPdagg(const int& l, const spinor& U){
         vc.val[i] = distribution(randomInt) + I_number * distribution(randomInt);
     
 
-
-
-
     level.P_vc(vc,temp);
     level.Pdagg_v(temp,PdaggPvc);
 
     for(int i = 0; i< level.blocks_per_rank*2*Ntest; i++){
         if (std::abs(vc.val[i]-PdaggPvc.val[i]) > 1e-8 ){
-            std::cout << "P^+ P vc != vc" << std::endl;
+            if (mpi::rank2d == 0){
+                std::cout << "P^+ P vc != vc" << std::endl;
+                std::cout << "Either P is ill-defined or test vectors require orthonormalization" << std::endl;
+            } 
             return; 
         } 
     }
 
-
+    if (mpi::rank2d == 0)
+        std::cout << "Test passed: P^+ P vc = vc" << std::endl;
+    
 }

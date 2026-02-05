@@ -93,7 +93,7 @@ public:
         Nt(LevelV::NtSites[level]/LevelV::RanksT[level]),
         Ntot(Nx*Nt)
     {
-        
+
         //Test vectors
         tvec        = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
         tvec_copy   = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
@@ -157,6 +157,9 @@ public:
     */
     void Pdagg_v(const spinor& v,spinor& out);
 
+    void orthonormalize();      //Local orthonormalization of the test vectors
+    void checkOrthogonality();  //Check orthogonality of the test vectors
+
     //Index functions for gauge links. These correspond to the current level
 	//get index for A_coeff 1D array
     //[A(x)]^{alf,bet}_{c,b} --> A_coeff[x][alf][bet][c][b]
@@ -206,8 +209,6 @@ public:
     //Make coarse gauge links. They will be used in the next level as G1, G2 and G3.
     //void makeCoarseLinks(Level& next_level);//& A_coeff,c_vector& B_coeff, c_vector& C_coeff);
 
-    //void orthonormalize(); //Local orthonormalization of the test vectors
-    //void checkOrthogonality(); //Check orthogonality of the test vectors
 
     /*
     Matrix-vector operation that defines the level l.

@@ -21,14 +21,11 @@ int main(int argc, char **argv) {
     CG::max_iter = 10000; //Maximum number of iterations for the conjugate gradient method
     CG::tol = 1e-10; //Tolerance for convergence
 
-
-    
-
     //To call the sequential program one has to choose ranks_x = ranks_t = 1
     if (mpi::rank == 0){
          //---Input data---//
         std::cout << " -----------------------------" << std::endl;
-        std::cout << "|  DDα-AMG Schwinger Model     |" << std::endl;
+        std::cout << "|   DDα-AMG Schwinger Model   |" << std::endl;
         std::cout << " -----------------------------" << std::endl;
         std::cout << "Nx " << LV::Nx << " Nt " << LV::Nt << std::endl;
         std::cout << "ranks_x: ";
@@ -77,7 +74,7 @@ int main(int argc, char **argv) {
 
     int l = 0;
     //AssembleP_Pdagg(l,U);
-    //Check_PPdagg(l,U);
+    Check_PPdagg(l,U);
 
     
 
