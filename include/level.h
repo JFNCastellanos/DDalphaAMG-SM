@@ -94,9 +94,7 @@ public:
         Ntot(Nx*Nt)
     {
         
-        
         //Test vectors
-
         tvec        = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
         tvec_copy   = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
 

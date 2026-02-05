@@ -49,7 +49,7 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 		bt = b % tblocks_per_rank; 
 		xini = x_elements*bx; xfin = xini + x_elements;
 		tini = t_elements*bt; tfin = tini + t_elements;
-		for(int cc; cc<Ntest; cc++){
+		for(int cc=0; cc<Ntest; cc++){
 			for(int x=xini; x<xfin; x++){
 			for(int t=tini; t<tfin; t++){	
 			for(int c=0; c<colors; c++){

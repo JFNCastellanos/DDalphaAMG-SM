@@ -1,6 +1,7 @@
 #include "dirac_operator.h"
 #include "level.h"
 #include "sap.h"
+#include <random>
 
 void check_sol(const spinor& U,const spinor& rhs, const spinor& inverse, const double& m0){
     spinor x(mpi::maxSizeH);
@@ -25,7 +26,8 @@ void check_sol(const spinor& U,const spinor& rhs, const spinor& inverse, const d
 
 
     
-void test_level_l(const int& l, const spinor& U){
+//Assemble P and Pdagg for level l.
+void AssembleP_Pdagg(const int& l, const spinor& U){
     Level level(l,U);
     int indxtv, indx;
     int Nt, Nx, colors, Ntest;
@@ -135,5 +137,52 @@ void test_level_l(const int& l, const spinor& U){
     }
 
 
+}
+
+//P^+ P should be equal to the identity on the coarse level
+//This only works if the test vectors are locally orthonormalized
+void Check_PPdagg(const int& l, const spinor& U){
+    Level level(l,U);
+    int indxtv, indx;
+    int Nt, Nx, colors, Ntest;
+    Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
+    static std::mt19937 randomInt(50); //Same seed for all the MPI copies
+	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
     
+    for(int cc = 0; cc < level.Ntest; cc++){
+        for(int x=0; x<level.Nx; x++){
+        for(int t=0; t<level.Nt; t++){
+	    for(int c=0; c<level.colors; c++){
+	    for(int s=0; s<2; s++){
+            indx 	= x*Nt*colors*2 + t*colors*2 + c*2 	+ s;
+			indxtv 	= indx*Ntest + cc;
+            level.tvec.val[indxtv] = distribution(randomInt) + I_number * distribution(randomInt);;            
+        }
+    }
+    }
+    }      
+    }
+
+    spinor vc(level.blocks_per_rank*2*Ntest);
+    spinor temp(Nx*Nt*2*colors);
+    spinor PdaggPvc(level.blocks_per_rank*2*Ntest);
+
+    for(int i = 0; i< level.blocks_per_rank*2*Ntest; i++)
+        vc.val[i] = distribution(randomInt) + I_number * distribution(randomInt);
+    
+
+
+
+
+    level.P_vc(vc,temp);
+    level.Pdagg_v(temp,PdaggPvc);
+
+    for(int i = 0; i< level.blocks_per_rank*2*Ntest; i++){
+        if (std::abs(vc.val[i]-PdaggPvc.val[i]) > 1e-8 ){
+            std::cout << "P^+ P vc != vc" << std::endl;
+            return; 
+        } 
+    }
+
+
 }

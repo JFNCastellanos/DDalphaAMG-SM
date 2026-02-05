@@ -47,17 +47,12 @@ int main(int argc, char **argv) {
     MPI_Bcast(&LevelV::levels, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&m0, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
     
+
+    //The order in which these functions are called is very important
     initializeMPI(); //2D rank topology
-
-
     LevelV::maxLevel = LevelV::levels-1;
     allocate_lattice_arrays(); 
-
     readParameters("../inputs");
-
-    
-
-
     boundaries();
 
 
@@ -81,38 +76,12 @@ int main(int argc, char **argv) {
     }
 
     int l = 0;
-    test_level_l(l,U);
-    
+    //AssembleP_Pdagg(l,U);
+    //Check_PPdagg(l,U);
 
     
-    /*
-    for(int i = 0; i < mpi::size; i++) {
-        MPI_Barrier(mpi::cart_comm);
-        if (i == mpi::rank2d) {
-            std::cout << "rank " << mpi::rank2d << std::endl;
-            for(int x = 1; x<=mpi::width_x; x++){
-                for(int t = 1; t<=mpi::width_t; t++){
-                    int n = (x-1)*mpi::width_t + (t-1);
-                    std::cout << "sol_BiCG        " <<  sol_BiCG.val[idx(x,t,0)] << "    " <<  sol_BiCG.val[idx(x,t,1)] << std::endl;
-                    std::cout << "sol_fgmres      " <<  sol_fgmres.val[idx(x,t,0)] << "    " << sol_fgmres.val[idx(x,t,1)] << std::endl;
-                    std::cout << "sol_SAP         " <<  sol_SAP.val[idx(x,t,0)] << "    " << sol_SAP.val[idx(x,t,1)] << std::endl;
-                    std::cout << std::endl;
-                }
-                //std::cout << " " <<std::endl;
-            } 
-        }
-    }
-    */
-   
-    
 
-    fflush(stdout);
 
-//TODO 
-/*
-    Implement SAP:
-      
-*/
 
     //Free coordinate arrays
     free_lattice_arrays();
