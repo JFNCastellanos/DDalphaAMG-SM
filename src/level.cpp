@@ -140,7 +140,6 @@ void Level::orthonormalize(){
 	}
 }
 
-/*
 void Level::makeDirac(){
 	c_double P[2][2][2], M[2][2][2]; 
 	//P = 1 + sigma
@@ -157,20 +156,19 @@ void Level::makeDirac(){
 	M[1][0][0] = 1.0; M[1][0][1] = I_number;
 	M[1][1][0] = -I_number; M[1][1][1] = 1.0; 
 
-
-	for(int x=0; x<Nsites; x++){
+	int nini = (Nt+2)+1; int nfin= Nx*(Nt+2)+Nt;
+	for(int n=nini; n<=nfin; n++){
 	for(int alf=0; alf<2;alf++){
 	for(int bet=0; bet<2;bet++){
 	for(int c = 0; c<colors; c++){
 	for(int b = 0; b<colors; b++){
-		G1[getG1index(x,alf,bet,c,b)] = 0;//This coefficient is not used at level 0
-		G2[getG2G3index(x,alf,bet,c,b,0)] = 0; G2[getG2G3index(x,alf,bet,c,b,1)] = 0;
-		G3[getG2G3index(x,alf,bet,c,b,0)] = 0; G3[getG2G3index(x,alf,bet,c,b,1)] = 0;
+		G1.val[getG1index(n,alf,bet,c,b)] = 0;//This coefficient is not used at level 0
+		G2.val[getG2G3index(n,alf,bet,c,b,0)] = 0; G2.val[getG2G3index(n,alf,bet,c,b,1)] = 0;
+		G3.val[getG2G3index(n,alf,bet,c,b,0)] = 0; G3.val[getG2G3index(n,alf,bet,c,b,1)] = 0;
 		//For level = 0 
 		for(int mu : {0,1}){
-			G2[getG2G3index(x,alf,bet,c,b,mu)] = 0.5 * M[mu][alf][bet] * U[x][mu];
-			G3[getG2G3index(x,alf,bet,c,b,mu)] = 0.5 * P[mu][alf][bet] * std::conj(U[LeftPB_l[level][x][mu]][mu]);
-			FLOPS += (dcm + cm)*2;
+			G2.val[getG2G3index(n,alf,bet,c,b,mu)] = 0.5 * M[mu][alf][bet] * U.val[2*n+mu];
+			G3.val[getG2G3index(n,alf,bet,c,b,mu)] = 0.5 * P[mu][alf][bet] * std::conj(U.val[2*lpb[2*n+mu]+mu]);
 		}
 		
 	}
@@ -180,25 +178,37 @@ void Level::makeDirac(){
 	}
 		
 }
-*/
+
 
 
 //Dirac operator at the current level
-/*
 void Level::D_operator(const spinor& v, spinor& out){	
 
-	for(int x = 0; x<Nsites;x++){
+	exchange_halo(v.val); //Communicate halos
+
+	int indx, indx1, indx2;
+	//for(int x = 1; x<=width_x; x++)
+	//	for(int t = 1; t<=width_t; t++)
+			//n = x*(width_t+2)+t;
+
+	//n only runs in the interior of the lattice domain
+	int nini = (Nt+2)+1; int nfin= Nx*(Nt+2)+Nt;
+
+	for(int n = nini; n<=nfin;n++){
 	for(int alf = 0; alf<2; alf++){
 	for(int c = 0; c<colors; c++){
-		out[x][2*c+alf] = (mass::m0+2)*v[x][2*c+alf];
-		FLOPS += da+dcm;
+		indx = n*colors*2+c*2+alf;
+		out.val[indx] = (mass::m0+2)*v.val[indx];
 	for(int bet = 0; bet<2; bet++){
 	for(int b = 0; b<colors; b++){
-		out[x][2*c+alf] -= G1[getG1index(x,alf,bet,c,b)] * v[x][2*b+bet];
-		FLOPS += ca + cm;
+		indx1 = n*colors*2+b*2+bet;
+		out.val[indx] -= G1.val[getG1index(n,alf,bet,c,b)] * v.val[indx1];
 		for(int mu:{0,1}){
-			out[x][2*c+alf] -= ( G2[getG2G3index(x,alf,bet,c,b,mu)] * SignR_l[level][x][mu] * v[RightPB_l[level][x][mu]][2*b+bet]
-							+ G3[getG2G3index(x,alf,bet,c,b,mu)] * SignL_l[level][x][mu] * v[LeftPB_l[level][x][mu]][2*b+bet] );
+			indx1 = rpb[2*n+mu]*colors*2+b*2+bet;
+			indx2 = lpb[2*n+mu]*colors*2+b*2+bet;
+			out.val[indx] -= ( 	G2.val[getG2G3index(n,alf,bet,c,b,mu)] * rsign[2*n+mu] * v.val[indx1]
+							+ 		G3.val[getG2G3index(n,alf,bet,c,b,mu)] * lsign[2*n+mu] * v.val[indx2] 
+							);
 		}
 	}
 	}
@@ -206,8 +216,27 @@ void Level::D_operator(const spinor& v, spinor& out){
 	}
 	}
 
+	/*
+	for(int x = 0; x<Ntot;x++){
+	for(int alf = 0; alf<2; alf++){
+	for(int c = 0; c<colors; c++){
+		out[x][2*c+alf] = (mass::m0+2)*v[x][2*c+alf];
+	for(int bet = 0; bet<2; bet++){
+	for(int b = 0; b<colors; b++){
+		out[x][2*c+alf] -= G1[getG1index(x,alf,bet,c,b)] * v[x][2*b+bet];
+		for(int mu:{0,1}){
+			out[x][2*c+alf] -= ( G2[getG2G3index(x,alf,bet,c,b,mu)] * SignR_l[level][2*x+mu] * v[RightPB_l[level][2*x+mu]][2*b+bet]
+							+ G3[getG2G3index(x,alf,bet,c,b,mu)] * SignL_l[level][2*x+mu] * v[LeftPB_l[level][2*x+mu]][2*b+bet] );
+		}
+	}
+	}
+	}
+	}
+	}
+	*/
+
 }
-*/
+
 
 
 

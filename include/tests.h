@@ -190,3 +190,41 @@ void Check_PPdagg(const int& l, const spinor& U){
         std::cout << "Test passed: P^+ P vc = vc" << std::endl;
     
 }
+
+//We check that the implementation of D_phi and D_operator have the exact same output on the fine level.
+void test_Doperator_fine_level(const spinor& U){
+    spinor phi(mpi::maxSizeH);
+    spinor out1(mpi::maxSizeH);
+    spinor out2(mpi::maxSizeH);
+    for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            U.val[2*n]      = RandomU1();
+            U.val[2*n+1]    = RandomU1();
+            phi.val[2*n]      = RandomU1();
+            phi.val[2*n+1]    = RandomU1();
+        }
+    }
+
+    int l=0;
+    Level level(l,U);
+
+    D_phi(U,phi,out1,mass::m0);
+    level.D_operator(phi,out2);
+     for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            if (std::abs(out1.val[2*n]-out2.val[2*n]) > 1e-8 || std::abs(out1.val[2*n+1]-out2.val[2*n+1]) > 1e-8){
+                if (mpi::rank2d == 0){
+                    std::cout << "Both implementations of D don't coincide" << std::endl;
+                    std::cout << "D_phi      " << out1.val[2*n] << "    " <<  out1.val[2*n+1] << std::endl;
+                    std::cout << "D_operator " << out2.val[2*n] << "    " <<  out2.val[2*n+1] << std::endl;
+                }
+                return; 
+            } 
+        }
+     }
+
+
+
+}

@@ -11,7 +11,7 @@ typedef std::complex<double> c_double;
 extern double pi;
 extern c_double I_number; //imaginary number
 
-
+namespace mass{extern double m0;}
 
 
 //For scattering and gathering information from the 2D rank topology

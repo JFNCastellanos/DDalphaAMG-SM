@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     MPI_Bcast(&mpi::ranks_t, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&LevelV::levels, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&m0, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
-    
+    mass::m0 = m0;
 
     //The order in which these functions are called is very important
     initializeMPI(); //2D rank topology
@@ -74,7 +74,9 @@ int main(int argc, char **argv) {
 
     int l = 0;
     //AssembleP_Pdagg(l,U);
-    Check_PPdagg(l,U);
+    //Check_PPdagg(l,U);
+
+    test_Doperator_fine_level(U);
 
     
 

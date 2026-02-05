@@ -13,6 +13,8 @@ int Coords(const int& x, const int& t){
 	return x*mpi::width_t + t;
 }
 
+namespace mass{double m0;}
+
 namespace mpi{
     int rank = 0;
     int size = 1; 

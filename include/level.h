@@ -99,14 +99,17 @@ public:
         tvec_copy   = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
 
          	    
-        //Gauge links to define D_operator (matrix problem at this level)
-        //G1 = c_vector(Nsites*2*2*colors*colors,0);
-        //G2 = c_vector(Nsites*2*2*colors*colors*2,0);
-        //G3 = c_vector(Nsites*2*2*colors*colors*2,0);
+        //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
+        int Ntot_halo = (Nx+2)*(Nt+2);
+        G1 = spinor(Ntot_halo*2*2*colors*colors);
+        G2 = spinor(Ntot_halo*2*2*colors*colors*2);
+        G3 = spinor(Ntot_halo*2*2*colors*colors*2);
 
-        //if (level == 0){
-        //    makeDirac(); 
-        //}
+        exchange_halo(U.val); //We only exchange the halo once, the gauge field is not modified.
+
+        if (level == 0)
+            makeDirac(); 
+        
         
     };
 
@@ -133,17 +136,14 @@ public:
     const int sites_per_block = x_elements * t_elements;
     const int NBlocks = (level != LevelV::maxLevel) ? LevelV::NBlocks[level]: 1; //Number of lattice blocks 
     
-  
-    
-
     //At level = 0 these vectors represent the gauge links.
     //At level > 1 they are the coarse gauge links generated in the previous level
-    //c_vector G1; 
-    //c_vector G2; 
-    //c_vector G3; 
+    spinor G1; 
+    spinor G2; 
+    spinor G3; 
 
 
-    /*
+/*
 	Prolongation operator times a spinor x = P v
 	x_i = P_ij v_j. dim(P) = DOF Nsites x Ntest Nagg, 
 	dim(v) = [NBlocks][2*Ntest], dim(x) = [Nsites][DOF]
@@ -204,7 +204,7 @@ public:
 
     
     //Creates G1, G2 and G3
-    //void makeDirac();
+    void makeDirac();
 
     //Make coarse gauge links. They will be used in the next level as G1, G2 and G3.
     //void makeCoarseLinks(Level& next_level);//& A_coeff,c_vector& B_coeff, c_vector& C_coeff);
@@ -216,7 +216,7 @@ public:
     at level = 1 D_operator is Dc
     at level = 2 D_operator is (Dc)_c ...
     */
-    //void D_operator(const spinor& v, spinor& out);
+    void D_operator(const spinor& v, spinor& out);
 
 };
 
