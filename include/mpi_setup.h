@@ -73,6 +73,60 @@ inline void buildCartesianTopology(){
     //        mpi::bot_left,mpi::bot_right,mpi::top_left,mpi::top_right);
 }
 
+
+
+
+//Rank agglomeration
+/*
+ *                                   
+ *                     t                                Rank coarsening
+ *   0  +------------------------------+ Nt         +---------------------+        
+ *      |  r0  |  r1   |  r2   |  r3   |            |          |          |
+ *      |------|-------|-------|-------|            |  rank 0  |  rank 1  |   
+ *   x  |  r4  |  r5   |  r6   |  r7   |            |          |          |
+ *      |------|-------|-------|-------|            |----------|----------|         
+ *      |  r8  |  r9   |  r10  |  r11  |            |          |          |
+ *      |------|-------|-------|-------|            |  rank 2  |  rank 3  |
+ *      |  r12 |  r13  |  r14  |  r15  |            |          |          |   
+ *   Nx +------------------------------+ Nt         +---------------------+
+ * 
+ */
+inline void coarseLevelCommunicators(){
+
+    //Define a communicator for the group of ranks on the fine level
+    MPI_Comm_group(mpi::cart_comm, &mpi::cart_comm_group);
+
+    // Create the small group by including only processes 1 and 3 from the world group
+    mpi::ranks_x_c  = mpi::ranks_x/2;
+    mpi::ranks_t_c  = mpi::ranks_t/2;
+    mpi::size_c     = mpi::ranks_x_c*mpi::ranks_t_c;
+  
+    int ranks_c[mpi::ranks_coarse_level][mpi::size_c];
+    int rcl_x, rcl_t;
+    int rx_ini, rx_fin, rt_ini, rt_fin;
+
+    for(int rcl=0; rcl<mpi::ranks_coarse_level; rcl++){
+        rcl_x = rcl / mpi::ranks_t_c;
+        rcl_t = rcl % mpi::ranks_t_c;
+        
+        rx_ini = rcl_x*mpi::ranks_x_c; rx_fin = rx_ini + mpi::ranks_x_c; 
+        rt_ini = rcl_t*mpi::ranks_t_c; rt_fin = rt_ini + mpi::ranks_t_c; 
+        int count = 0;
+        for(int rx=rx_ini; rx<rx_fin; rx++){
+            for(int rt=rt_ini; rt<rt_fin; rt++){
+                ranks_c[rcl][count++] = rx*mpi::ranks_t+rt; 
+            }
+        }        
+    }
+
+    //Create groups and communicators for the rank agglomeration 
+
+    for(int rcl=0; rcl<mpi::ranks_coarse_level; rcl++){
+        MPI_Group_incl(mpi::cart_comm_group, mpi::size_c, ranks_c[rcl], &mpi::coarse_group[rcl]);
+        MPI_Comm_create(mpi::cart_comm, mpi::coarse_group[rcl], &mpi::coarse_comm[rcl]);
+    }
+}
+
 inline void defineDataTypes(){
     //Create a new data type for the blocks corresponding to each rank
     /*  
@@ -103,6 +157,7 @@ inline void defineDataTypes(){
 inline void initializeMPI(){
     assignWidth();
     buildCartesianTopology();
+    coarseLevelCommunicators();
     defineDataTypes();
 }
 

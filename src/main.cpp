@@ -46,9 +46,10 @@ int main(int argc, char **argv) {
     mass::m0 = m0;
 
     //The order in which these functions are called is very important
-    initializeMPI(); //2D rank topology
+
     LevelV::maxLevel = LevelV::levels-1;
     allocate_lattice_arrays(); 
+    initializeMPI(); //2D rank topology
     readParameters("../inputs");
     boundaries();
 
@@ -64,11 +65,8 @@ int main(int argc, char **argv) {
     //AssembleP_Pdagg(l,U);
     //Check_PPdagg(l,U);
     //test_Doperator_fine_level(U);
+    //rank_agglomeration_test();
 
-    rank_agglomeration_test();
-
-    
-     MPI_Group groups[5];
     
 
 

@@ -36,6 +36,15 @@ namespace mpi{
     int top_left = 0;
     int top_right = 0;
     MPI_Comm cart_comm;
+
+    MPI_Group cart_comm_group;                   
+    MPI_Group* coarse_group     = nullptr;  
+    MPI_Comm* coarse_comm       = nullptr;   
+    int ranks_x_c = 1;                              
+    int ranks_t_c = 1;                               
+    int size_c = 1;                                  
+
+
 }
 
 namespace CG{
@@ -135,6 +144,8 @@ void allocate_lattice_arrays() {
     LevelV::RanksX = new int[LevelV::levels];
     LevelV::RanksT = new int[LevelV::levels];
 
+    mpi::coarse_group = new MPI_Group[mpi::ranks_coarse_level];
+    mpi::coarse_comm  = new MPI_Comm[mpi::ranks_coarse_level];
 }
 
 void free_lattice_arrays() {
@@ -170,5 +181,8 @@ void free_lattice_arrays() {
 
     delete[] LevelV::RanksX;
     delete[] LevelV::RanksT;  
+
+    delete[] mpi::coarse_group;
+    delete[] mpi::coarse_comm;
     
 }
