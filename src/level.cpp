@@ -10,6 +10,16 @@ void Level::P_vc(const spinor& vc,spinor& out){
 	int xini, tini, xfin, tfin;
 	int idxout, idxv, idxtv; //Vectorized index of out, v and test vector
 	
+
+	//vc should include its halo, but only on the root rank of the communicator
+	//t_total_blocks = t_blocks_per_rank * mpi::ranks_t_c
+	//x_total_blocks = x_blocks_per_rank * mpi::ranks_x_c
+	//spinor vc((x_total_blocks+2)*(t_total_blocks+2)*Ntest*2) --> Full size of vc
+	//gather data from other ranks to perform operations. 
+	//I need to extrapolate from vc living in one rank, to out living in many ranks
+
+	//I need to carefully think how to do this ... 06/02/26 17:16
+
 	for(int b = 0; b<blocks_per_rank; b++){
 		bx = b / tblocks_per_rank;
 		bt = b % tblocks_per_rank;	
@@ -24,7 +34,7 @@ void Level::P_vc(const spinor& vc,spinor& out){
 				idxout 	= x*Nt*colors*2 				+ t*colors*2 + c*2 	+ s;
 				idxtv 	= idxout*Ntest+cc;	 
 				idxv 	= bx*tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + s;
-				out.val[idxout] += tvec.val[idxtv] * vc.val[idxv]; //out lives in one rank, while vc lives in many ... 
+				out.val[idxout] += tvec.val[idxtv] * vc.val[idxv]; 
 			}
 			}
 			}

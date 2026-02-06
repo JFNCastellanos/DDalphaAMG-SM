@@ -96,9 +96,8 @@ inline void coarseLevelCommunicators(){
     //Define a communicator for the group of ranks on the fine level
     MPI_Comm_group(mpi::cart_comm, &mpi::cart_comm_group);
 
-    // Create the small group by including only processes 1 and 3 from the world group
-    mpi::ranks_x_c  = mpi::ranks_x/2;
-    mpi::ranks_t_c  = mpi::ranks_t/2;
+    mpi::ranks_x_c  = mpi::ranks_x/2;   //We enforce two ranks on the x direction
+    mpi::ranks_t_c  = mpi::ranks_t/2;   //We enforce two ranks on the t direction
     mpi::size_c     = mpi::ranks_x_c*mpi::ranks_t_c;
   
     int ranks_c[mpi::ranks_coarse_level][mpi::size_c];
