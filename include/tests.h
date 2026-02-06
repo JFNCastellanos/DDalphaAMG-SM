@@ -205,9 +205,12 @@ void test_Doperator_fine_level(const spinor& U){
             phi.val[2*n+1]    = RandomU1();
         }
     }
-
+    //exchange_halo(U.val);
     int l=0;
     Level level(l,U);
+    level.orthonormalize();         //Orthonormalize test vectors
+    level.checkOrthogonality();     //Checking orthogonality 
+
 
     D_phi(U,phi,out1,mass::m0);
     level.D_operator(phi,out2);
@@ -215,16 +218,21 @@ void test_Doperator_fine_level(const spinor& U){
         for(int t = 1; t<=mpi::width_t; t++){
             int n = x*(mpi::width_t+2)+t;
             if (std::abs(out1.val[2*n]-out2.val[2*n]) > 1e-8 || std::abs(out1.val[2*n+1]-out2.val[2*n+1]) > 1e-8){
+                 std::cout << "Both implementations of D don't coincide, rank " << mpi::rank2d << std::endl;
                 if (mpi::rank2d == 0){
-                    std::cout << "Both implementations of D don't coincide" << std::endl;
+                    std::cout << "x " << x << " t " << t << std::endl;
                     std::cout << "D_phi      " << out1.val[2*n] << "    " <<  out1.val[2*n+1] << std::endl;
                     std::cout << "D_operator " << out2.val[2*n] << "    " <<  out2.val[2*n+1] << std::endl;
+                    std::cout << std::endl;
                 }
                 return; 
             } 
+            
         }
      }
 
+    if (mpi::rank2d == 0)
+        std::cout << "Both implementations of the Dirac operator yield the same result" << std::endl;
 
 
 }

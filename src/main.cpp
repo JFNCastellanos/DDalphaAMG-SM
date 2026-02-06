@@ -56,21 +56,9 @@ int main(int argc, char **argv) {
     SAP_fine_level sap(mpi::width_x,  mpi::width_t, SAPV::sap_block_x, SAPV::sap_block_t, 2, 1);
 
     srand((mpi::rank2d+1));
-       
-
     
     spinor U(mpi::maxSizeH);
-    spinor phi(mpi::maxSizeH);
 
-    for(int x = 1; x<=mpi::width_x; x++){
-        for(int t = 1; t<=mpi::width_t; t++){
-            int n = x*(mpi::width_t+2)+t;
-            U.val[2*n]      = RandomU1();
-            U.val[2*n+1]    = RandomU1();
-            phi.val[2*n]      = RandomU1();
-            phi.val[2*n+1]    = RandomU1();
-        }
-    }
 
     int l = 0;
     //AssembleP_Pdagg(l,U);

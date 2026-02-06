@@ -98,14 +98,16 @@ public:
         tvec        = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
         tvec_copy   = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
 
-         	    
+       	    
         //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
         int Ntot_halo = (Nx+2)*(Nt+2);
+
+        //std::cout << "colors " << colors << std::endl;
+
         G1 = spinor(Ntot_halo*2*2*colors*colors);
         G2 = spinor(Ntot_halo*2*2*colors*colors*2);
         G3 = spinor(Ntot_halo*2*2*colors*colors*2);
 
-        exchange_halo(U.val); //We only exchange the halo once, the gauge field is not modified.
 
         if (level == 0)
             makeDirac(); 
