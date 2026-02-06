@@ -236,3 +236,68 @@ void test_Doperator_fine_level(const spinor& U){
 
 
 }
+
+
+void rank_agglomeration_test(){
+
+    if (mpi::size != 16){
+         printf("This test is meant to be run with 16 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+
+    int r = mpi::rank2d;
+    int A[4] = {(r+1)*1,(r+1)*2,(r+1)*3,(r+1)*4};
+    int rx = r / mpi::ranks_t;
+    int rt = r % mpi::ranks_t;
+
+   
+    // Create the small group by including only processes 1 and 3 from the world group
+    int const ranks_x_c = mpi::ranks_x/2;
+    int const ranks_t_c = mpi::ranks_t/2;
+    int const size_c   = ranks_x_c*ranks_t_c;
+    int ranks_c[size_c];
+
+    // Get the group or processes of the default communicator
+    MPI_Group cart_comm_group;
+    MPI_Comm_group(mpi::cart_comm, &cart_comm_group);
+ 
+
+     if (0 <= rx && rx < ranks_x_c && 0 <= rt && rt < ranks_t_c)
+        printf("A=[%d,%d,%d,%d] rank %d\n",A[0],A[1],A[2],A[3],r);
+
+
+    int count=0;
+    for(int rx=0; rx<ranks_x_c; rx++){
+        for(int rt=0; rt<ranks_t_c; rt++){
+            ranks_c[count++] = rx*mpi::ranks_t+rt; 
+        }
+    }
+
+    MPI_Group coarse_group;
+    MPI_Group_incl(cart_comm_group, size_c, ranks_c, &coarse_group);
+ 
+    // Create the new communicator from that group of processes.
+    MPI_Comm coarse_comm;
+    MPI_Comm_create(mpi::cart_comm, coarse_group, &coarse_comm);
+    
+    if (coarse_comm != MPI_COMM_NULL){
+        int coarse_rank;
+        MPI_Comm_rank(coarse_comm, &coarse_rank);
+        printf("Process %d in cart_comm is process %d in coarse_comm.\n", mpi::rank2d,coarse_rank);
+        //Next step is to gather data from each rank in coarse_group to the root
+        int buffer[4*size_c];
+         std::cout << "Ranks in communicator " << size_c << std::endl;
+        MPI_Gather(&A,4,MPI_INT,&buffer,4,MPI_INT,0,coarse_comm);
+        if (coarse_rank == 0){     
+            for(int i = 0; i<4*size_c; i++)
+                std::cout << buffer[i] << ", ";
+        }
+        std::cout << std::endl;
+
+    }
+
+    
+   
+ 
+
+}

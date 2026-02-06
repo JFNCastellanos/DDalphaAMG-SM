@@ -24,7 +24,7 @@ void Level::P_vc(const spinor& vc,spinor& out){
 				idxout 	= x*Nt*colors*2 				+ t*colors*2 + c*2 	+ s;
 				idxtv 	= idxout*Ntest+cc;	 
 				idxv 	= bx*tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + s;
-				out.val[idxout] += tvec.val[idxtv] * vc.val[idxv];
+				out.val[idxout] += tvec.val[idxtv] * vc.val[idxv]; //out lives in one rank, while vc lives in many ... 
 			}
 			}
 			}
