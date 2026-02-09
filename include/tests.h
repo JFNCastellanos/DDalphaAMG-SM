@@ -360,8 +360,6 @@ void gather_vector_test(){
 
         // Displacement in complex-element units into buffer.val (including halo padding)
         displs[r] = (global_x_start * (Nt_tot_sites + 2) + global_t_start) * 2;
-        if (mpi::rank2d == 0)
-            std::cout << "rank " << r << " -> displs[" << r << "] = " << displs[r] << "\n";
     }
 
     // Use Gatherv: send 1 instance of the local strided type, receive into the resized global type
@@ -379,7 +377,7 @@ void gather_vector_test(){
     MPI_Type_free(&recv_domain_resized);
 
     
-    for(int i = 0; i <1; i++) {
+    for(int i = 0; i <mpi::size; i++) {
         MPI_Barrier(mpi::cart_comm);
         if (i == mpi::rank2d) {
             std::cout << "\nGather in rank " << mpi::rank2d << std::endl;

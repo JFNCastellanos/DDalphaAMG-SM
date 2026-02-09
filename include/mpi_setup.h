@@ -152,6 +152,7 @@ inline void defineDataTypes(){
     MPI_Type_vector(mpi::width_x, LV::dof, (mpi::width_t+2)*LV::dof, MPI_DOUBLE_COMPLEX, &column_type);
     MPI_Type_commit(&column_type);
 
+
 }
 
 inline void initializeMPI(){
