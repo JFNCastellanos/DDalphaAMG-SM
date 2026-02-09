@@ -304,7 +304,7 @@ void gather_vector_test(){
 
     int Nx_tot_sites = mpi::width_x*mpi::ranks_x_c;
     int Nt_tot_sites = mpi::width_t*mpi::ranks_t_c;
-    spinor buffer(Nx_tot_sites*Nt_tot_sites*2);
+    spinor buffer((Nx_tot_sites+2)*(Nt_tot_sites+2)*2);
 
     int root_rank = 0;  //Root rank inside the communicator agglomerating ranks
 	int commID = mpi::rank_dictionary[mpi::rank2d];
@@ -331,11 +331,12 @@ void gather_vector_test(){
 
 
     // Gather inner domains from all ranks in the coarse communicator
-    // Create a recv type that matches the global buffer layout (strided by full global row)
+    // Now include halos in the global receive buffer: buffer has size (Nx_tot_sites+2)*(Nt_tot_sites+2)*2
+    // Create a recv type that matches the global buffer layout (strided by full global row including halo)
     MPI_Datatype recv_domain;
-    MPI_Type_vector(mpi::width_x,            // number of rows to place
+    MPI_Type_vector(mpi::width_x,            // number of rows to place per rank
                     2 * mpi::width_t,        // elements per row (complex numbers)
-                    2 * Nt_tot_sites,        // stride between rows in global buffer (complex elements)
+                    2 * (Nt_tot_sites + 2),  // stride between rows in global buffer (complex elements) including halo
                     MPI_DOUBLE_COMPLEX,
                     &recv_domain);
     MPI_Type_commit(&recv_domain);
@@ -353,12 +354,12 @@ void gather_vector_test(){
         int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
         int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
 
-        // Global starting position in the receive buffer (no halo in this buffer)
-        int global_x_start = rx * mpi::width_x;
-        int global_t_start = rt * mpi::width_t;
+        // Global starting position inside the buffer including halo (halo at index 0)
+        int global_x_start = rx * mpi::width_x + 1; // +1 to skip halo
+        int global_t_start = rt * mpi::width_t + 1; // +1 to skip halo
 
-        // Displacement in complex-element units into buffer.val
-        displs[r] = (global_x_start * Nt_tot_sites + global_t_start) * 2;
+        // Displacement in complex-element units into buffer.val (including halo padding)
+        displs[r] = (global_x_start * (Nt_tot_sites + 2) + global_t_start) * 2;
         if (mpi::rank2d == 0)
             std::cout << "rank " << r << " -> displs[" << r << "] = " << displs[r] << "\n";
     }
@@ -376,13 +377,15 @@ void gather_vector_test(){
 
     MPI_Type_free(&recv_domain);
     MPI_Type_free(&recv_domain_resized);
+
+    
     for(int i = 0; i <1; i++) {
         MPI_Barrier(mpi::cart_comm);
         if (i == mpi::rank2d) {
             std::cout << "\nGather in rank " << mpi::rank2d << std::endl;
-            for(int x = 0; x<Nx_tot_sites; x++){
-                for(int t = 0; t<Nt_tot_sites; t++){
-                    int n = x*Nt_tot_sites + t;
+            for(int x = 0; x<Nx_tot_sites+2; x++){
+                for(int t = 0; t<Nt_tot_sites+2; t++){
+                    int n = x*(Nt_tot_sites+2) + t;
                     std::cout << "[" << buffer.val[2*n] << ", " << buffer.val[2*n+1] << "], ";
                 }
                 std::cout << std::endl;
