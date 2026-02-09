@@ -2,39 +2,38 @@
 
 //Prolongator times a vector on the coarse grid
 void Level::P_vc(const spinor& vc,spinor& out){
-	//Loop over columns
-	for(int i = 0; i < Nx*Nt*colors*2; i++)
-		out.val[i] = 0.0; //Initialize the output spinor
+	for(int i = 0; i < (Nx+2)*(Nt+2)*colors*2; i++)
+		out.val[i] = 0.0; 
 
 	int bx, bt;
 	int xini, tini, xfin, tfin;
-	int idxout, idxv, idxtv; //Vectorized index of out, v and test vector
+	int idxout, idxv; //Vectorized index of out, v and test vector
 	
 
-	//vc should include its halo, but only on the root rank of the communicator
-	//t_total_blocks = t_blocks_per_rank * mpi::ranks_t_c
-	//x_total_blocks = x_blocks_per_rank * mpi::ranks_x_c
-	//spinor vc((x_total_blocks+2)*(t_total_blocks+2)*Ntest*2) --> Full size of vc
-	//gather data from other ranks to perform operations. 
-	//I need to extrapolate from vc living in one rank, to out living in many ranks
 
-	//I need to carefully think how to do this ... 06/02/26 17:16
+	//In case we have a lattice block crossing the MPI ranks
+	/*if (ranks_per_block != 0){
+		spinor vc_root((x_total_blocks+2)*(t_total_blocks+2)*Ntest*2);	//Spinor on the coarse grid.
+		int root_rank = 0;  //Root rank inside the communicator agglomerating ranks
+		int commID = mpi::rank_dictionary[mpi::rank2d];
+		//Gather test vectors without their halo 
+		MPI_Gather(&tvec.val,4,MPI_DOUBLE_COMPLEX,&vc_root.val,4,MPI_DOUBLE_COMPLEX,root_rank,mpi::coarse_comm[commID]);
+	}*/
 
 	for(int b = 0; b<blocks_per_rank; b++){
 		bx = b / tblocks_per_rank;
 		bt = b % tblocks_per_rank;	
 		//Coordinates inside the block (bx,bt)
-		xini = x_elements*bx; xfin = xini + x_elements;
-		tini = t_elements*bt; tfin = tini + t_elements;
+		xini = x_elements*bx+1; xfin = xini + x_elements;
+		tini = t_elements*bt+1; tfin = tini + t_elements;
 		for(int cc = 0; cc < Ntest; cc++){
 			for(int x=xini; x<xfin; x++){
 			for(int t=tini; t<tfin; t++){	
 			for(int c=0; c<colors; c++){
 			for(int s=0; s<2; s++){
-				idxout 	= x*Nt*colors*2 				+ t*colors*2 + c*2 	+ s;
-				idxtv 	= idxout*Ntest+cc;	 
-				idxv 	= bx*tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + s;
-				out.val[idxout] += tvec.val[idxtv] * vc.val[idxv]; 
+				idxout 	= x*(Nt+2)*colors*2 				+ t*colors*2 + c*2 	+ s;
+				idxv 	= bx*tblocks_per_rank*Ntest*2 		+ bt*Ntest*2 + cc*2 + s;
+				out.val[idxout] += tvec[cc].val[idxout] * vc.val[idxv]; 
 			}
 			}
 			}
@@ -47,27 +46,26 @@ void Level::P_vc(const spinor& vc,spinor& out){
 
 //Restriction operator times a spinor on the fine grid
 void Level::Pdagg_v(const spinor& v,spinor& out) {
-	for(int i = 0; i < blocks_per_rank*2*Ntest; i++)
+	for(int i = 0; i < (xblocks_per_rank+2)*(tblocks_per_rank+2)*2*Ntest; i++)
 		out.val[i]= 0.0; //Initialize the output spinor
 
 	int bx, bt;
 	int xini, tini, xfin, tfin;
-	int idxout, idxv, idxtv; //Vectorized index of out, v and test vector
+	int idxout, idxv; //Vectorized index of out, v.
 
 	for (int b = 0; b<blocks_per_rank; b++) {	
 		bx = b / tblocks_per_rank;
 		bt = b % tblocks_per_rank; 
-		xini = x_elements*bx; xfin = xini + x_elements;
-		tini = t_elements*bt; tfin = tini + t_elements;
+		xini = x_elements*bx+1; xfin = xini + x_elements;
+		tini = t_elements*bt+1; tfin = tini + t_elements;
 		for(int cc=0; cc<Ntest; cc++){
 			for(int x=xini; x<xfin; x++){
 			for(int t=tini; t<tfin; t++){	
 			for(int c=0; c<colors; c++){
 			for(int s=0; s<2; s++){
 				idxout 	= bx*tblocks_per_rank*Ntest*2 		+ bt*Ntest*2 + cc*2 + s;
-				idxv 	= x*Nt*colors*2 					+ t*colors*2 + c*2 	+ s;
-				idxtv 	= idxv*Ntest 						+ cc;
-				out.val[idxout] += std::conj(tvec.val[idxtv]) * v.val[idxv];
+				idxv 	= x*(Nt+2)*colors*2 				+ t*colors*2 + c*2 	+ s;
+				out.val[idxout] += std::conj(tvec[cc].val[idxv]) * v.val[idxv];
 			}	
 			}
 			}
@@ -95,8 +93,8 @@ void Level::orthonormalize(){
 		bx = b / tblocks_per_rank;
 		bt = b % tblocks_per_rank; 
 		//----Coordinates of the elements inside block----//
-		xini = x_elements*bx; xfin = xini + x_elements;
-		tini = t_elements*bt; tfin = tini + t_elements; 
+		xini = x_elements*bx+1; xfin = xini + x_elements;
+		tini = t_elements*bt+1; tfin = tini + t_elements; 
 		//-----------------------------------------------//
 		//Spin defining the aggregate for a particular block
 		for (int s = 0; s < 2; s++) {
@@ -107,8 +105,8 @@ void Level::orthonormalize(){
 					for(int x=xini; x<xfin; x++){
 					for(int t=tini; t<tfin; t++){	
 					for(int c=0; c<colors; c++){
-						indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
-						proj += tvec.val[indx*Ntest+nt] * std::conj(tvec.val[indx*Ntest+ntt]);
+						indx = x*(Nt+2)*colors*2 + t*colors*2 + c*2 + s;
+						proj += tvec[nt].val[indx] * std::conj(tvec[ntt].val[indx]);
 
 					}
 					}
@@ -116,8 +114,8 @@ void Level::orthonormalize(){
 					for(int x=xini; x<xfin; x++){
 					for(int t=tini; t<tfin; t++){	
 					for(int c=0; c<colors; c++){
-						indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
-						tvec.val[indx*Ntest+nt] -= proj * tvec.val[indx*Ntest+ntt];
+						indx = x*(Nt+2)*colors*2 + t*colors*2 + c*2 + s;
+						tvec[nt].val[indx] -= proj * tvec[ntt].val[indx];
 
 					}
 					}
@@ -128,8 +126,8 @@ void Level::orthonormalize(){
 				for(int x=xini; x<xfin; x++){
 				for(int t=tini; t<tfin; t++){	
 				for(int c=0; c<colors; c++){
-					indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
-					norm += tvec.val[indx*Ntest+nt] * std::conj(tvec.val[indx*Ntest+nt]);
+					indx = x*(Nt+2)*colors*2 + t*colors*2 + c*2 + s;
+					norm += tvec[nt].val[indx] * std::conj(tvec[nt].val[indx]);
 
 				}
 				}
@@ -138,8 +136,8 @@ void Level::orthonormalize(){
 				for(int x=xini; x<xfin; x++){
 				for(int t=tini; t<tfin; t++){	
 				for(int c=0; c<colors; c++){
-					indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
-					tvec.val[indx*Ntest+nt] /= norm;
+					indx = x*(Nt+2)*colors*2 + t*colors*2 + c*2 + s;
+					tvec[nt].val[indx] /= norm;
 
 				}
 				}
@@ -412,8 +410,8 @@ void Level::checkOrthogonality() {
 		bx = b / tblocks_per_rank;
 		bt = b % tblocks_per_rank; 
 		//----Coordinates of the elements inside block----//
-		xini = x_elements*bx; xfin = xini + x_elements;
-		tini = t_elements*bt; tfin = tini + t_elements; 
+		xini = x_elements*bx+1; xfin = xini + x_elements;
+		tini = t_elements*bt+1; tfin = tini + t_elements; 
 		//-----------------------------------------------//
 		//Spin defining the aggregate for a particular block
 		for (int s = 0; s < 2; s++) {
@@ -424,8 +422,8 @@ void Level::checkOrthogonality() {
 				for(int x=xini; x<xfin; x++){
 				for(int t=tini; t<tfin; t++){	
 				for(int c=0; c<colors; c++){
-					indx = x*Nt*colors*2 + t*colors*2 + c*2 + s;
-					dot_product += std::conj(tvec.val[indx*Ntest+nt]) * tvec.val[indx*Ntest+ntt]; //v_nt . v_ntt
+					indx = x*(Nt+2)*colors*2 + t*colors*2 + c*2 + s;
+					dot_product += std::conj(tvec[nt].val[indx]) * tvec[ntt].val[indx]; //v_nt . v_ntt
 				}
 				}
 				}

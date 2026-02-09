@@ -94,14 +94,14 @@ public:
         Ntot(Nx*Nt)
     {
 
-        //Test vectors
-        tvec        = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
-        tvec_copy   = spinor(LevelV::Ntest[level]*Ntot*LevelV::DOF[level]);
-
-       	    
         //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
         int Ntot_halo = (Nx+2)*(Nt+2);
 
+        //Test vectors
+        tvec        = std::vector<spinor>(LevelV::Ntest[level],spinor(Ntot_halo*LevelV::DOF[level]));
+        tvec_copy   = std::vector<spinor>(LevelV::Ntest[level],spinor(Ntot_halo*LevelV::DOF[level]));
+
+       	    
         //std::cout << "colors " << colors << std::endl;
 
         G1 = spinor(Ntot_halo*2*2*colors*colors);
@@ -119,13 +119,19 @@ public:
 
     const spinor U; //Gauge configuration
 
-    spinor tvec;        //[Ntest][Nt.Nx][colors.spins]
-    spinor tvec_copy;
+    std::vector<spinor> tvec;       //[Ntest][(Nt+2).(Nx+2).colors.spins]
+    std::vector<spinor> tvec_copy;  
 
     const int level; 
-    const int xblocks_per_rank = LevelV::BlocksX[level]/LevelV::RanksX[level]; //Number of blocks on x inside the current rank
-    const int tblocks_per_rank = LevelV::BlocksT[level]/LevelV::RanksT[level]; //Number of blocks on t inside the current rank
-    const int blocks_per_rank = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
+    const int xblocks_per_rank  = LevelV::BlocksX[level]/mpi::width_x; //Number of blocks on x inside the current rank
+    const int tblocks_per_rank  = LevelV::BlocksT[level]/mpi::width_t; //Number of blocks on t inside the current rank
+    const int blocks_per_rank   = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
+    const int xranks_per_block  = mpi::width_x/LevelV::BlocksX[level]; //Number of ranks on x inside a block (needed for rank coarsening)
+    const int tranks_per_block  = mpi::width_t/LevelV::BlocksT[level];
+    const int ranks_per_block   = xranks_per_block*tranks_per_block;
+
+    const int t_total_blocks = tblocks_per_rank * mpi::ranks_t_c; //Number of lattice blocks inside one MPI rank on the coarse grid.
+	const int x_total_blocks = xblocks_per_rank * mpi::ranks_x_c;
     const int Nx;   //Nx on the fine grid in rank r (no halo)
     const int Nt;   //Nt on the fine grid in rank r (no halo)
     const int Ntot; //Nx*Nt

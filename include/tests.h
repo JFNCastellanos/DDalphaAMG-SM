@@ -34,13 +34,13 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
     Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
     
     for(int cc = 0; cc < level.Ntest; cc++){
-        for(int x=0; x<level.Nx; x++){
-        for(int t=0; t<level.Nt; t++){
+        for(int x=1; x<=level.Nx; x++){
+        for(int t=1; t<=level.Nt; t++){
 	    for(int c=0; c<level.colors; c++){
 	    for(int s=0; s<2; s++){
-            indx 	= x*Nt*colors*2 + t*colors*2 + c*2 	+ s;
+            indx 	= x*(Nt+2)*colors*2 + t*colors*2 + c*2 	+ s;
 			indxtv 	= indx*Ntest + cc;
-            level.tvec.val[indxtv] = indxtv+1;
+            level.tvec[cc].val[indx] = indxtv+1;
            /* if (mpi::rank2d == 0){
                 std::cout << "(x,t,c,s) = " << x << ", " << t << ", " << c << ", " << s <<  std::endl;
                 std::cout << "indx " << indxtv << std::endl;
@@ -71,8 +71,8 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
             int bx = b / level.tblocks_per_rank;
 		    int bt = b % level.tblocks_per_rank; 
             //Coordinates inside the block (bx,bt)
-			int xini = level.x_elements*bx; int xfin = xini + level.x_elements;
-			int tini = level.t_elements*bt; int tfin = tini + level.t_elements;
+			int xini = level.x_elements*bx+1; int xfin = xini + level.x_elements;
+			int tini = level.t_elements*bt+1; int tfin = tini + level.t_elements;
         for(int sc=0; sc<2;sc++){
         for(int cc = 0; cc<Ntest; cc++){
             std::cout << "(bx, bt, sc, cc) = (" << bx << ", " << bt << ", " << sc << ", " << cc << ")" << std::endl;
@@ -81,11 +81,11 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
             level.P_vc(ev,column);
             ev.val[indx1] = 0;
         
-		    for(int x=0; x<Nx; x++){
-		    for(int t=0; t<Nt; t++){
+		    for(int x=1; x<=Nx; x++){
+		    for(int t=1; t<=Nt; t++){
 		    for(int c=0; c<colors; c++){
 		    for(int s=0; s<2; s++){
-			    indx2 	= x*Nt*colors*2 			+ t*colors*2 + c*2 	+ s;
+			    indx2 	= x*(Nt+2)*colors*2 			+ t*colors*2 + c*2 	+ s;
                 std::cout << column.val[indx2] << " ";
             }
             }
@@ -108,11 +108,11 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
         int indx1, indx2;
         std::cout << "Printing P* (conjugate interpolator) " << std::endl;
 
-        for(int x=0; x<Nx; x++){
-		for(int t=0; t<Nt; t++){
+        for(int x=1; x<=Nx; x++){
+		for(int t=1; t<=Nt; t++){
 		for(int c=0; c<colors; c++){
 		for(int s=0; s<2; s++){
-			indx2 	= x*Nt*colors*2 			+ t*colors*2 + c*2 	+ s;
+			indx2 	= x*(Nt+2)*colors*2 			+ t*colors*2 + c*2 	+ s;
             ev.val[indx2] = 1;
             level.Pdagg_v(ev,column);
             ev.val[indx2] = 0;
@@ -150,13 +150,12 @@ void Check_PPdagg(const int& l, const spinor& U){
 	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
     
     for(int cc = 0; cc < level.Ntest; cc++){
-        for(int x=0; x<level.Nx; x++){
-        for(int t=0; t<level.Nt; t++){
+        for(int x=1; x<=level.Nx; x++){
+        for(int t=1; t<=level.Nt; t++){
 	    for(int c=0; c<level.colors; c++){
 	    for(int s=0; s<2; s++){
-            indx 	= x*Nt*colors*2 + t*colors*2 + c*2 	+ s;
-			indxtv 	= indx*Ntest + cc;
-            level.tvec.val[indxtv] = distribution(randomInt) + I_number * distribution(randomInt);;            
+            indx 	= x*(Nt+2)*colors*2 + t*colors*2 + c*2 	+ s;
+            level.tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);;            
         }
     }
     }
@@ -166,7 +165,7 @@ void Check_PPdagg(const int& l, const spinor& U){
     level.checkOrthogonality();
 
     spinor vc(level.blocks_per_rank*2*Ntest);
-    spinor temp(Nx*Nt*2*colors);
+    spinor temp((Nx+2)*(Nt+2)*2*colors);
     spinor PdaggPvc(level.blocks_per_rank*2*Ntest);
 
     for(int i = 0; i< level.blocks_per_rank*2*Ntest; i++)
@@ -273,4 +272,122 @@ void rank_agglomeration_test(){
         }
     }
 
+}
+
+
+void gather_vector_test(){
+    spinor input((mpi::width_t+2)*(mpi::width_x+2)*2);
+    int n;
+    for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            n = x*(mpi::width_t+2)+t;
+            for(int mu=0; mu<2; mu++){
+                input.val[2*n+mu] = 2*n+mu + mpi::rank2d;
+            }        
+        }
+    }
+
+
+    for(int i = 0; i < mpi::size; i++) {
+        MPI_Barrier(mpi::cart_comm);
+        if (i == mpi::rank2d) {
+            std::cout << "rank " << mpi::rank2d << std::endl;
+            for(int x = 1; x<=mpi::width_x; x++){
+                for(int t = 1; t<=mpi::width_t; t++){
+                    int n = x*(mpi::width_t+2) + t;
+                    std::cout << "[" << input.val[2*n] << ", " << input.val[2*n+1] << "], ";
+                }
+                std::cout << std::endl;
+            } 
+        }
+    }
+
+    int Nx_tot_sites = mpi::width_x*mpi::ranks_x_c;
+    int Nt_tot_sites = mpi::width_t*mpi::ranks_t_c;
+    spinor buffer(Nx_tot_sites*Nt_tot_sites*2);
+
+    int root_rank = 0;  //Root rank inside the communicator agglomerating ranks
+	int commID = mpi::rank_dictionary[mpi::rank2d];
+    int counts_recv[mpi::size_c];
+    int displs[mpi::size_c];
+
+    /*
+    MPI_Type_vector(int block_count,
+        int block_length,
+        int stride,
+        MPI_Datatype old_datatype,
+        MPI_Datatype* new_datatype);
+    */
+
+    MPI_Type_vector(mpi::width_x,
+        mpi::width_t*2,
+        2*(mpi::width_t+2),
+        MPI_DOUBLE_COMPLEX,
+        &inner_domain);
+    MPI_Type_commit(&inner_domain);
+
+    int input_ini = 2 * (mpi::width_t + 2 + 1);  // start of [1,1] in local input
+
+
+
+    // Gather inner domains from all ranks in the coarse communicator
+    // Create a recv type that matches the global buffer layout (strided by full global row)
+    MPI_Datatype recv_domain;
+    MPI_Type_vector(mpi::width_x,            // number of rows to place
+                    2 * mpi::width_t,        // elements per row (complex numbers)
+                    2 * Nt_tot_sites,        // stride between rows in global buffer (complex elements)
+                    MPI_DOUBLE_COMPLEX,
+                    &recv_domain);
+    MPI_Type_commit(&recv_domain);
+
+    // Resize recv type so displacements are specified in units of one complex element
+    MPI_Datatype recv_domain_resized;
+    MPI_Type_create_resized(recv_domain, 0, sizeof(std::complex<double>), &recv_domain_resized);
+    MPI_Type_commit(&recv_domain_resized);
+
+    // Prepare counts and displacements (displacements in complex-element units)
+    int input_ini_local = 2 * (mpi::width_t + 2 + 1); // start of [1,1] in local input (complex elements)
+    for (int r = 0; r < mpi::size_c; r++) {
+        counts_recv[r] = 1; // one instance of recv_domain_resized per contributing rank
+
+        int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
+        int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
+
+        // Global starting position in the receive buffer (no halo in this buffer)
+        int global_x_start = rx * mpi::width_x;
+        int global_t_start = rt * mpi::width_t;
+
+        // Displacement in complex-element units into buffer.val
+        displs[r] = (global_x_start * Nt_tot_sites + global_t_start) * 2;
+        if (mpi::rank2d == 0)
+            std::cout << "rank " << r << " -> displs[" << r << "] = " << displs[r] << "\n";
+    }
+
+    // Use Gatherv: send 1 instance of the local strided type, receive into the resized global type
+    MPI_Gatherv(&input.val[input_ini_local],
+                1,
+                inner_domain,
+                &buffer.val[0],
+                counts_recv,
+                displs,
+                recv_domain_resized,
+                root_rank,
+                mpi::coarse_comm[commID]);
+
+    MPI_Type_free(&recv_domain);
+    MPI_Type_free(&recv_domain_resized);
+    for(int i = 0; i <1; i++) {
+        MPI_Barrier(mpi::cart_comm);
+        if (i == mpi::rank2d) {
+            std::cout << "\nGather in rank " << mpi::rank2d << std::endl;
+            for(int x = 0; x<Nx_tot_sites; x++){
+                for(int t = 0; t<Nt_tot_sites; t++){
+                    int n = x*Nt_tot_sites + t;
+                    std::cout << "[" << buffer.val[2*n] << ", " << buffer.val[2*n+1] << "], ";
+                }
+                std::cout << std::endl;
+            } 
+        }
+    }
+        
 }

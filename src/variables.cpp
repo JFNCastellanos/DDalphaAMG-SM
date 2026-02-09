@@ -6,6 +6,8 @@ c_double I_number(0, 1); //imaginary number
 MPI_Datatype sub_block_type;
 MPI_Datatype sub_block_resized;
 MPI_Datatype column_type;
+MPI_Datatype inner_domain;
+MPI_Datatype inner_domain_resized;
 
 /*
 	Vectorized lattice coords.*/
@@ -43,7 +45,8 @@ namespace mpi{
     int ranks_x_c = 1;                              
     int ranks_t_c = 1;                               
     int size_c = 1;                                  
-
+    
+    int* rank_dictionary = nullptr;
 
 }
 
@@ -146,6 +149,7 @@ void allocate_lattice_arrays() {
 
     mpi::coarse_group = new MPI_Group[mpi::ranks_coarse_level];
     mpi::coarse_comm  = new MPI_Comm[mpi::ranks_coarse_level];
+    mpi::rank_dictionary = new int[mpi::size];
 }
 
 void free_lattice_arrays() {
@@ -184,5 +188,6 @@ void free_lattice_arrays() {
 
     delete[] mpi::coarse_group;
     delete[] mpi::coarse_comm;
+    delete[] mpi::rank_dictionary;
     
 }

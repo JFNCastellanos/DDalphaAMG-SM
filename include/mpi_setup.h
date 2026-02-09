@@ -114,6 +114,7 @@ inline void coarseLevelCommunicators(){
         for(int rx=rx_ini; rx<rx_fin; rx++){
             for(int rt=rt_ini; rt<rt_fin; rt++){
                 ranks_c[rcl][count++] = rx*mpi::ranks_t+rt; 
+                mpi::rank_dictionary[rx*mpi::ranks_t+rt] = rcl;
             }
         }        
     }
