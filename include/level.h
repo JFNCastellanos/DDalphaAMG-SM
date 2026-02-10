@@ -132,7 +132,8 @@ public:
     const int xranks_per_block  = mpi::width_x/LevelV::BlocksX[level]; //Number of ranks on x inside a block (needed for rank coarsening)
     const int tranks_per_block  = mpi::width_t/LevelV::BlocksT[level];
     const int ranks_per_block   = xranks_per_block*tranks_per_block;
-
+    //------------------//
+    
     const int t_total_blocks = tblocks_per_rank * mpi::ranks_t_c; //Number of lattice blocks inside one MPI rank on the coarse grid.
 	const int x_total_blocks = xblocks_per_rank * mpi::ranks_x_c;
     const int Nx;   //Nx on the fine grid in rank r (no halo)

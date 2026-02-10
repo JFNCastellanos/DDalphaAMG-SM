@@ -110,10 +110,9 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
 
 
     //-------------------------------//
-    /*
     if (mpi::rank2d == 0){
-        spinor ev(Nx*Nt*2*colors); //Lives on the coarse lattice
-        spinor column(level.blocks_per_rank*2*Ntest);
+        spinor ev((Nx+2)*(Nt+2)*2*colors); //Lives on the coarse lattice
+        spinor column((blocks_t+2)*(blocks_x+2)*2*Ntest);
         int indx1, indx2;
         std::cout << "Printing P* (conjugate interpolator) " << std::endl;
 
@@ -127,12 +126,14 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
             ev.val[indx2] = 0;
 
             for(int b = 0; b < level.blocks_per_rank; b++){
-                int bx = b / level.tblocks_per_rank;
-		        int bt = b % level.tblocks_per_rank; 
+                int bx = b / blocks_t;
+		        int bt = b % blocks_t; 
+                int bx_shifted = bx+1;
+                int bt_shifted = bt+1;
                 for(int sc=0; sc<2;sc++){
                 for(int cc = 0; cc<Ntest; cc++){
                     //std::cout << "(bx, bt, sc, cc) = (" << bx << ", " << bt << ", " << sc << ", " << cc << ")" << std::endl;
-                    indx1 = bx*level.tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + sc; 
+                    indx1 = bx_shifted*(blocks_t+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + sc; 
                     std::cout << column.val[indx1] << "   ";
                 }
                 }
@@ -144,7 +145,7 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
         }
 
     }
-        */
+        
 
 
 }

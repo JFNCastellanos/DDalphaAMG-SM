@@ -56,13 +56,15 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 	for(int i = 0; i < (xblocks_per_rank+2)*(tblocks_per_rank+2)*2*Ntest; i++)
 		out.val[i]= 0.0; //Initialize the output spinor
 
-	int bx, bt;
+	int bx, bt, bx_shifted, bt_shifted;
 	int xini, tini, xfin, tfin;
 	int idxout, idxv; //Vectorized index of out, v.
 
 	for (int b = 0; b<blocks_per_rank; b++) {	
 		bx = b / tblocks_per_rank;
 		bt = b % tblocks_per_rank; 
+		bx_shifted = bx+1;
+		bt_shifted = bt+1;
 		xini = x_elements*bx+1; xfin = xini + x_elements;
 		tini = t_elements*bt+1; tfin = tini + t_elements;
 		for(int cc=0; cc<Ntest; cc++){
@@ -70,8 +72,8 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 			for(int t=tini; t<tfin; t++){	
 			for(int c=0; c<colors; c++){
 			for(int s=0; s<2; s++){
-				idxout 	= bx*tblocks_per_rank*Ntest*2 		+ bt*Ntest*2 + cc*2 + s;
-				idxv 	= x*(Nt+2)*colors*2 				+ t*colors*2 + c*2 	+ s;
+				idxout 	= bx_shifted*(tblocks_per_rank+2)*Ntest*2 		+ bt_shifted*Ntest*2 + cc*2 + s;
+				idxv 	= x*(Nt+2)*colors*2 							+ t*colors*2 + c*2 	+ s;
 				out.val[idxout] += std::conj(tvec[cc].val[idxv]) * v.val[idxv];
 			}	
 			}
