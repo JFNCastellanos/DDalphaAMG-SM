@@ -6,8 +6,10 @@ c_double I_number(0, 1); //imaginary number
 MPI_Datatype sub_block_type;
 MPI_Datatype sub_block_resized;
 MPI_Datatype column_type;
-MPI_Datatype inner_domain;
-MPI_Datatype inner_domain_resized;
+MPI_Datatype local_domain;
+MPI_Datatype local_domain_resized;
+MPI_Datatype coarse_domain;
+MPI_Datatype coarse_domain_resized;
 
 /*
 	Vectorized lattice coords.*/

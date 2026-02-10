@@ -18,8 +18,10 @@ namespace mass{extern double m0;}
 extern MPI_Datatype sub_block_type;
 extern MPI_Datatype sub_block_resized;
 extern MPI_Datatype column_type;
-extern MPI_Datatype inner_domain;
-extern MPI_Datatype inner_domain_resized;
+extern MPI_Datatype local_domain;
+extern MPI_Datatype local_domain_resized;
+extern MPI_Datatype coarse_domain;
+extern MPI_Datatype coarse_domain_resized;
 
 //------------mpi settings-----------------//
 namespace mpi{

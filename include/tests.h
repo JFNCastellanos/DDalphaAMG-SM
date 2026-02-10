@@ -275,6 +275,7 @@ void rank_agglomeration_test(){
 }
 
 
+//Test inner_domain and recv_domain datatypes for gathering data.
 void gather_vector_test(){
     spinor input((mpi::width_t+2)*(mpi::width_x+2)*2);
     int n;
@@ -311,40 +312,6 @@ void gather_vector_test(){
     int counts_recv[mpi::size_c];
     int displs[mpi::size_c];
 
-    /*
-    MPI_Type_vector(int block_count,
-        int block_length,
-        int stride,
-        MPI_Datatype old_datatype,
-        MPI_Datatype* new_datatype);
-    */
-
-    MPI_Type_vector(mpi::width_x,
-        mpi::width_t*2,
-        2*(mpi::width_t+2),
-        MPI_DOUBLE_COMPLEX,
-        &inner_domain);
-    MPI_Type_commit(&inner_domain);
-
-    int input_ini = 2 * (mpi::width_t + 2 + 1);  // start of [1,1] in local input
-
-
-
-    // Gather inner domains from all ranks in the coarse communicator
-    // Now include halos in the global receive buffer: buffer has size (Nx_tot_sites+2)*(Nt_tot_sites+2)*2
-    // Create a recv type that matches the global buffer layout (strided by full global row including halo)
-    MPI_Datatype recv_domain;
-    MPI_Type_vector(mpi::width_x,            // number of rows to place per rank
-                    2 * mpi::width_t,        // elements per row (complex numbers)
-                    2 * (Nt_tot_sites + 2),  // stride between rows in global buffer (complex elements) including halo
-                    MPI_DOUBLE_COMPLEX,
-                    &recv_domain);
-    MPI_Type_commit(&recv_domain);
-
-    // Resize recv type so displacements are specified in units of one complex element
-    MPI_Datatype recv_domain_resized;
-    MPI_Type_create_resized(recv_domain, 0, sizeof(std::complex<double>), &recv_domain_resized);
-    MPI_Type_commit(&recv_domain_resized);
 
     // Prepare counts and displacements (displacements in complex-element units)
     int input_ini_local = 2 * (mpi::width_t + 2 + 1); // start of [1,1] in local input (complex elements)
@@ -365,17 +332,15 @@ void gather_vector_test(){
     // Use Gatherv: send 1 instance of the local strided type, receive into the resized global type
     MPI_Gatherv(&input.val[input_ini_local],
                 1,
-                inner_domain,
+                local_domain,
                 &buffer.val[0],
                 counts_recv,
                 displs,
-                recv_domain_resized,
+                coarse_domain_resized,
                 root_rank,
                 mpi::coarse_comm[commID]);
 
-    MPI_Type_free(&recv_domain);
-    MPI_Type_free(&recv_domain_resized);
-
+   
     int local_rank;
     MPI_Comm_rank(mpi::coarse_comm[commID], &local_rank);
     for(int i = 0; i <mpi::size; i++) {
@@ -393,3 +358,90 @@ void gather_vector_test(){
     }
         
 }
+
+void scatter_vector_test(){
+    int Nx_tot_sites = mpi::width_x*mpi::ranks_x_c;
+    int Nt_tot_sites = mpi::width_t*mpi::ranks_t_c;
+    spinor input((Nx_tot_sites+2)*(Nt_tot_sites+2)*2);
+    spinor buffer((mpi::width_t+2)*(mpi::width_x+2)*2);
+
+    int root_rank = 0;  //Root rank inside the communicator agglomerating ranks
+	int commID = mpi::rank_dictionary[mpi::rank2d];
+    int counts_send[mpi::size_c];
+    int displs[mpi::size_c];
+
+    int local_rank;
+    MPI_Comm_rank(mpi::coarse_comm[commID], &local_rank);
+
+    int n;
+    for(int x = 1; x<=Nx_tot_sites; x++){
+        for(int t = 1; t<=Nt_tot_sites; t++){
+            n = x*(Nt_tot_sites+2)+t;
+            for(int mu=0; mu<2; mu++){
+                input.val[2*n+mu] = 2*n+mu + mpi::rank2d;
+            }        
+        }
+    }
+
+
+    for(int i = 0; i < mpi::size; i++) {
+        MPI_Barrier(mpi::cart_comm);
+        if (i == mpi::rank2d && local_rank == 0) {
+            std::cout << "rank " << mpi::rank2d << std::endl;
+            for(int x = 1; x<=Nx_tot_sites; x++){
+                for(int t = 1; t<=Nt_tot_sites; t++){
+                    int n = x*(Nt_tot_sites+2) + t;
+                    std::cout << "[" << input.val[2*n] << ", " << input.val[2*n+1] << "], ";
+                }
+                std::cout << std::endl;
+            } 
+        }
+    }
+
+
+    
+
+
+    // Prepare counts and displacements (displacements in complex-element units)
+    int input_local_ini = 2 * (mpi::width_t+ 2 + 1); // start of [1,1] in input (complex elements)
+    for (int r = 0; r < mpi::size_c; r++) {
+        counts_send[r] = 1; // one instance of recv_domain_resized per contributing rank
+
+        int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
+        int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
+
+        // Global starting position inside the buffer including halo (halo at index 0)
+        int global_x_start = rx * mpi::width_x + 1; // +1 to skip halo
+        int global_t_start = rt * mpi::width_t + 1; // +1 to skip halo
+
+        // Displacement in complex-element units into buffer.val (including halo padding)
+        displs[r] = (global_x_start * (Nt_tot_sites + 2) + global_t_start) * 2;
+    }
+
+    MPI_Scatterv(&input.val[0],
+                 counts_send,
+                 displs,
+                 coarse_domain_resized,
+                 &buffer.val[input_local_ini],
+                 1,
+                 local_domain_resized,
+                 root_rank,
+                 mpi::coarse_comm[commID]);
+  
+    for(int i = 0; i <mpi::size; i++) {
+        MPI_Barrier(mpi::cart_comm);
+        if (i == mpi::rank2d) {
+            std::cout << "\nGather in rank " << mpi::rank2d << std::endl;
+            for(int x = 0; x<mpi::width_x+2; x++){
+                for(int t = 0; t<mpi::width_t+2; t++){
+                    int n = x*(mpi::width_t+2) + t;
+                    std::cout << "[" << buffer.val[2*n] << ", " << buffer.val[2*n+1] << "], ";
+                }
+                std::cout << std::endl;
+            } 
+        }
+    }
+        
+}
+
+

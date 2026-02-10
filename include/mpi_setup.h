@@ -153,6 +153,33 @@ inline void defineDataTypes(){
     MPI_Type_commit(&column_type);
 
 
+    
+
+    //Data type for the elements of a spinor inside a rank. 
+    //The datatype does not include the halo, but assumes the spinor to be sent has it
+    MPI_Type_vector(mpi::width_x,mpi::width_t*2,2*(mpi::width_t+2),MPI_DOUBLE_COMPLEX, &local_domain);
+    MPI_Type_commit(&local_domain);
+
+    MPI_Type_create_resized(local_domain, 0, sizeof(std::complex<double>), &local_domain_resized);
+    MPI_Type_commit(&local_domain_resized);
+
+    // Gather inner domains from all ranks in the coarse communicator
+    // Buffer has size (Nx_tot_sites+2)*(Nt_tot_sites+2)*2
+    // Create a recv type that matches the global buffer layout (strided by full global row including halo)
+    int Nx_tot_sites = mpi::width_x*mpi::ranks_x_c;
+    int Nt_tot_sites = mpi::width_t*mpi::ranks_t_c;
+    MPI_Type_vector(mpi::width_x,            // number of rows to place per rank
+                    2 * mpi::width_t,        // elements per row (complex numbers)
+                    2 * (Nt_tot_sites + 2),  // stride between rows in global buffer (complex elements) including halo
+                    MPI_DOUBLE_COMPLEX,
+                    &coarse_domain);
+    MPI_Type_commit(&coarse_domain);
+
+    // Resize recv type so displacements are specified in units of one complex element
+    MPI_Type_create_resized(coarse_domain, 0, sizeof(std::complex<double>), &coarse_domain_resized);
+    MPI_Type_commit(&coarse_domain_resized);
+
+
 }
 
 inline void initializeMPI(){

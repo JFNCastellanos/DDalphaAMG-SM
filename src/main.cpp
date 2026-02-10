@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     if (mpi::rank == 0){
          //---Input data---//
         std::cout << " -----------------------------" << std::endl;
-        std::cout << "|   DDα-AMG Schwinger Model   |" << std::endl;
+        std::cout << "|   DDalpha-AMG Schwinger Model   |" << std::endl;
         std::cout << " -----------------------------" << std::endl;
         std::cout << "Nx " << LV::Nx << " Nt " << LV::Nt << std::endl;
         std::cout << "ranks_x: ";
@@ -69,6 +69,7 @@ int main(int argc, char **argv) {
 
     
     gather_vector_test();
+    //scatter_vector_test();
 
 
     //Free coordinate arrays
