@@ -376,10 +376,11 @@ void gather_vector_test(){
     MPI_Type_free(&recv_domain);
     MPI_Type_free(&recv_domain_resized);
 
-    
+    int local_rank;
+    MPI_Comm_rank(mpi::coarse_comm[commID], &local_rank);
     for(int i = 0; i <mpi::size; i++) {
         MPI_Barrier(mpi::cart_comm);
-        if (i == mpi::rank2d) {
+        if (i == mpi::rank2d && local_rank == 0) {
             std::cout << "\nGather in rank " << mpi::rank2d << std::endl;
             for(int x = 0; x<Nx_tot_sites+2; x++){
                 for(int t = 0; t<Nt_tot_sites+2; t++){
