@@ -175,18 +175,21 @@ void Check_PPdagg(const int& l, const spinor& U){
     level.orthonormalize();
     level.checkOrthogonality();
 
-    spinor vc(level.blocks_per_rank*2*Ntest);
+    spinor vc((level.xblocks_per_rank+2)*(level.tblocks_per_rank+2)*2*Ntest);
     spinor temp((Nx+2)*(Nt+2)*2*colors);
-    spinor PdaggPvc(level.blocks_per_rank*2*Ntest);
+    spinor PdaggPvc((level.xblocks_per_rank+2)*(level.tblocks_per_rank+2)*2*Ntest);
 
-    for(int i = 0; i< level.blocks_per_rank*2*Ntest; i++)
-        vc.val[i] = distribution(randomInt) + I_number * distribution(randomInt);
+    //Fill vc with random numbers (no halo)
+    for(int bx=1; bx<=level.xblocks_per_rank; bx++)
+        for(int bt=1; bt<=level.tblocks_per_rank; bt++)
+            for(int i = 0; i< 2*Ntest; i++)
+                vc.val[(bx*(level.tblocks_per_rank+2)+bt)*2*Ntest+i] = distribution(randomInt) + I_number * distribution(randomInt);
     
 
     level.P_vc(vc,temp);
     level.Pdagg_v(temp,PdaggPvc);
 
-    for(int i = 0; i< level.blocks_per_rank*2*Ntest; i++){
+    for(int i = 0; i< (level.xblocks_per_rank+2)*(level.tblocks_per_rank+2)*2*Ntest; i++){
         if (std::abs(vc.val[i]-PdaggPvc.val[i]) > 1e-8 ){
             if (mpi::rank2d == 0){
                 std::cout << "P^+ P vc != vc" << std::endl;

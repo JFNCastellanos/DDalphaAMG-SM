@@ -95,7 +95,7 @@ void Level::orthonormalize(){
 	c_double proj; 
 	c_double norm;
 
-	int bx, bt, xini, xfin, tini, tfin;
+	int bx, bt, bx_shifted, bt_shifted, xini, xfin, tini, tfin;
 	int indx;
 	//Lattice blocks
 	for (int b = 0; b<blocks_per_rank; b++) {	
