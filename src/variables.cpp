@@ -42,11 +42,15 @@ namespace mpi{
     MPI_Comm cart_comm;
 
     MPI_Group cart_comm_group;                   
-    MPI_Group* coarse_group     = nullptr;  
-    MPI_Comm* coarse_comm       = nullptr;   
+    MPI_Group* coarse_group  = nullptr;  
+    MPI_Comm* coarse_comm   = nullptr;   
     int ranks_x_c = 1;                              
     int ranks_t_c = 1;                               
-    int size_c = 1;                                  
+    int size_c = 1;  
+    int Nx_coarse_rank = 1;                        
+    int Nt_coarse_rank = 1;                                                  
+    int* counts_coarse = nullptr;
+    int* displs_coarse = nullptr;
     
     int* rank_dictionary = nullptr;
 
@@ -149,9 +153,9 @@ void allocate_lattice_arrays() {
     LevelV::RanksX = new int[LevelV::levels];
     LevelV::RanksT = new int[LevelV::levels];
 
-    mpi::coarse_group = new MPI_Group[mpi::ranks_coarse_level];
-    mpi::coarse_comm  = new MPI_Comm[mpi::ranks_coarse_level];
-    mpi::rank_dictionary = new int[mpi::size];
+    mpi::coarse_group       = new MPI_Group[mpi::ranks_coarse_level];
+    mpi::coarse_comm        = new MPI_Comm[mpi::ranks_coarse_level];
+    mpi::rank_dictionary    = new int[mpi::size];
 }
 
 void free_lattice_arrays() {
@@ -192,4 +196,7 @@ void free_lattice_arrays() {
     delete[] mpi::coarse_comm;
     delete[] mpi::rank_dictionary;
     
+    //NOTE: these two are initialized in coarseLevelCommunicators()
+    delete[] mpi::counts_coarse;
+    delete[] mpi::displs_coarse;
 }

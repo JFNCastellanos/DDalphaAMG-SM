@@ -1,7 +1,9 @@
 #include "dirac_operator.h"
 #include "level.h"
 #include "sap.h"
+#include "gather_scatter.h"
 #include <random>
+
 
 void check_sol(const spinor& U,const spinor& rhs, const spinor& inverse, const double& m0){
     spinor x(mpi::maxSizeH);
@@ -155,7 +157,7 @@ void Check_PPdagg(const int& l, const spinor& U){
 	    for(int c=0; c<level.colors; c++){
 	    for(int s=0; s<2; s++){
             indx 	= x*(Nt+2)*colors*2 + t*colors*2 + c*2 	+ s;
-            level.tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);;            
+            level.tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);            
         }
     }
     }
@@ -303,53 +305,22 @@ void gather_vector_test(){
         }
     }
 
-    int Nx_tot_sites = mpi::width_x*mpi::ranks_x_c;
-    int Nt_tot_sites = mpi::width_t*mpi::ranks_t_c;
-    spinor buffer((Nx_tot_sites+2)*(Nt_tot_sites+2)*2);
+  
+    spinor buffer((mpi::Nx_coarse_rank+2)*(mpi::Nt_coarse_rank+2)*2);
 
-    int root_rank = 0;  //Root rank inside the communicator agglomerating ranks
-	int commID = mpi::rank_dictionary[mpi::rank2d];
-    int counts_recv[mpi::size_c];
-    int displs[mpi::size_c];
-
-
-    // Prepare counts and displacements (displacements in complex-element units)
-    int input_ini_local = 2 * (mpi::width_t + 2 + 1); // start of [1,1] in local input (complex elements)
-    for (int r = 0; r < mpi::size_c; r++) {
-        counts_recv[r] = 1; // one instance of recv_domain_resized per contributing rank
-
-        int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
-        int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
-
-        // Global starting position inside the buffer including halo (halo at index 0)
-        int global_x_start = rx * mpi::width_x + 1; // +1 to skip halo
-        int global_t_start = rt * mpi::width_t + 1; // +1 to skip halo
-
-        // Displacement in complex-element units into buffer.val (including halo padding)
-        displs[r] = (global_x_start * (Nt_tot_sites + 2) + global_t_start) * 2;
-    }
-
-    // Use Gatherv: send 1 instance of the local strided type, receive into the resized global type
-    MPI_Gatherv(&input.val[input_ini_local],
-                1,
-                local_domain,
-                &buffer.val[0],
-                counts_recv,
-                displs,
-                coarse_domain_resized,
-                root_rank,
-                mpi::coarse_comm[commID]);
+    gather_to_coarse_rank(input, buffer);
 
    
     int local_rank;
+    int commID = mpi::rank_dictionary[mpi::rank2d];  
     MPI_Comm_rank(mpi::coarse_comm[commID], &local_rank);
     for(int i = 0; i <mpi::size; i++) {
         MPI_Barrier(mpi::cart_comm);
         if (i == mpi::rank2d && local_rank == 0) {
             std::cout << "\nGather in rank " << mpi::rank2d << std::endl;
-            for(int x = 0; x<Nx_tot_sites+2; x++){
-                for(int t = 0; t<Nt_tot_sites+2; t++){
-                    int n = x*(Nt_tot_sites+2) + t;
+            for(int x = 0; x<mpi::Nx_coarse_rank+2; x++){
+                for(int t = 0; t<mpi::Nt_coarse_rank+2; t++){
+                    int n = x*(mpi::Nt_coarse_rank+2) + t;
                     std::cout << "[" << buffer.val[2*n] << ", " << buffer.val[2*n+1] << "], ";
                 }
                 std::cout << std::endl;

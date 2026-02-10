@@ -99,6 +99,8 @@ inline void coarseLevelCommunicators(){
     mpi::ranks_x_c  = mpi::ranks_x/2;   //We enforce two ranks on the x direction
     mpi::ranks_t_c  = mpi::ranks_t/2;   //We enforce two ranks on the t direction
     mpi::size_c     = mpi::ranks_x_c*mpi::ranks_t_c;
+    mpi::counts_coarse = new int[mpi::size_c];  
+    mpi::displs_coarse = new int[mpi::size_c];
   
     int ranks_c[mpi::ranks_coarse_level][mpi::size_c];
     int rcl_x, rcl_t;
@@ -120,11 +122,27 @@ inline void coarseLevelCommunicators(){
     }
 
     //Create groups and communicators for the rank agglomeration 
-
     for(int rcl=0; rcl<mpi::ranks_coarse_level; rcl++){
         MPI_Group_incl(mpi::cart_comm_group, mpi::size_c, ranks_c[rcl], &mpi::coarse_group[rcl]);
         MPI_Comm_create(mpi::cart_comm, mpi::coarse_group[rcl], &mpi::coarse_comm[rcl]);
     }
+
+    mpi::Nx_coarse_rank = mpi::width_x*mpi::ranks_x_c;
+    mpi::Nt_coarse_rank = mpi::width_t*mpi::ranks_t_c;
+  
+    // Prepare counts and displacements (displacements in complex-element units)
+    for (int r = 0; r < mpi::size_c; r++) {
+        mpi::counts_coarse[r] = 1; // one instance of recv_domain_resized per contributing rank
+        int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
+        int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
+        // Global starting position inside the buffer including halo (halo at index 0)
+        int global_x_start = rx * mpi::width_x + 1; // +1 to skip halo
+        int global_t_start = rt * mpi::width_t + 1; // +1 to skip halo
+        // Displacement in complex-element units into buffer.val (including halo padding)
+        mpi::displs_coarse[r] = (global_x_start * (mpi::Nt_coarse_rank + 2) + global_t_start) * 2;
+    }
+
+
 }
 
 inline void defineDataTypes(){
@@ -152,20 +170,18 @@ inline void defineDataTypes(){
     MPI_Type_vector(mpi::width_x, LV::dof, (mpi::width_t+2)*LV::dof, MPI_DOUBLE_COMPLEX, &column_type);
     MPI_Type_commit(&column_type);
 
-
-    
-
     //Data type for the elements of a spinor inside a rank. 
     //The datatype does not include the halo, but assumes the spinor to be sent has it
     MPI_Type_vector(mpi::width_x,mpi::width_t*2,2*(mpi::width_t+2),MPI_DOUBLE_COMPLEX, &local_domain);
     MPI_Type_commit(&local_domain);
 
+    //The displacement of local_domain_resized is in units of std::complex<double>
     MPI_Type_create_resized(local_domain, 0, sizeof(std::complex<double>), &local_domain_resized);
     MPI_Type_commit(&local_domain_resized);
 
     // Gather inner domains from all ranks in the coarse communicator
     // Buffer has size (Nx_tot_sites+2)*(Nt_tot_sites+2)*2
-    // Create a recv type that matches the global buffer layout (strided by full global row including halo)
+    // Create a type that matches the global buffer layout (strided by full global row including halo)
     int Nx_tot_sites = mpi::width_x*mpi::ranks_x_c;
     int Nt_tot_sites = mpi::width_t*mpi::ranks_t_c;
     MPI_Type_vector(mpi::width_x,            // number of rows to place per rank
@@ -175,7 +191,7 @@ inline void defineDataTypes(){
                     &coarse_domain);
     MPI_Type_commit(&coarse_domain);
 
-    // Resize recv type so displacements are specified in units of one complex element
+    // Resize type so displacements are specified in units of one complex element
     MPI_Type_create_resized(coarse_domain, 0, sizeof(std::complex<double>), &coarse_domain_resized);
     MPI_Type_commit(&coarse_domain_resized);
 
