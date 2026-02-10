@@ -5,25 +5,32 @@ void Level::P_vc(const spinor& vc,spinor& out){
 	for(int i = 0; i < (Nx+2)*(Nt+2)*colors*2; i++)
 		out.val[i] = 0.0; 
 
-	int bx, bt;
+	//Botch vc and out include their corresponding halo 
+	int bx, bt, bx_shifted, bt_shifted;
+	//(bx,bt) are the block coordinates without halo
+	//(bx_shifted ,bt_shifted) consider the halo
 	int xini, tini, xfin, tfin;
-	int idxout, idxv; //Vectorized index of out, v and test vector
+	int idxout, idxv; //Vectorized index of out, v.
 	
-
-
 	//In case we have a lattice block crossing the MPI ranks
 	/*if (ranks_per_block != 0){
 		spinor vc_root((x_total_blocks+2)*(t_total_blocks+2)*Ntest*2);	//Spinor on the coarse grid.
+		spinor coarse_tvec((mpi::Nt_coarse_rank+2)*(mpi::Nx_coarse_rank+2)*2);
 		int root_rank = 0;  //Root rank inside the communicator agglomerating ranks
 		int commID = mpi::rank_dictionary[mpi::rank2d];
-		//Gather test vectors without their halo 
-		MPI_Gather(&tvec.val,4,MPI_DOUBLE_COMPLEX,&vc_root.val,4,MPI_DOUBLE_COMPLEX,root_rank,mpi::coarse_comm[commID]);
+		//Gather test vectors without their halo. 
+		gather_to_coarse_rank(tvec[cc],coarse_tvec)
+
+		//Define vc across the ranks -> Gather tv to root rank of coarse comm -> apply the P_vc operation
+		//->return v to the original 2d communicator.
 	}*/
 
 	for(int b = 0; b<blocks_per_rank; b++){
 		bx = b / tblocks_per_rank;
 		bt = b % tblocks_per_rank;	
-		//Coordinates inside the block (bx,bt)
+		bx_shifted = bx+1;
+		bt_shifted = bt+1;
+		//Coordinates inside the block (bx,bt) for a spinor with halo
 		xini = x_elements*bx+1; xfin = xini + x_elements;
 		tini = t_elements*bt+1; tfin = tini + t_elements;
 		for(int cc = 0; cc < Ntest; cc++){
@@ -31,8 +38,8 @@ void Level::P_vc(const spinor& vc,spinor& out){
 			for(int t=tini; t<tfin; t++){	
 			for(int c=0; c<colors; c++){
 			for(int s=0; s<2; s++){
-				idxout 	= x*(Nt+2)*colors*2 				+ t*colors*2 + c*2 	+ s;
-				idxv 	= bx*tblocks_per_rank*Ntest*2 		+ bt*Ntest*2 + cc*2 + s;
+				idxout 	= x*(Nt+2)*colors*2 					+ t*colors*2 + c*2 	+ s;
+				idxv 	= bx_shifted*(tblocks_per_rank+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + s;
 				out.val[idxout] += tvec[cc].val[idxout] * vc.val[idxv]; 
 			}
 			}

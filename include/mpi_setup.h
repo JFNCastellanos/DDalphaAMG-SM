@@ -55,7 +55,7 @@ inline void buildCartesianTopology(){
     //Along x direction
     MPI_Cart_shift(mpi::cart_comm, 0, 1, &mpi::top , &mpi::bot);
 
-    //Diagonal ranks (needed for the staples)
+    //Diagonal ranks (just in case)
     int coords_bot_left[2] = {mod(mpi::coords[0]+1,mpi::ranks_x), mod(mpi::coords[1]-1,mpi::ranks_t)}; //bot-left
     MPI_Cart_rank(mpi::cart_comm, coords_bot_left, &mpi::bot_left);
 
@@ -180,13 +180,11 @@ inline void defineDataTypes(){
     MPI_Type_commit(&local_domain_resized);
 
     // Gather inner domains from all ranks in the coarse communicator
-    // Buffer has size (Nx_tot_sites+2)*(Nt_tot_sites+2)*2
+    // Buffer has size (Nx_coarse_rank+2)*(Nt_coarse_rank+2)*2
     // Create a type that matches the global buffer layout (strided by full global row including halo)
-    int Nx_tot_sites = mpi::width_x*mpi::ranks_x_c;
-    int Nt_tot_sites = mpi::width_t*mpi::ranks_t_c;
-    MPI_Type_vector(mpi::width_x,            // number of rows to place per rank
-                    2 * mpi::width_t,        // elements per row (complex numbers)
-                    2 * (Nt_tot_sites + 2),  // stride between rows in global buffer (complex elements) including halo
+    MPI_Type_vector(mpi::width_x,                   // number of rows to place per rank
+                    2 * mpi::width_t,               // elements per row (complex numbers)
+                    2 * (mpi::Nt_coarse_rank + 2),  // stride between rows in global buffer (complex elements) including halo
                     MPI_DOUBLE_COMPLEX,
                     &coarse_domain);
     MPI_Type_commit(&coarse_domain);
@@ -201,7 +199,10 @@ inline void defineDataTypes(){
 inline void initializeMPI(){
     assignWidth();
     buildCartesianTopology();
-    coarseLevelCommunicators();
+    
+    if (mpi::ranks_x > 2 && mpi::ranks_t >2) 
+        coarseLevelCommunicators();
+
     defineDataTypes();
 }
 

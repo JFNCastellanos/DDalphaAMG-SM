@@ -33,8 +33,11 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
     Level level(l,U);
     int indxtv, indx;
     int Nt, Nx, colors, Ntest;
+    const int &blocks_x = level.xblocks_per_rank;
+    const int &blocks_t = level.tblocks_per_rank;
     Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
     
+    int count = 0;
     for(int cc = 0; cc < level.Ntest; cc++){
         for(int x=1; x<=level.Nx; x++){
         for(int t=1; t<=level.Nt; t++){
@@ -46,9 +49,9 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
            /* if (mpi::rank2d == 0){
                 std::cout << "(x,t,c,s) = " << x << ", " << t << ", " << c << ", " << s <<  std::endl;
                 std::cout << "indx " << indxtv << std::endl;
-            }
-            */
+            }*/
             
+            count++;
         }
     }
     }
@@ -59,26 +62,29 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
         std::cout << "Rank " << mpi::rank2d << std::endl;
         std::cout << "Nx " << Nx << " Nt " << Nt << " colors " << colors << " Ntest " << Ntest << std::endl;
         std::cout << "Blocks per rank " << level.blocks_per_rank << std::endl;
-        std::cout << "count " << indxtv-1 << std::endl;
+        std::cout << "X elements inside block " << level.x_elements << " T elements " << level.t_elements << std::endl;
+        std::cout << "count " << count << std::endl;
     
     }
 
     
     if (mpi::rank2d == 0){
-        spinor ev(level.blocks_per_rank*2*Ntest); //Lives on the coarse lattice
-        spinor column(Nx*Nt*2*colors);
+        spinor ev((blocks_t+2)*(blocks_x+2)*2*Ntest); //Lives on the coarse lattice
+        spinor column((Nx+2)*(Nt+2)*2*colors);
         int indx1, indx2;
         std::cout << "Printing P^T (transpose interpolator) " << std::endl;
         for(int b = 0; b < level.blocks_per_rank; b++){
-            int bx = b / level.tblocks_per_rank;
-		    int bt = b % level.tblocks_per_rank; 
-            //Coordinates inside the block (bx,bt)
+            int bx = b / blocks_t; //This are the indices for the blocks, not for the coarse spinor
+		    int bt = b % blocks_t; 
+            int bx_shifted = bx+1; //The shifted versions are used for the coarse spinor with halos
+            int bt_shifted = bt+1;
+            //Coordinates inside the block (bx,bt) for a spinor with halos
 			int xini = level.x_elements*bx+1; int xfin = xini + level.x_elements;
 			int tini = level.t_elements*bt+1; int tfin = tini + level.t_elements;
         for(int sc=0; sc<2;sc++){
         for(int cc = 0; cc<Ntest; cc++){
             std::cout << "(bx, bt, sc, cc) = (" << bx << ", " << bt << ", " << sc << ", " << cc << ")" << std::endl;
-            indx1 = bx*level.tblocks_per_rank*Ntest*2 	+ bt*Ntest*2 + cc*2 + sc; 
+            indx1 = bx_shifted*(blocks_t+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + sc; 
             ev.val[indx1] = 1;
             level.P_vc(ev,column);
             ev.val[indx1] = 0;
@@ -104,6 +110,7 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
 
 
     //-------------------------------//
+    /*
     if (mpi::rank2d == 0){
         spinor ev(Nx*Nt*2*colors); //Lives on the coarse lattice
         spinor column(level.blocks_per_rank*2*Ntest);
@@ -137,6 +144,7 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
         }
 
     }
+        */
 
 
 }
@@ -200,8 +208,8 @@ void test_Doperator_fine_level(const spinor& U){
     for(int x = 1; x<=mpi::width_x; x++){
         for(int t = 1; t<=mpi::width_t; t++){
             int n = x*(mpi::width_t+2)+t;
-            U.val[2*n]      = RandomU1();
-            U.val[2*n+1]    = RandomU1();
+            U.val[2*n]        = RandomU1();
+            U.val[2*n+1]      = RandomU1();
             phi.val[2*n]      = RandomU1();
             phi.val[2*n+1]    = RandomU1();
         }
@@ -279,6 +287,10 @@ void rank_agglomeration_test(){
 
 //Test inner_domain and recv_domain datatypes for gathering data.
 void gather_vector_test(){
+    if (mpi::size != 16){
+         printf("This test is meant to be run with 16 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
     spinor input((mpi::width_t+2)*(mpi::width_x+2)*2);
     int n;
     for(int x = 1; x<=mpi::width_x; x++){
@@ -331,6 +343,10 @@ void gather_vector_test(){
 }
 
 void scatter_vector_test(){
+    if (mpi::size != 16){
+         printf("This test is meant to be run with 16 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
     spinor input((mpi::Nx_coarse_rank+2)*(mpi::Nt_coarse_rank+2)*2);
     spinor buffer((mpi::width_t+2)*(mpi::width_x+2)*2);
 

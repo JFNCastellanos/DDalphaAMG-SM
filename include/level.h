@@ -124,9 +124,11 @@ public:
     std::vector<spinor> tvec_copy;  
 
     const int level; 
-    const int xblocks_per_rank  = LevelV::BlocksX[level]/mpi::width_x; //Number of blocks on x inside the current rank
-    const int tblocks_per_rank  = LevelV::BlocksT[level]/mpi::width_t; //Number of blocks on t inside the current rank
+    const int xblocks_per_rank  = LevelV::BlocksX[level]/LevelV::RanksX[level]; //Number of blocks on x inside the current rank
+    const int tblocks_per_rank  = LevelV::BlocksT[level]/LevelV::RanksT[level]; //Number of blocks on t inside the current rank
     const int blocks_per_rank   = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
+    
+    //Check this carafeully 
     const int xranks_per_block  = mpi::width_x/LevelV::BlocksX[level]; //Number of ranks on x inside a block (needed for rank coarsening)
     const int tranks_per_block  = mpi::width_t/LevelV::BlocksT[level];
     const int ranks_per_block   = xranks_per_block*tranks_per_block;
