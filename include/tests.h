@@ -402,3 +402,24 @@ void scatter_vector_test(){
 }
 
 
+void coarse_gauge_links_test(const spinor& U){
+    spinor phi(mpi::maxSizeH);
+    spinor out1(mpi::maxSizeH);
+    spinor out2(mpi::maxSizeH);
+    for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            U.val[2*n]        = RandomU1();
+            U.val[2*n+1]      = RandomU1();
+            phi.val[2*n]      = RandomU1();
+            phi.val[2*n+1]    = RandomU1();
+        }
+    }
+    //exchange_halo(U.val);
+    int l0=0, l1=1;
+    Level level0(l0,U);
+    level0.orthonormalize();         //Orthonormalize test vectors
+    level0.checkOrthogonality();     //Checking orthogonality 
+
+    Level level1(l1,U);
+}

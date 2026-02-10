@@ -128,11 +128,11 @@ public:
     const int tblocks_per_rank  = LevelV::BlocksT[level]/LevelV::RanksT[level]; //Number of blocks on t inside the current rank
     const int blocks_per_rank   = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
     
-    //Check this carafeully 
+    //Check this carafeully// 
     const int xranks_per_block  = mpi::width_x/LevelV::BlocksX[level]; //Number of ranks on x inside a block (needed for rank coarsening)
     const int tranks_per_block  = mpi::width_t/LevelV::BlocksT[level];
     const int ranks_per_block   = xranks_per_block*tranks_per_block;
-    //------------------//
+    //---------------------//
     
     const int t_total_blocks = tblocks_per_rank * mpi::ranks_t_c; //Number of lattice blocks inside one MPI rank on the coarse grid.
 	const int x_total_blocks = xblocks_per_rank * mpi::ranks_x_c;
@@ -214,13 +214,53 @@ public:
         + mu;
     }
 
+    //Returns the block index of coordinate n, which lives in the fine spinor with halo
+    inline void getLatticeBlock(const int& n, int& block){
+        int x = n / (Nt+2); //x coordinate of the lattice point 
+        int t = n % (Nt+2); //t coordinate of the lattice point
+        //Reconstructing the block 
+        int block_x = (x-1) / x_elements; //Block index in the x direction
+        int block_t = (t-1) / t_elements; //Block index in the t direction
+        block = (block_x+1) * (tblocks_per_rank+2) + (block_t+1); //Block index in the SAP method
+    }
+
+    //returns (x,t) + hat{mu} on the current level
+    inline int rpb_l(const int& x, const int& t, const int& mu){
+        int xp = x+1;
+        int tp = t+1;
+        if (mu == 0)
+            return x*(Nt+2) + tp; //Right
+        else if (mu == 1)
+            return xp*(Nt+2) + t; //Down        
+        else{
+            std::cout << "Give a valid value of mu in function rpb_l" << std::endl;
+            exit(1); 
+        }
+    }
+
+    //returns (x,t)-hat{mu} on the current level
+    inline int lpb_l(const int& x, const int& t, const int& mu){
+        int xm = x-1;
+        int tm = t-1;
+        if (mu == 0)
+            return  x*(Nt+2)+tm; //Left
+        else if (mu == 1)
+            return xm*(Nt+2)+t;  //Up
+        else{
+            std::cout << "Give a valid value of mu in function lpb_l" << std::endl;
+            exit(1); 
+        }
+    }
+
     
     //Creates G1, G2 and G3
     void makeDirac();
 
     //Make coarse gauge links. They will be used in the next level as G1, G2 and G3.
-    //void makeCoarseLinks(Level& next_level);//& A_coeff,c_vector& B_coeff, c_vector& C_coeff);
+    void makeCoarseLinks(Level& next_level);//& A_coeff,c_vector& B_coeff, c_vector& C_coeff);
 
+    //Exchange halo for spinor v among the working ranks at the current level
+    void halo_exchange_l(const spinor& v);
 
     /*
     Matrix-vector operation that defines the level l.
@@ -230,6 +270,7 @@ public:
     */
     void D_operator(const spinor& v, spinor& out);
 
+    
 };
 
 #endif

@@ -204,6 +204,44 @@ void Level::makeDirac(){
 }
 
 
+//Exchange halo for spinor v among the working ranks at the current level
+void Level::halo_exchange_l(const spinor& v){
+	using namespace LV; //Lattice parameters namespace
+	using namespace mpi;
+
+	//The current implementation only works when the aggregates don't cross the ranks
+    int row_size = DOF * Nt;
+	int send_start, recv_start;   
+    //Send top row to top rank. Receive top row from bot rank.
+	//(x*(Nt+2)+t)*DOF +dof
+	send_start = ((Nt+2) + 1)*DOF;   //x=1, t=1	
+	recv_start = (Nx+1)*(Nt+2)*DOF;	//x=Nx+1, t=1
+    MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, top, 0,
+        &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, bot, 0,
+        cart_comm, MPI_STATUS_IGNORE);
+
+    //Send bot row to bot rank. Receive bot row from top rank.
+	send_start = (Nx*(Nt+2)+1)*DOF;
+	recv_start = 1*DOF;
+    MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, bot, 1,
+        &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, top, 1,
+        cart_comm, MPI_STATUS_IGNORE);
+
+    //Send left column to left rank. Receive left column from right rank. 
+	send_start = ((Nt+2) + 1)*DOF;
+	recv_start = ((Nt+2)+(Nt+1))*DOF;
+    MPI_Sendrecv(&v.val[send_start], 1, column_type, left, 2,
+    &v.val[recv_start], 1, column_type, right, 2,
+    cart_comm, MPI_STATUS_IGNORE);
+
+    //Send right column to right rank. Receive right column from left rank. 
+	send_start = ((Nt+2)+Nt)*DOF;
+	recv_start = (Nt+2)*DOF;
+    MPI_Sendrecv(&v.val[send_start], 1, column_type, right, 3,
+    &v.val[recv_start], 1, column_type, left, 3,
+    cart_comm, MPI_STATUS_IGNORE);
+}
+
 
 //Dirac operator at the current level
 void Level::D_operator(const spinor& v, spinor& out){	
@@ -238,26 +276,6 @@ void Level::D_operator(const spinor& v, spinor& out){
 	}
 	}
 	
-
-	/*
-	for(int x = 0; x<Ntot;x++){
-	for(int alf = 0; alf<2; alf++){
-	for(int c = 0; c<colors; c++){
-		out[x][2*c+alf] = (mass::m0+2)*v[x][2*c+alf];
-	for(int bet = 0; bet<2; bet++){
-	for(int b = 0; b<colors; b++){
-		out[x][2*c+alf] -= G1[getG1index(x,alf,bet,c,b)] * v[x][2*b+bet];
-		for(int mu:{0,1}){
-			out[x][2*c+alf] -= ( G2[getG2G3index(x,alf,bet,c,b,mu)] * SignR_l[level][2*x+mu] * v[RightPB_l[level][2*x+mu]][2*b+bet]
-							+ G3[getG2G3index(x,alf,bet,c,b,mu)] * SignL_l[level][2*x+mu] * v[LeftPB_l[level][2*x+mu]][2*b+bet] );
-		}
-	}
-	}
-	}
-	}
-	}
-	*/
-
 }
 
 
@@ -266,77 +284,90 @@ void Level::D_operator(const spinor& v, spinor& out){
 /*
 	Make coarse gauge links. They will be used in the next level as G1, G2 and G3.
 */
-/*
 void Level::makeCoarseLinks(Level& next_level){
 	//Make gauge links for level l
-	std::vector<spinor> &w = interpolator_columns;
+	std::vector<spinor> &w = tvec;
 	c_double wG2, wG3;
-	c_vector &A_coeff = next_level.G1; 
-	c_vector &B_coeff = next_level.G2;
-	c_vector &C_coeff = next_level.G3;
+	spinor &A_coeff = next_level.G1; 
+	spinor &B_coeff = next_level.G2;
+	spinor &C_coeff = next_level.G3;
 	int indxA; int indxBC[2]; //Indices for A, B and C coefficients
 	int block_r;
 	int block_l;
-	//p and s are the coarse colors
+	//p and s are the colors at the coarse level
 	//c and b are the colors at the current level
-	for(int x=0; x<NBlocks; x++){
-	for(int alf=0; alf<2;alf++){
-	for(int bet=0; bet<2;bet++){
+	int bx, bt, bx_shifted, bt_shifted, block;
+	int xini, xfin, tini, tfin;
+	int n; 
+	int indx;
+	int rn, ln; //right and left neighbors
+	int rb, lb; //right and left blocks
+	for(int b = 0; b<blocks_per_rank; b++){
+		bx = b / tblocks_per_rank;
+		bt = b % tblocks_per_rank;	
+		bx_shifted = bx+1;
+		bt_shifted = bt+1;
+		block = (bx_shifted)*tblocks_per_rank + bt_shifted;
+		//Coordinates inside the block (bx,bt) for a spinor with halo
+		xini = x_elements*bx+1; xfin = xini + x_elements;
+		tini = t_elements*bt+1; tfin = tini + t_elements;
+	for(int alf=0; alf<2; alf++){
+	for(int bet=0; bet<2; bet++){
 	for(int p = 0; p<Ntest; p++){
 	for(int s = 0; s<Ntest; s++){
-		indxA = getAindex(x,alf,bet,p,s); //Indices for the next level
-		indxBC[0] = getBCindex(x,alf,bet,p,s,0);
-		indxBC[1] = getBCindex(x,alf,bet,p,s,1);
-		A_coeff[indxA] = 0;
-		B_coeff[indxBC[0]] = 0; B_coeff[indxBC[1]] = 0;
-		C_coeff[indxBC[0]] = 0; C_coeff[indxBC[1]] = 0;
-		for(int n : LatticeBlocks[x]){
+		indxA 		= getAindex(block,alf,bet,p,s); //Indices for the next level
+		indxBC[0] 	= getBCindex(block,alf,bet,p,s,0);
+		indxBC[1] 	= getBCindex(block,alf,bet,p,s,1);
+		A_coeff.val[indxA] = 0;
+		B_coeff.val[indxBC[0]] = 0; B_coeff.val[indxBC[1]] = 0;
+		C_coeff.val[indxBC[0]] = 0; C_coeff.val[indxBC[1]] = 0;
+		//Elements inside the lattice blocks
+		for(int x=xini;x<xfin;x++){
+		for(int t=tini;t<tfin;t++){
+			n = x*(Nt+2)+t;
 			for(int c = 0; c<colors; c++){
 			for(int b = 0; b<colors; b++){
-			
 				//[w*_p^(block,alf)]_{c,alf}(x) [A(x)]^{alf,bet}_{c,b} [w_s^{block,bet}]_{b,bet}(x)
-			A_coeff[indxA] += std::conj(w[p][n][2*c+alf]) * G1[getG1index(n,alf,bet,c,b)] * w[s][n][2*b+bet];
-			for(int mu : {0,1}){
-				getLatticeBlock(RightPB_l[level][n][mu], block_r); //block_r: block where RightPB_l[n][mu] lives
-				getLatticeBlock(LeftPB_l[level][n][mu], block_l); //block_l: block where LeftPB_l[n][mu] lives
-				wG2 = std::conj(w[p][n][2*c+alf]) * G2[getG2G3index(n,alf,bet,c,b,mu)]; 
-				wG3 = std::conj(w[p][n][2*c+alf]) * G3[getG2G3index(n,alf,bet,c,b,mu)];
-				FLOPS += cm*2;
-				
-				//Only diff from zero when n+hat{mu} in Block(x)
-				if (block_r == x){
-					A_coeff[indxA] += wG2 * w[s][RightPB_l[level][n][mu]][2*b+bet];// * SignR_l[level][n][mu];
-					FLOPS += ca+cm;
-				}
-				//Only diff from zero when n+hat{mu} in Block(x+hat{mu})
-				else if (block_r == RightPB_l[level+1][x][mu]){
-					B_coeff[indxBC[mu]] += wG2 * w[s][RightPB_l[level][n][mu]][2*b+bet]; //Sign considered in the operator
-					FLOPS += ca+cm;
-				}
-				//Only diff from zero when n-hat{mu} in Block(x)
-				if (block_l == x){
-					A_coeff[indxA] += wG3 * w[s][LeftPB_l[level][n][mu]][2*b+bet];// *  SignL_l[level][n][mu];
-					FLOPS += ca+cm;
-				}
-				//Only diff from zero when n-hat{mu} in Block(x-hat{mu})
-				else if (block_l == LeftPB_l[level+1][x][mu]){
-					C_coeff[indxBC[mu]] += wG3 * w[s][LeftPB_l[level][n][mu]][2*b+bet];
-					FLOPS += ca+cm;
-				}
-	
-			}
-			}	
-			}
-		}
-	//---------Close loops---------//
+				indx = n*colors*2 + c*2 + alf;
+				A_coeff.val[indxA] += std::conj(w[p].val[indx]) * G1.val[getG1index(n,alf,bet,c,b)] * w[s].val[n*colors*2 + b*2 + bet];
+				for(int mu : {0,1}){
+					rn = rpb_l(x,t,mu); //(x,t)+hat{mu}
+					ln = lpb_l(x,t,mu); //(x,t)-hat{mu}
+					rb = next_level.rpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)+hat{mu}
+					lb = next_level.lpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)-hat{mu}
+					getLatticeBlock(rn, block_r); //block_r: block where rn lives
+					getLatticeBlock(ln, block_l); //block_l: block where ln lives
+
+					wG2 = std::conj(w[p].val[indx]) * G2.val[getG2G3index(n,alf,bet,c,b,mu)]; 
+					wG3 = std::conj(w[p].val[indx]) * G3.val[getG2G3index(n,alf,bet,c,b,mu)];
+
+					//Only diff from zero when n+hat{mu} in Block(x)
+					if (block_r == block){
+						A_coeff.val[indxA] 			+= wG2 * w[s].val[rn*colors*2 + b*2 +bet];
+					}
+					//Only diff from zero when n+hat{mu} in Block(x+hat{mu})
+					else if (block_r == rb){
+						B_coeff.val[indxBC[mu]] 	+= wG2 * w[s].val[rn*colors*2 + b*2 +bet]; 
+					}
+					//Only diff from zero when n-hat{mu} in Block(x)
+					if (block_l == block){
+						A_coeff.val[indxA] 			+= wG3 * w[s].val[ln*colors*2 + b*2 +bet];
+					}
+					//Only diff from zero when n-hat{mu} in Block(x-hat{mu})
+					else if (block_l == lb){
+						C_coeff.val[indxBC[mu]] 	+= wG3 * w[s].val[ln*colors*2 + b*2 +bet];
+					}
+				}//mu loop
+			}//b loop
+			}//c loop
+		}//x inside block
+		}//t inside block	
 	} //s
 	} //p
 	} //bet
 	} //alf
-	} //x 
-	
+	} //block
 }
-*/
 //Local Dc used for SAP
 /*
 void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block){
