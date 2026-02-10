@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include "sap.h"
+#include "gather_scatter.h"
 
 /*
     One level of the AMG method

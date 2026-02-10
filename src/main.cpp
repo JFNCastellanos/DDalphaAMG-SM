@@ -68,8 +68,8 @@ int main(int argc, char **argv) {
     //rank_agglomeration_test();
 
     
-    gather_vector_test();
-    //scatter_vector_test();
+    //gather_vector_test();
+    scatter_vector_test();
 
 
     //Free coordinate arrays
