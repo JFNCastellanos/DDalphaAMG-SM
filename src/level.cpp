@@ -205,40 +205,39 @@ void Level::makeDirac(){
 
 
 //Exchange halo for spinor v among the working ranks at the current level
-void Level::halo_exchange_l(const spinor& v){
-	using namespace LV; //Lattice parameters namespace
+void Level::exchange_halo_l(const spinor& v){
 	using namespace mpi;
-
 	//The current implementation only works when the aggregates don't cross the ranks
     int row_size = DOF * Nt;
 	int send_start, recv_start;   
+
     //Send top row to top rank. Receive top row from bot rank.
 	//(x*(Nt+2)+t)*DOF +dof
-	send_start = ((Nt+2) + 1)*DOF;   //x=1, t=1	
-	recv_start = (Nx+1)*(Nt+2)*DOF;	//x=Nx+1, t=1
+	send_start = ((Nt+2) + 1)*DOF;   //x=1, t=1
+	recv_start = ((Nx+1)*(Nt+2)+1)*DOF;	//x=Nx+1, t=1
     MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, top, 0,
         &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, bot, 0,
         cart_comm, MPI_STATUS_IGNORE);
 
     //Send bot row to bot rank. Receive bot row from top rank.
-	send_start = (Nx*(Nt+2)+1)*DOF;
-	recv_start = 1*DOF;
+	send_start = (Nx*(Nt+2)+1)*DOF;	//x=Nx, t=1
+	recv_start = 1*DOF;				//x=0,	t=1
     MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, bot, 1,
         &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, top, 1,
         cart_comm, MPI_STATUS_IGNORE);
 
     //Send left column to left rank. Receive left column from right rank. 
-	send_start = ((Nt+2) + 1)*DOF;
-	recv_start = ((Nt+2)+(Nt+1))*DOF;
-    MPI_Sendrecv(&v.val[send_start], 1, column_type, left, 2,
-    &v.val[recv_start], 1, column_type, right, 2,
+	send_start = ((Nt+2) + 1)*DOF;		//x=1,	t=1
+	recv_start = ((Nt+2)+(Nt+1))*DOF;	//x=1,	t=Nt+1
+    MPI_Sendrecv(&v.val[send_start], 1, column_type[level], left, 2,
+    &v.val[recv_start], 1, column_type[level], right, 2,
     cart_comm, MPI_STATUS_IGNORE);
 
     //Send right column to right rank. Receive right column from left rank. 
-	send_start = ((Nt+2)+Nt)*DOF;
-	recv_start = (Nt+2)*DOF;
-    MPI_Sendrecv(&v.val[send_start], 1, column_type, right, 3,
-    &v.val[recv_start], 1, column_type, left, 3,
+	send_start = ((Nt+2)+Nt)*DOF;		//x=1,	t=Nt
+	recv_start = (Nt+2)*DOF;			//x=1,	t=0
+    MPI_Sendrecv(&v.val[send_start], 1, column_type[level], right, 3,
+    &v.val[recv_start], 1, column_type[level], left, 3,
     cart_comm, MPI_STATUS_IGNORE);
 }
 
@@ -246,7 +245,7 @@ void Level::halo_exchange_l(const spinor& v){
 //Dirac operator at the current level
 void Level::D_operator(const spinor& v, spinor& out){	
 
-	exchange_halo(v.val); //Communicate halos
+	exchange_halo_l(v); //Communicate halos
 
 	int indx, indx1, indx2, n;
 	//n only runs in the interior of the lattice domain
@@ -265,8 +264,8 @@ void Level::D_operator(const spinor& v, spinor& out){
 			for(int mu:{0,1}){
 				indx1 = rpb[2*n+mu]*colors*2+b*2+bet;
 				indx2 = lpb[2*n+mu]*colors*2+b*2+bet;
-				out.val[indx] -= ( 	G2.val[getG2G3index(n,alf,bet,c,b,mu)] * rsign[2*n+mu] * v.val[indx1]
-								+ 	G3.val[getG2G3index(n,alf,bet,c,b,mu)] * lsign[2*n+mu] * v.val[indx2] 
+				out.val[indx] -= ( 	G2.val[getG2G3index(n,alf,bet,c,b,mu)] * rsign_l(t,mu) * v.val[indx1]
+								+ 	G3.val[getG2G3index(n,alf,bet,c,b,mu)] * lsign_l(t,mu) * v.val[indx2] 
 								);
 			}
 		}

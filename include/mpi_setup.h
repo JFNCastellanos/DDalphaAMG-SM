@@ -167,8 +167,8 @@ inline void defineDataTypes(){
     MPI_Type_commit(&sub_block_resized);
 
     //Create datatype for the halo exchange
-    MPI_Type_vector(mpi::width_x, LV::dof, (mpi::width_t+2)*LV::dof, MPI_DOUBLE_COMPLEX, &column_type);
-    MPI_Type_commit(&column_type);
+    MPI_Type_vector(mpi::width_x, LV::dof, (mpi::width_t+2)*LV::dof, MPI_DOUBLE_COMPLEX, &mpi::column_type[0]);
+    MPI_Type_commit(&mpi::column_type[0]);
 
     //Data type for the elements of a spinor inside a rank. 
     //The datatype does not include the halo, but assumes the spinor to be sent has it
@@ -204,6 +204,12 @@ inline void initializeMPI(){
         coarseLevelCommunicators();
 
     defineDataTypes();
+}
+
+inline void defineColumnType(const int& l, const int& Nx, const int& Nt, const int& DOF){
+    //Create datatype for the halo exchange at level l
+    MPI_Type_vector(Nx, DOF, (Nt+2)*DOF, MPI_DOUBLE_COMPLEX, &mpi::column_type[l]);
+    MPI_Type_commit(&mpi::column_type[l]);
 }
 
 

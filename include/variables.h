@@ -17,7 +17,6 @@ namespace mass{extern double m0;}
 //For scattering and gathering information from the 2D rank topology
 extern MPI_Datatype sub_block_type;
 extern MPI_Datatype sub_block_resized;
-extern MPI_Datatype column_type;
 extern MPI_Datatype local_domain;
 extern MPI_Datatype local_domain_resized;
 extern MPI_Datatype coarse_domain;
@@ -61,6 +60,8 @@ namespace mpi{
     extern int* displs_coarse;                          //Displacements array for gathering/scattering
 
     extern int* rank_dictionary;  //Coarse communicator corresponding to rank2d
+
+    extern MPI_Datatype* column_type;
 }
 
 

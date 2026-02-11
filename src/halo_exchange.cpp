@@ -17,13 +17,13 @@ void exchange_halo(c_double* phi){
         cart_comm, MPI_STATUS_IGNORE);
 
     //Send left column to left rank. Receive left column from right rank. 
-    MPI_Sendrecv(&phi[idx(1,1,0)], 1, column_type, left, 2,
-    &phi[idx(1,width_t+1,0)], 1, column_type, right, 2,
+    MPI_Sendrecv(&phi[idx(1,1,0)], 1, mpi::column_type[0], left, 2,
+    &phi[idx(1,width_t+1,0)], 1, mpi::column_type[0], right, 2,
     cart_comm, MPI_STATUS_IGNORE);
 
     //Send right column to right rank. Receive right column from left rank. 
-    MPI_Sendrecv(&phi[idx(1,width_t,0)], 1, column_type, right, 3,
-    &phi[idx(1,0,0)], 1, column_type, left, 3,
+    MPI_Sendrecv(&phi[idx(1,width_t,0)], 1, mpi::column_type[0], right, 3,
+    &phi[idx(1,0,0)], 1, mpi::column_type[0], left, 3,
     cart_comm, MPI_STATUS_IGNORE);
 
 }

@@ -110,8 +110,12 @@ public:
         G3 = spinor(Ntot_halo*2*2*colors*colors*2);
 
 
+
+
         if (level == 0)
-            makeDirac(); 
+            makeDirac(); //Initialize Dirac Operator on the fine grid
+        else
+            defineColumnType(level, Nx, Nt,LevelV::DOF[level]); //DataType needed for the halo exchange at level l
         
         
     };
@@ -252,6 +256,19 @@ public:
         }
     }
 
+    inline c_double rsign_l(const int& t, const int& mu){
+        c_double sign=1;
+        if ((mpi::rank2d+1) % mpi::ranks_t == 0 && mu == 0)
+			sign = (t == Nt) ? -1 : 1;     //sign for the "right" boundary in time
+        return sign;
+    }
+
+    inline c_double lsign_l(const int& t, const int& mu){
+        c_double sign=1;
+        if (mpi::rank2d % mpi::ranks_t == 0 && mu == 0)
+			sign = (t == 1) ? -1 : 1;     //sign for the "left" boundary in time	 
+        return sign;
+    }
     
     //Creates G1, G2 and G3
     void makeDirac();
@@ -260,7 +277,7 @@ public:
     void makeCoarseLinks(Level& next_level);//& A_coeff,c_vector& B_coeff, c_vector& C_coeff);
 
     //Exchange halo for spinor v among the working ranks at the current level
-    void halo_exchange_l(const spinor& v);
+    void exchange_halo_l(const spinor& v);
 
     /*
     Matrix-vector operation that defines the level l.

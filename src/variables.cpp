@@ -53,6 +53,7 @@ namespace mpi{
     int* displs_coarse = nullptr;
     
     int* rank_dictionary = nullptr;
+    MPI_Datatype* column_type = nullptr;
 
 }
 
@@ -156,6 +157,7 @@ void allocate_lattice_arrays() {
     mpi::coarse_group       = new MPI_Group[mpi::ranks_coarse_level];
     mpi::coarse_comm        = new MPI_Comm[mpi::ranks_coarse_level];
     mpi::rank_dictionary    = new int[mpi::size];
+    mpi::column_type        = new MPI_Datatype[mpi::size];
 }
 
 void free_lattice_arrays() {
@@ -199,4 +201,5 @@ void free_lattice_arrays() {
     //NOTE: these two are initialized in coarseLevelCommunicators()
     delete[] mpi::counts_coarse;
     delete[] mpi::displs_coarse;
+    delete[] mpi::column_type;
 }
