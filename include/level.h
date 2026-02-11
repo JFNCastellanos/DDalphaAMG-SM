@@ -98,13 +98,14 @@ public:
         //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
         int Ntot_halo = (Nx+2)*(Nt+2);
 
+        if (mpi::rank2d == 0)
+            std::cout << "level " << level << " colors " << colors << "  test vectors " << Ntest  << std::endl;
+
         //Test vectors
-        tvec        = std::vector<spinor>(LevelV::Ntest[level],spinor(Ntot_halo*LevelV::DOF[level]));
-        tvec_copy   = std::vector<spinor>(LevelV::Ntest[level],spinor(Ntot_halo*LevelV::DOF[level]));
+        tvec        = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
+        tvec_copy   = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
 
        	    
-        //std::cout << "colors " << colors << std::endl;
-
         G1 = spinor(Ntot_halo*2*2*colors*colors);
         G2 = spinor(Ntot_halo*2*2*colors*colors*2);
         G3 = spinor(Ntot_halo*2*2*colors*colors*2);
@@ -115,7 +116,7 @@ public:
         if (level == 0)
             makeDirac(); //Initialize Dirac Operator on the fine grid
         else
-            defineColumnType(level, Nx, Nt,LevelV::DOF[level]); //DataType needed for the halo exchange at level l
+            defineColumnType(level, Nx, Nt,DOF); //DataType needed for the halo exchange at level l
         
         
     };
@@ -128,8 +129,8 @@ public:
     std::vector<spinor> tvec_copy;  
 
     const int level; 
-    const int xblocks_per_rank  = LevelV::BlocksX[level]/LevelV::RanksX[level]; //Number of blocks on x inside the current rank
-    const int tblocks_per_rank  = LevelV::BlocksT[level]/LevelV::RanksT[level]; //Number of blocks on t inside the current rank
+    const int xblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksX[level]/LevelV::RanksX[level] : 1; //Number of blocks on x inside the current rank
+    const int tblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksT[level]/LevelV::RanksT[level] : 1; //Number of blocks on t inside the current rank
     const int blocks_per_rank   = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
     
     //Check this carafeully// 

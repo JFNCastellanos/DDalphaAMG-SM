@@ -8,7 +8,7 @@ set(SOURCES
     src/variables.cpp           #Relevant parameters for the lattice
     src/utils.cpp               #Utility functions
     src/halo_exchange.cpp       #Implementation of the halo exchange for a field
-    src/dirac_operator.cpp      #Implementation of D, D^+ and 2* Re ( left^+ d D / d omega(z) right )
+    src/dirac_operator.cpp      #Implementation of D, D^+
     src/conjugate_gradient.cpp  #Conjugate gradient and Bi-cgstab
     src/fgmres.cpp              #FGMRES class
     src/sap.cpp                 #SAP class
@@ -16,8 +16,8 @@ set(SOURCES
     src/main.cpp                #Main program
 )
 
-set(NS "64")   #Lattice dimension x
-set(NT "64")   #Lattice dimension t
+set(NS "128")   #Lattice dimension x
+set(NT "128")   #Lattice dimension t
 
 configure_file(${CMAKE_SOURCE_DIR}/include/config.h.in ${CMAKE_SOURCE_DIR}/include/config.h)
 

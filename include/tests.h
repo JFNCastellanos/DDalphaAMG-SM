@@ -525,6 +525,7 @@ void test_Dc(const spinor& U){
     }
 
     
+    
     for(int l = 0; l<LevelV::maxLevel; l++){
         if (mpi::rank2d == 0)
             std::cout << "checking level " << l+1 << std::endl;
@@ -571,9 +572,9 @@ void test_Dc(const spinor& U){
         }
         
     }
+    
         
 
-    
     for (auto ptr : levels) delete ptr;
 
 }
