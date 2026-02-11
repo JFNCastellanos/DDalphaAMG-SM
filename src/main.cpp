@@ -71,6 +71,8 @@ int main(int argc, char **argv) {
     //gather_vector_test();
     //scatter_vector_test();
 
+    coarse_gauge_links_test(U);
+    //check_boundaries(U);
 
     //Free coordinate arrays
     free_lattice_arrays();

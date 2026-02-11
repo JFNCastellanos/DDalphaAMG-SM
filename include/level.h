@@ -164,7 +164,7 @@ public:
 	x_i = P_ij v_j. dim(P) = DOF Nsites x Ntest Nagg, 
 	dim(v) = [NBlocks][2*Ntest], dim(x) = [Nsites][DOF]
     */
-    void P_vc(const spinor& v,spinor& out);
+    void P_vc(const spinor& vc,spinor& out);
 
     /*
 	Restriction operator times a spinor on the coarse grid, x = P^H v
@@ -218,14 +218,26 @@ public:
         + mu;
     }
 
-    //Returns the block index of coordinate n, which lives in the fine spinor with halo
+    //Given n on the fine grid with halo, return b on the coarse grid with halo
     inline void getLatticeBlock(const int& n, int& block){
+        //printf("Inside getLatticeBlock\n");
         int x = n / (Nt+2); //x coordinate of the lattice point 
         int t = n % (Nt+2); //t coordinate of the lattice point
+       // printf("(x,t)=(%d,%d)\n",x,t);
         //Reconstructing the block 
-        int block_x = (x-1) / x_elements; //Block index in the x direction
-        int block_t = (t-1) / t_elements; //Block index in the t direction
-        block = (block_x+1) * (tblocks_per_rank+2) + (block_t+1); //Block index in the SAP method
+        int block_x, block_t;
+        //This assumes that x and t are not touching the halos.
+        block_x = (x-1) / x_elements + 1; //Block index in the x direction
+        block_t = (t-1) / t_elements + 1; //Block index in the t direction
+
+        //If the coordinates touch the edges of the halo we need to shift the indices. 
+        if ( t == 0 )
+            block_t -= 1; 
+        else if (x == 0)
+            block_x -= 1;
+
+       // printf("(block_x,block_t)=(%d,%d)\n",block_x,block_t);
+        block = block_x * (tblocks_per_rank+2) + block_t; //Block index in the SAP method
     }
 
     //returns (x,t) + hat{mu} on the current level

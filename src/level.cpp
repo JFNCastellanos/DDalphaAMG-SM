@@ -262,8 +262,8 @@ void Level::D_operator(const spinor& v, spinor& out){
 			indx1 = n*colors*2+b*2+bet;
 			out.val[indx] -= G1.val[getG1index(n,alf,bet,c,b)] * v.val[indx1];
 			for(int mu:{0,1}){
-				indx1 = rpb[2*n+mu]*colors*2+b*2+bet;
-				indx2 = lpb[2*n+mu]*colors*2+b*2+bet;
+				indx1 = rpb_l(x,t,mu)*colors*2+b*2+bet;
+				indx2 = lpb_l(x,t,mu)*colors*2+b*2+bet;
 				out.val[indx] -= ( 	G2.val[getG2G3index(n,alf,bet,c,b,mu)] * rsign_l(t,mu) * v.val[indx1]
 								+ 	G3.val[getG2G3index(n,alf,bet,c,b,mu)] * lsign_l(t,mu) * v.val[indx2] 
 								);
@@ -286,6 +286,11 @@ void Level::D_operator(const spinor& v, spinor& out){
 void Level::makeCoarseLinks(Level& next_level){
 	//Make gauge links for level l
 	std::vector<spinor> &w = tvec;
+	for(int cc=0; cc<Ntest;cc++)
+		exchange_halo_l(w[cc]);	//We exchange halos for the test vectors.
+	
+
+
 	c_double wG2, wG3;
 	spinor &A_coeff = next_level.G1; 
 	spinor &B_coeff = next_level.G2;
@@ -306,7 +311,7 @@ void Level::makeCoarseLinks(Level& next_level){
 		bt = b % tblocks_per_rank;	
 		bx_shifted = bx+1;
 		bt_shifted = bt+1;
-		block = (bx_shifted)*tblocks_per_rank + bt_shifted;
+		block = (bx_shifted)*(tblocks_per_rank+2) + bt_shifted;//Indexing for a coarse spinors with halo
 		//Coordinates inside the block (bx,bt) for a spinor with halo
 		xini = x_elements*bx+1; xfin = xini + x_elements;
 		tini = t_elements*bt+1; tfin = tini + t_elements;
@@ -314,7 +319,7 @@ void Level::makeCoarseLinks(Level& next_level){
 	for(int bet=0; bet<2; bet++){
 	for(int p = 0; p<Ntest; p++){
 	for(int s = 0; s<Ntest; s++){
-		indxA 		= getAindex(block,alf,bet,p,s); //Indices for the next level
+		indxA 		= getAindex(block,alf,bet,p,s); 	//Indices for the next level
 		indxBC[0] 	= getBCindex(block,alf,bet,p,s,0);
 		indxBC[1] 	= getBCindex(block,alf,bet,p,s,1);
 		A_coeff.val[indxA] = 0;
@@ -342,19 +347,19 @@ void Level::makeCoarseLinks(Level& next_level){
 
 					//Only diff from zero when n+hat{mu} in Block(x)
 					if (block_r == block){
-						A_coeff.val[indxA] 			+= wG2 * w[s].val[rn*colors*2 + b*2 +bet];
+						A_coeff.val[indxA] 			+= wG2 * w[s].val[rn*colors*2 + b*2 + bet];
 					}
 					//Only diff from zero when n+hat{mu} in Block(x+hat{mu})
 					else if (block_r == rb){
-						B_coeff.val[indxBC[mu]] 	+= wG2 * w[s].val[rn*colors*2 + b*2 +bet]; 
+						B_coeff.val[indxBC[mu]] 	+= wG2 * w[s].val[rn*colors*2 + b*2 + bet]; 
 					}
 					//Only diff from zero when n-hat{mu} in Block(x)
 					if (block_l == block){
-						A_coeff.val[indxA] 			+= wG3 * w[s].val[ln*colors*2 + b*2 +bet];
+						A_coeff.val[indxA] 			+= wG3 * w[s].val[ln*colors*2 + b*2 + bet];
 					}
 					//Only diff from zero when n-hat{mu} in Block(x-hat{mu})
 					else if (block_l == lb){
-						C_coeff.val[indxBC[mu]] 	+= wG3 * w[s].val[ln*colors*2 + b*2 +bet];
+						C_coeff.val[indxBC[mu]] 	+= wG3 * w[s].val[ln*colors*2 + b*2 + bet];
 					}
 				}//mu loop
 			}//b loop

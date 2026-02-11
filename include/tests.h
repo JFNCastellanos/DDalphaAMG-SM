@@ -403,23 +403,131 @@ void scatter_vector_test(){
 
 
 void coarse_gauge_links_test(const spinor& U){
-    spinor phi(mpi::maxSizeH);
-    spinor out1(mpi::maxSizeH);
-    spinor out2(mpi::maxSizeH);
+    if (mpi::size != 4){
+         printf("This test is meant to be run with 4 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+
     for(int x = 1; x<=mpi::width_x; x++){
         for(int t = 1; t<=mpi::width_t; t++){
             int n = x*(mpi::width_t+2)+t;
             U.val[2*n]        = RandomU1();
             U.val[2*n+1]      = RandomU1();
-            phi.val[2*n]      = RandomU1();
-            phi.val[2*n+1]    = RandomU1();
         }
     }
     //exchange_halo(U.val);
     int l0=0, l1=1;
     Level level0(l0,U);
+    static std::mt19937 randomInt(50); //Same seed for all the MPI copies
+	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
+
+    for(int cc = 0; cc < level0.Ntest; cc++){
+        for(int x=1; x<=level0.Nx; x++){
+        for(int t=1; t<=level0.Nt; t++){
+	    for(int c=0; c<level0.colors; c++){
+	    for(int s=0; s<2; s++){
+            int indx 	= x*(level0.Nt+2)*level0.colors*2 + t*level0.colors*2 + c*2 	+ s;
+            level0.tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);            
+        }
+    }
+    }
+    }      
+    }
+
+
     level0.orthonormalize();         //Orthonormalize test vectors
     level0.checkOrthogonality();     //Checking orthogonality 
 
+
     Level level1(l1,U);
+    level0.makeCoarseLinks(level1);
+
+    spinor vc((level1.Nt+2)*(level1.Nx+2)*level1.DOF);
+    spinor v((level0.Nt+2)*(level0.Nx+2)*level0.DOF);
+    spinor temp((level0.Nt+2)*(level0.Nx+2)*level0.DOF);
+    for(int x = 1; x<=level1.Nx; x++){
+        for(int t = 1; t<=level1.Nt; t++){
+            for(int dof=0; dof<level1.DOF; dof++){
+                int n = x*(level1.Nt+2)+t;
+                vc.val[level1.DOF*n+dof] = RandomU1();
+            }
+        }
+    }
+    spinor out1((level1.Nt+2)*(level1.Nx+2)*level1.DOF);
+    spinor out2((level1.Nt+2)*(level1.Nx+2)*level1.DOF);
+    // Dc = P^+ D P
+    level1.D_operator(vc, out1);
+
+    //Explicit application of each operator. Should coincide with D_operator at level1.
+    level0.P_vc(vc,v);
+    level0.D_operator(v,temp);
+    level0.Pdagg_v(temp,out2);
+
+
+    if (mpi::rank2d == 0){
+        for(int x = 1; x<=level1.Nx; x++){
+            for(int t = 1; t<=level1.Nt; t++){
+                int n = x*(level1.Nt+2)+t;
+                for(int dof=0; dof<level1.DOF; dof++){
+                    if (std::abs(out1.val[level1.DOF*n+dof]-out2.val[level1.DOF*n+dof]) > 1e-8 || std::abs(out1.val[level1.DOF*n+dof]-out2.val[level1.DOF*n+dof]) > 1e-8){
+                        std::cout << "Both implementations of D don't coincide, rank " << mpi::rank2d << " level " << l1 << std::endl;
+                        std::cout << "x " << x << " t " << t << " dof " << dof << std::endl;
+                        std::cout << "D_operator vc      " <<  out1.val[level1.DOF*n+dof] << std::endl;
+                        std::cout << "P^+ D P vc         " <<  out2.val[level1.DOF*n+dof] << std::endl;
+                        std::cout << std::endl;      
+                        return; 
+                    }
+                } 
+            }
+        }
+        std::cout << "Dc coincides with P^+ D P at level " << l1 << std::endl;
+    }
+
+}
+
+void check_boundaries(const spinor& U){
+    int l0=0, l1=1;
+    Level level0(l0,U);
+    Level level1(l1,U);
+
+    if (mpi::rank2d == 0){
+        std::cout << "Blocks " << level0.blocks_per_rank << std::endl;
+        std::cout << "Elements on each block " << level0.x_elements*level0.t_elements << std::endl;
+    for(int b = 0; b<level0.blocks_per_rank; b++){
+		int bx = b / level0.tblocks_per_rank;
+		int bt = b % level0.tblocks_per_rank;	
+		int bx_shifted = bx+1;
+		int bt_shifted = bt+1;
+		int block = (bx_shifted)*(level0.tblocks_per_rank+2) + bt_shifted;//Indexing for a coarse spinors with halo
+		//Coordinates inside the block (bx,bt) for a spinor with halo
+		int xini = level0.x_elements*bx+1; int xfin = xini + level0.x_elements;
+		int tini = level0.t_elements*bt+1; int tfin = tini + level0.t_elements;
+		//Elements inside the lattice blocks
+        printf("----------(bx,bt,block) = (%d, %d, %d)-----------\n",bx_shifted,bt_shifted,block);
+		for(int x=xini;x<xfin;x++){
+		for(int t=tini;t<tfin;t++){
+			int n = x*(level0.Nt+2)+t;
+			for(int mu : {0,1}){
+				int rn = level0.rpb_l(x,t,mu); //(x,t)+hat{mu}
+				int ln = level0.lpb_l(x,t,mu); //(x,t)-hat{mu}
+				int rb = level1.rpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)+hat{mu}
+				int lb = level1.lpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)-hat{mu}
+                int block_r, block_l;
+                printf("(x,t,mu,n)      = (%d,%d,%d,%d)\n",x,t,mu,n);
+                printf("(x,t)+hat{mu}   = %d\n",rn);
+                printf("(x,t)-hat{mu}   = %d\n",ln);
+                printf("(bx,bt)+hat{mu} = %d\n",rb);
+                printf("(bx,bt)-hat{mu} = %d\n",lb);
+                level0.getLatticeBlock(rn, block_r); //block_r: block where rn lives
+                printf("Lattice block of (x,t)+hat{mu} = %d\n",block_r);
+                level0.getLatticeBlock(ln, block_l); //block_l: block where ln lives
+                printf("Lattice block of (x,t)-hat{mu} = %d\n",block_l);
+                printf("\n");
+            }
+        }
+        }
+        printf("\n");
+    }
+    }
+
 }
