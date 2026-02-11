@@ -64,14 +64,15 @@ int main(int argc, char **argv) {
     int l = 0;
     //AssembleP_Pdagg(l,U);
     //Check_PPdagg(l,U);
-    test_Doperator_fine_level(U);
+    //test_Doperator_fine_level(U);
     //rank_agglomeration_test();
 
     
     //gather_vector_test();
     //scatter_vector_test();
 
-    coarse_gauge_links_test(U);
+    //coarse_gauge_links_test(U);
+    test_Dc(U);
     //check_boundaries(U);
 
     //Free coordinate arrays

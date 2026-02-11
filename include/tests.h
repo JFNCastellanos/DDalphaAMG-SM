@@ -485,6 +485,99 @@ void coarse_gauge_links_test(const spinor& U){
 
 }
 
+
+void test_Dc(const spinor& U){
+    std::vector<Level*> levels;
+
+    for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            U.val[2*n]        = RandomU1();
+            U.val[2*n+1]      = RandomU1();
+        }
+    }
+
+    for(int l = 0; l<LevelV::levels; l++){
+        Level* level = new Level(l,U);
+        levels.push_back(level);
+    }
+
+
+    //Random test vectors ... 
+    static std::mt19937 randomInt(50); //Same seed for all the MPI copies
+	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
+    for(int l=0; l<LevelV::maxLevel; l++){
+        for(int cc = 0; cc < levels[l]->Ntest; cc++){
+            for(int x=1; x<=levels[l]->Nx; x++){
+            for(int t=1; t<=levels[l]->Nt; t++){
+	        for(int c=0; c<levels[l]->colors; c++){
+	        for(int s=0; s<2; s++){
+                int indx 	= x*(levels[l]->Nt+2)*levels[l]->colors*2 + t*levels[l]->colors*2 + c*2 	+ s;
+                levels[l]->tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);            
+            }
+            }
+            }
+            }  
+        }   
+        levels[l]->orthonormalize();         //Orthonormalize test vectors
+        levels[l]->checkOrthogonality();     //Checking orthogonality   
+        levels[l]->makeCoarseLinks(*levels[l+1]);        //Make coarse links
+    }
+
+    
+    for(int l = 0; l<LevelV::maxLevel; l++){
+        if (mpi::rank2d == 0)
+            std::cout << "checking level " << l+1 << std::endl;
+        spinor vc((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*levels[l+1]->DOF);
+        spinor v((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+        spinor temp((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+        for(int x = 1; x<=levels[l+1]->Nx; x++){
+        for(int t = 1; t<=levels[l+1]->Nt; t++){
+        for(int dof=0; dof<levels[l+1]->DOF; dof++){
+            int n = x*(levels[l+1]->Nt+2)+t;
+            vc.val[levels[l+1]->DOF*n+dof] = RandomU1();
+        }
+        }
+        }
+        spinor out1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*levels[l+1]->DOF);
+        spinor out2((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*levels[l+1]->DOF);
+        // Dc = P^+ D P
+        levels[l+1]->D_operator(vc, out1);
+
+        //Explicit application of each operator. Should coincide with D_operator at leve l+1.
+        levels[l]->P_vc(vc,v);
+        levels[l]->D_operator(v,temp);
+        levels[l]->Pdagg_v(temp,out2);
+
+        
+
+        if (mpi::rank2d == 0){
+            for(int x = 1; x<=levels[l+1]->Nx; x++){
+                for(int t = 1; t<=levels[l+1]->Nt; t++){
+                    int n = x*(levels[l+1]->Nt+2)+t;
+                    for(int dof=0; dof<levels[l+1]->DOF; dof++){
+                        if (std::abs(out1.val[levels[l+1]->DOF*n+dof]-out2.val[levels[l+1]->DOF*n+dof]) > 1e-8){
+                            std::cout << "Both implementations of D don't coincide, rank " << mpi::rank2d << " level " << l+1 << std::endl;
+                            std::cout << "x " << x << " t " << t << " dof " << dof << std::endl;
+                            std::cout << "D_operator vc      " <<  out1.val[levels[l+1]->DOF*n+dof] << std::endl;
+                            std::cout << "P^+ D P vc         " <<  out2.val[levels[l+1]->DOF*n+dof] << std::endl;
+                            std::cout << std::endl;      
+                            return; 
+                        }
+                    } 
+                }
+            }
+            std::cout << "Dc coincides with P^+ D P at level " << l+1 << std::endl;
+        }
+        
+    }
+        
+
+    
+    for (auto ptr : levels) delete ptr;
+
+}
+
 void check_boundaries(const spinor& U){
     int l0=0, l1=1;
     Level level0(l0,U);
