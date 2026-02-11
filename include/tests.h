@@ -488,7 +488,10 @@ void coarse_gauge_links_test(const spinor& U){
 
 void test_Dc(const spinor& U){
     std::vector<Level*> levels;
-
+    if (mpi::size != 16){
+        printf("This test is meant to be run with 4 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
     for(int x = 1; x<=mpi::width_x; x++){
         for(int t = 1; t<=mpi::width_t; t++){
             int n = x*(mpi::width_t+2)+t;

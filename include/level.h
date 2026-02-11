@@ -133,14 +133,14 @@ public:
     const int tblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksT[level]/LevelV::RanksT[level] : 1; //Number of blocks on t inside the current rank
     const int blocks_per_rank   = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
     
-    //Check this carafeully// 
-    const int xranks_per_block  = mpi::width_x/LevelV::BlocksX[level]; //Number of ranks on x inside a block (needed for rank coarsening)
-    const int tranks_per_block  = mpi::width_t/LevelV::BlocksT[level];
-    const int ranks_per_block   = xranks_per_block*tranks_per_block;
-    //---------------------//
-    
+    //This is only different from zero when RanksX > Blocks_X (same with T)// 
+    const int xranks_per_block  = LevelV::RanksX[level]/LevelV::BlocksX[level]; //x-ranks inside a block 
+    const int tranks_per_block  = LevelV::RanksT[level]/LevelV::BlocksT[level]; //t-ranks inside a block 
+    const int ranks_per_block   = xranks_per_block*tranks_per_block;       
     const int t_total_blocks = tblocks_per_rank * mpi::ranks_t_c; //Number of lattice blocks inside one MPI rank on the coarse grid.
 	const int x_total_blocks = xblocks_per_rank * mpi::ranks_x_c;
+    //---------------------//
+
     const int Nx;   //Nx on the fine grid in rank r (no halo)
     const int Nt;   //Nt on the fine grid in rank r (no halo)
     const int Ntot; //Nx*Nt
