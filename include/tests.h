@@ -852,4 +852,45 @@ void Check_PPdagg_coarsening(const  spinor& U){
 
     level.orthonormalize_v2();
     level.checkOrthogonality_v2();
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    spinor vc((level.xblocks_per_coarse_rank+2)*(level.tblocks_per_coarse_rank+2)*2*Ntest);
+    spinor temp((level.Nx+2)*(level.Nt+2)*2*colors);
+    spinor PdaggPvc((level.xblocks_per_coarse_rank+2)*(level.tblocks_per_coarse_rank+2)*2*Ntest);
+
+    int commID = mpi::rank_dictionary[mpi::rank2d];
+	int coarse_rank;
+	MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
+
+
+    //Fill vc with random numbers (no halo)
+    for(int bx=1; bx<=level.xblocks_per_coarse_rank; bx++){
+        for(int bt=1; bt<=level.tblocks_per_coarse_rank; bt++){
+            for(int i = 0; i< 2*Ntest; i++){
+                vc.val[(bx*(level.tblocks_per_coarse_rank+2)+bt)*2*Ntest+i] = distribution(randomInt) + I_number * distribution(randomInt);
+            }
+        }
+    }
+    
+
+    level.P_vc(vc,temp);
+    level.Pdagg_v(temp,PdaggPvc);
+
+    if (coarse_rank == 0){
+        //This also loops over the halo, which remains as zero here, so there should be no problem.
+        for(int i = 0; i< (level.xblocks_per_coarse_rank+2)*(level.tblocks_per_coarse_rank+2)*2*Ntest; i++){     
+            //std::cout << "vc " << vc.val[i] << "  P^+ P vc " <<  PdaggPvc.val[i] << std::endl;
+            if (std::abs(vc.val[i]-PdaggPvc.val[i]) > 1e-8 ){
+                if (mpi::rank2d == 0){
+                    std::cout << "P^+ P vc != vc" << std::endl;
+                    std::cout << "Either P is ill-defined or test vectors require orthonormalization" << std::endl;
+                } 
+                return; 
+            } 
+        }
+        
+        std::cout << "Test passed: P^+ P vc = vc" << std::endl;
+    }
+    
+        
 }
