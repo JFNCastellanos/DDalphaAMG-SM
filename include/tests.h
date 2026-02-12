@@ -628,3 +628,203 @@ void check_boundaries(const spinor& U){
     }
 
 }
+
+//build P^transpose for the case when we do rank coarsening
+void test_P_vc_rank_coarsening(const spinor& U){
+    //Gauge conf does not really matter here ...
+    if (mpi::size != 16){
+        printf("This test is meant to be run with 16 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+    if (LevelV::BlocksT[0] != 2 || LevelV::BlocksX[0] != 2){
+        printf("This test is meant to be run with two levels and 2 blocks per dimension.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+
+    int l = 0; 
+    Level level(l,U);
+    int indxtv, indx;
+    int Nt, Nx, colors, Ntest;
+    const int &blocks_x = level.xblocks_per_coarse_rank;
+    const int &blocks_t = level.tblocks_per_coarse_rank;
+    Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
+    
+    int count = 0;
+    for(int cc = 0; cc < level.Ntest; cc++){
+        for(int x=1; x<=level.Nx; x++){
+        for(int t=1; t<=level.Nt; t++){
+	    for(int c=0; c<level.colors; c++){
+	    for(int s=0; s<2; s++){
+            indx 	= x*(Nt+2)*colors*2 + t*colors*2 + c*2 	+ s;
+			indxtv 	= indx*Ntest + cc;
+            level.tvec[cc].val[indx] = indxtv+1;            
+            count++;
+        }
+    }
+    }
+    }      
+    }
+
+    if (mpi::rank2d == 0){
+        std::cout << "Rank " << mpi::rank2d << std::endl;
+        std::cout << "Nx " << Nx << " Nt " << Nt << " colors " << colors << " Ntest " << Ntest << std::endl;
+        std::cout << "ranks agglomerated on x " << mpi::ranks_x_c << "  on t " << mpi::ranks_t_c << std::endl;
+        std::cout << "Blocks per rank " << level.blocks_per_rank << std::endl;
+        //std::cout << "X elements inside block " << level.x_elements << " T elements " << level.t_elements << std::endl;
+        std::cout << "ranks per block " << level.ranks_per_block << std::endl;
+        std::cout << "blocks_per_coarse_rank " << level.blocks_per_coarse_rank << std::endl;
+        std::cout << "Nt coarse rank " << level.Nt_coarse_rank << std::endl;
+        std::cout << "Nx coarse rank " << level.Nx_coarse_rank << std::endl;
+        std::cout << "x_elements_c           " << level.Nx_coarse_rank/level.xblocks_per_coarse_rank << std::endl;
+    }
+
+    int x_elements_c = level.Nx_coarse_rank/level.xblocks_per_coarse_rank;
+    int t_elements_c = level.Nt_coarse_rank/level.tblocks_per_coarse_rank;
+
+    int root_rank = 0;
+    int commID = mpi::rank_dictionary[mpi::rank2d];
+    int coarse_rank;
+    MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
+    if (commID == 0){
+        if (coarse_rank == 0)
+            std::cout << "Printing P^T (transpose interpolator) in coarse rank " << commID << std::endl;
+        spinor ev((level.xblocks_per_coarse_rank+2)*(level.tblocks_per_coarse_rank+2)*2*Ntest); //Lives on the coarse lattice
+        spinor column((level.Nx+2)*(level.Nt+2)*2*colors);
+        int indx1, indx2;
+        
+        for(int b = 0; b < level.blocks_per_coarse_rank; b++){
+            int bx = b / blocks_t; //This are the indices for the blocks, not for the coarse spinor
+		    int bt = b % blocks_t; 
+            int bx_shifted = bx+1; //The shifted versions are used for the coarse spinor with halos
+            int bt_shifted = bt+1;
+            //Coordinates inside the block (bx,bt) for a spinor with halos
+			int xini = x_elements_c*bx+1; int xfin = xini + x_elements_c;
+			int tini = t_elements_c*bt+1; int tfin = tini + t_elements_c;
+        for(int sc=0; sc<2;sc++){
+        for(int cc = 0; cc<Ntest; cc++){
+            
+            indx1 = bx_shifted*(blocks_t+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + sc; 
+            ev.val[indx1] = 1;
+            level.P_vc(ev,column);
+            ev.val[indx1] = 0;
+            spinor gathered_column((level.Nx_coarse_rank+2)*(level.Nt_coarse_rank+2)*2*colors);
+            gather_to_coarse_rank(column,gathered_column);
+            if (coarse_rank == 0){
+                std::cout << "(bx, bt, sc, cc) = (" << bx << ", " << bt << ", " << sc << ", " << cc << ")" << std::endl;
+		        for(int x=1; x<=level.Nx_coarse_rank; x++){
+		        for(int t=1; t<=level.Nt_coarse_rank; t++){
+		        for(int c=0; c<colors; c++){
+		        for(int s=0; s<2; s++){
+			        indx2 	= x*(level.Nt_coarse_rank+2)*colors*2 			+ t*colors*2 + c*2 	+ s;
+                    std::cout << gathered_column.val[indx2] << " ";
+                }
+                }
+                }
+                }
+                std::cout << std::endl;
+            }
+
+
+        }
+        }     
+        }
+
+    }
+
+}
+
+void test_Pdagg_rank_coarsening(const spinor& U){
+    //Gauge conf does not really matter here ...
+    if (mpi::size != 16){
+        printf("This test is meant to be run with 16 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+    if (LevelV::BlocksT[0] != 2 || LevelV::BlocksX[0] != 2){
+        printf("This test is meant to be run with two levels and 2 blocks per dimension.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+
+    int l = 0; 
+    Level level(l,U);
+    int indxtv, indx;
+    int Nt, Nx, colors, Ntest;
+    const int &blocks_x = level.xblocks_per_coarse_rank;
+    const int &blocks_t = level.tblocks_per_coarse_rank;
+    Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
+    
+    int count = 0;
+    for(int cc = 0; cc < level.Ntest; cc++){
+        for(int x=1; x<=level.Nx; x++){
+        for(int t=1; t<=level.Nt; t++){
+	    for(int c=0; c<level.colors; c++){
+	    for(int s=0; s<2; s++){
+            indx 	= x*(Nt+2)*colors*2 + t*colors*2 + c*2 	+ s;
+			indxtv 	= indx*Ntest + cc;
+            level.tvec[cc].val[indx] = indxtv+1+mpi::rank2d;            
+            count++;
+        }
+    }
+    }
+    }      
+    }
+
+    if (mpi::rank2d == 0){
+        std::cout << "Rank " << mpi::rank2d << std::endl;
+        std::cout << "Nx " << Nx << " Nt " << Nt << " colors " << colors << " Ntest " << Ntest << std::endl;
+        std::cout << "ranks agglomerated on x " << mpi::ranks_x_c << "  on t " << mpi::ranks_t_c << std::endl;
+        std::cout << "Blocks per rank " << level.blocks_per_rank << std::endl;
+        //std::cout << "X elements inside block " << level.x_elements << " T elements " << level.t_elements << std::endl;
+        std::cout << "ranks per block " << level.ranks_per_block << std::endl;
+        std::cout << "blocks_per_coarse_rank " << level.blocks_per_coarse_rank << std::endl;
+        std::cout << "Nt coarse rank " << level.Nt_coarse_rank << std::endl;
+        std::cout << "Nx coarse rank " << level.Nx_coarse_rank << std::endl;
+        std::cout << "x_elements_c           " << level.Nx_coarse_rank/level.xblocks_per_coarse_rank << std::endl;
+    }
+
+    int x_elements_c = level.Nx_coarse_rank/level.xblocks_per_coarse_rank;
+    int t_elements_c = level.Nt_coarse_rank/level.tblocks_per_coarse_rank;
+
+    int root_rank = 0;
+    int commID = mpi::rank_dictionary[mpi::rank2d];
+    int coarse_rank;
+    MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
+    if (commID == 0){
+        if (coarse_rank == 0)
+            std::cout << "Printing P* (conjugate interpolator) in coarse rank " << commID << std::endl;
+        spinor column((level.xblocks_per_coarse_rank+2)*(level.tblocks_per_coarse_rank+2)*2*Ntest); //Lives on the coarse lattice
+        spinor ev_gathered((level.Nx_coarse_rank+2)*(level.Nt_coarse_rank+2)*2*colors);
+        int indx1, indx2;
+        for(int x=1; x<=level.Nx_coarse_rank; x++){
+		for(int t=1; t<=level.Nt_coarse_rank; t++){
+		for(int c=0; c<colors; c++){
+		for(int s=0; s<2; s++){
+            spinor ev((level.Nx+2)*(level.Nt+2)*2*colors);
+			indx2 	= x*(level.Nt_coarse_rank+2)*colors*2 			+ t*colors*2 + c*2 	+ s;
+            ev_gathered.val[indx2] = 1;
+            scatter_to_local_rank_from_coarse_rank(ev_gathered,ev);
+            level.Pdagg_v(ev,column);
+            ev_gathered.val[indx2] = 0;
+            if (coarse_rank == 0){
+                for(int b = 0; b < level.blocks_per_coarse_rank; b++){
+                    int bx = b / blocks_t;
+		            int bt = b % blocks_t; 
+                    int bx_shifted = bx+1;
+                    int bt_shifted = bt+1;
+                    for(int sc=0; sc<2;sc++){
+                    for(int cc = 0; cc<Ntest; cc++){
+                        //std::cout << "(bx, bt, sc, cc) = (" << bx << ", " << bt << ", " << sc << ", " << cc << ")" << std::endl;
+                        indx1 = bx_shifted*(blocks_t+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + sc; 
+                        std::cout << column.val[indx1] << "   ";
+                    }
+                    }
+                }
+                std::cout << std::endl;
+            }
+        }
+        }
+        }     
+        }
+
+    }
+
+}

@@ -12,72 +12,139 @@ void Level::P_vc(const spinor& vc,spinor& out){
 	int xini, tini, xfin, tfin;
 	int idxout, idxv; //Vectorized index of out, v.
 	
-	//In case we have a lattice block crossing the MPI ranks
-	/*if (ranks_per_block != 0){
-		spinor vc_root((x_total_blocks+2)*(t_total_blocks+2)*Ntest*2);	//Spinor on the coarse grid.
-		spinor coarse_tvec((mpi::Nt_coarse_rank+2)*(mpi::Nx_coarse_rank+2)*2);
-		int root_rank = 0;  //Root rank inside the communicator agglomerating ranks
-		int commID = mpi::rank_dictionary[mpi::rank2d];
-		//Gather test vectors without their halo. 
-		gather_to_coarse_rank(tvec[cc],coarse_tvec)
+	//In case we have a lattice block crossing the MPI ranks of the fine level 
+	if (ranks_per_block > 1){
+		//Define vc across the ranks -> Gather tv and out to root rank of coarse comm -> apply the P_vc operation
+		//->return out to the original 2d communicator.
 
-		//Define vc across the ranks -> Gather tv to root rank of coarse comm -> apply the P_vc operation
-		//->return v to the original 2d communicator.
-	}*/
+		//Spinor on the coarse grid.
+		//Vc will only be called from with this size  spinor vc_coarse_rank((xblocks_per_coarse_rank+2)*(tblocks_per_coarse_rank+2)*Ntest*2);	
+		std::vector<spinor> gathered_tvec(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));	//Gather test vectors data from other ranks
+		//Gather test vectors from all the ranks living inside the coarse rank.
+		int x_elements_c = Nx_coarse_rank/xblocks_per_coarse_rank;
+		int t_elements_c = Nt_coarse_rank/tblocks_per_coarse_rank;
+		spinor gathered_out((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
+		for(int cc=0;cc<Ntest;cc++)
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
 
-	for(int b = 0; b<blocks_per_rank; b++){
-		bx = b / tblocks_per_rank;
-		bt = b % tblocks_per_rank;	
-		bx_shifted = bx+1;
-		bt_shifted = bt+1;
-		//Coordinates inside the block (bx,bt) for a spinor with halo
-		xini = x_elements*bx+1; xfin = xini + x_elements;
-		tini = t_elements*bt+1; tfin = tini + t_elements;
-		for(int cc = 0; cc < Ntest; cc++){
-			for(int x=xini; x<xfin; x++){
-			for(int t=tini; t<tfin; t++){	
-			for(int c=0; c<colors; c++){
-			for(int s=0; s<2; s++){
-				idxout 	= x*(Nt+2)*colors*2 					+ t*colors*2 + c*2 	+ s;
-				idxv 	= bx_shifted*(tblocks_per_rank+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + s;
-				out.val[idxout] += tvec[cc].val[idxout] * vc.val[idxv]; 
+		for(int b = 0; b<blocks_per_coarse_rank; b++){
+			bx = b / tblocks_per_coarse_rank;
+			bt = b % tblocks_per_coarse_rank;
+			bx_shifted = bx+1;
+			bt_shifted = bt+1;
+			//Coordinates inside the block (bx,bt) for a spinor with halo
+			xini = x_elements_c*bx+1; xfin = xini + x_elements_c;
+			tini = t_elements_c*bt+1; tfin = tini + t_elements_c;
+			for(int cc = 0; cc < Ntest; cc++){
+				for(int x=xini; x<xfin; x++){
+				for(int t=tini; t<tfin; t++){	
+				for(int c=0; c<colors; c++){
+				for(int s=0; s<2; s++){
+					idxout 	= x*(Nt_coarse_rank+2)*colors*2 					+ t*colors*2 		 + c*2 	+ s;
+					idxv 	= bx_shifted*(tblocks_per_coarse_rank+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + s;
+					gathered_out.val[idxout] += gathered_tvec[cc].val[idxout] * vc.val[idxv]; 
+				}
+				}
+				}
+				}
 			}
-			}
-			}
+		}
+		scatter_to_local_rank_from_coarse_rank(gathered_out,out);
+	}
+	else{
+		for(int b = 0; b<blocks_per_rank; b++){
+			bx = b / tblocks_per_rank;
+			bt = b % tblocks_per_rank;	
+			bx_shifted = bx+1;
+			bt_shifted = bt+1;
+			//Coordinates inside the block (bx,bt) for a spinor with halo
+			xini = x_elements*bx+1; xfin = xini + x_elements;
+			tini = t_elements*bt+1; tfin = tini + t_elements;
+			for(int cc = 0; cc < Ntest; cc++){
+				for(int x=xini; x<xfin; x++){
+				for(int t=tini; t<tfin; t++){	
+				for(int c=0; c<colors; c++){
+				for(int s=0; s<2; s++){
+					idxout 	= x*(Nt+2)*colors*2 						+ t*colors*2 + c*2 	+ s;
+					idxv 	= bx_shifted*(tblocks_per_rank+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + s;
+					out.val[idxout] += tvec[cc].val[idxout] * vc.val[idxv]; 
+				}
+				}
+				}
+				}
 			}
 		}
 	}
+	
 }
 	
 
 
 //Restriction operator times a spinor on the fine grid
 void Level::Pdagg_v(const spinor& v,spinor& out) {
-	for(int i = 0; i < (xblocks_per_rank+2)*(tblocks_per_rank+2)*2*Ntest; i++)
-		out.val[i]= 0.0; //Initialize the output spinor
-
+	//out lives on the coarse grid
 	int bx, bt, bx_shifted, bt_shifted;
 	int xini, tini, xfin, tfin;
 	int idxout, idxv; //Vectorized index of out, v.
+	//In case we have a lattice block crossing the MPI ranks of the fine level 
+	if (ranks_per_block > 1){	
+		for(int i = 0; i < (xblocks_per_coarse_rank+2)*(tblocks_per_coarse_rank+2)*2*Ntest; i++)
+			out.val[i]= 0.0; //Initialize the output spinor
+		
+		std::vector<spinor> gathered_tvec(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));	//Gather test vectors data from other ranks
+		spinor gathered_v((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
+		int x_elements_c = Nx_coarse_rank/xblocks_per_coarse_rank;
+		int t_elements_c = Nt_coarse_rank/tblocks_per_coarse_rank;
+		spinor gathered_out((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
+		for(int cc=0;cc<Ntest;cc++)
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+		gather_to_coarse_rank(v,gathered_v);
 
-	for (int b = 0; b<blocks_per_rank; b++) {	
-		bx = b / tblocks_per_rank;
-		bt = b % tblocks_per_rank; 
-		bx_shifted = bx+1;
-		bt_shifted = bt+1;
-		xini = x_elements*bx+1; xfin = xini + x_elements;
-		tini = t_elements*bt+1; tfin = tini + t_elements;
-		for(int cc=0; cc<Ntest; cc++){
-			for(int x=xini; x<xfin; x++){
-			for(int t=tini; t<tfin; t++){	
-			for(int c=0; c<colors; c++){
-			for(int s=0; s<2; s++){
-				idxout 	= bx_shifted*(tblocks_per_rank+2)*Ntest*2 		+ bt_shifted*Ntest*2 + cc*2 + s;
-				idxv 	= x*(Nt+2)*colors*2 							+ t*colors*2 + c*2 	+ s;
-				out.val[idxout] += std::conj(tvec[cc].val[idxv]) * v.val[idxv];
-			}	
+		for (int b = 0; b<blocks_per_coarse_rank; b++) {	
+			bx = b / tblocks_per_coarse_rank;
+			bt = b % tblocks_per_coarse_rank; 
+			bx_shifted = bx+1;
+			bt_shifted = bt+1;
+			xini = x_elements_c*bx+1; xfin = xini + x_elements_c;
+			tini = t_elements_c*bt+1; tfin = tini + t_elements_c;
+			for(int cc=0; cc<Ntest; cc++){
+				for(int x=xini; x<xfin; x++){
+				for(int t=tini; t<tfin; t++){	
+				for(int c=0; c<colors; c++){
+				for(int s=0; s<2; s++){
+					idxout 	= bx_shifted*(tblocks_per_coarse_rank+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + s;
+					idxv 	= x*(Nt_coarse_rank+2)*colors*2 					+ t*colors*2 + c*2 	+ s;
+					out.val[idxout] += std::conj(gathered_tvec[cc].val[idxv]) * gathered_v.val[idxv];
+				}	
+				}
+				}
+				}
 			}
-			}
+		}
+		//Out already lives on the coarse rank
+	}
+	else{
+		for(int i = 0; i < (xblocks_per_rank+2)*(tblocks_per_rank+2)*2*Ntest; i++)
+			out.val[i]= 0.0; //Initialize the output spinor
+		for (int b = 0; b<blocks_per_rank; b++) {	
+			bx = b / tblocks_per_rank;
+			bt = b % tblocks_per_rank; 
+			bx_shifted = bx+1;
+			bt_shifted = bt+1;
+			xini = x_elements*bx+1; xfin = xini + x_elements;
+			tini = t_elements*bt+1; tfin = tini + t_elements;
+			for(int cc=0; cc<Ntest; cc++){
+				for(int x=xini; x<xfin; x++){
+				for(int t=tini; t<tfin; t++){	
+				for(int c=0; c<colors; c++){
+				for(int s=0; s<2; s++){
+					idxout 	= bx_shifted*(tblocks_per_rank+2)*Ntest*2 		+ bt_shifted*Ntest*2 + cc*2 + s;
+					idxv 	= x*(Nt+2)*colors*2 							+ t*colors*2 + c*2 	+ s;
+					out.val[idxout] += std::conj(tvec[cc].val[idxv]) * v.val[idxv];
+				}	
+				}
+				}
+				}
 			}
 		}
 	}

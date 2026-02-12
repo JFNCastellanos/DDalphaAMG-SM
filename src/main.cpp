@@ -72,8 +72,10 @@ int main(int argc, char **argv) {
     //scatter_vector_test();
 
     //coarse_gauge_links_test(U);
-    test_Dc(U);
+    //test_Dc(U);
     //check_boundaries(U);
+    test_P_vc_rank_coarsening(U);
+    test_Pdagg_rank_coarsening(U);
 
     //Free coordinate arrays
     free_lattice_arrays();

@@ -96,8 +96,9 @@ inline void coarseLevelCommunicators(){
     //Define a communicator for the group of ranks on the fine level
     MPI_Comm_group(mpi::cart_comm, &mpi::cart_comm_group);
 
-    mpi::ranks_x_c  = mpi::ranks_x/2;   //We enforce two ranks on the x direction
-    mpi::ranks_t_c  = mpi::ranks_t/2;   //We enforce two ranks on the t direction
+    //Number of agglomerated ranks
+    mpi::ranks_x_c  = mpi::ranks_x/mpi::coarse_ranks_x;    // ranks_x/ranks on coarse grid on x
+    mpi::ranks_t_c  = mpi::ranks_t/mpi::coarse_ranks_t;   
     mpi::size_c     = mpi::ranks_x_c*mpi::ranks_t_c;
     mpi::counts_coarse = new int[mpi::size_c];  
     mpi::displs_coarse = new int[mpi::size_c];

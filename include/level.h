@@ -97,9 +97,18 @@ public:
 
         //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
         int Ntot_halo = (Nx+2)*(Nt+2);
+        Nt_coarse_rank          = Nt*mpi::ranks_t_c; //Nt sites on the coarse rank 
+        Nx_coarse_rank          = Nx*mpi::ranks_x_c; 
 
-        if (mpi::rank2d == 0)
+        /*
+        if (mpi::rank2d == 0){
             std::cout << "level " << level << " colors " << colors << "  test vectors " << Ntest  << std::endl;
+            std::cout << "ranks per block        " << ranks_per_block << std::endl;
+            std::cout << "blocks_per_coarse_rank " << blocks_per_coarse_rank << std::endl;
+            std::cout << "Nt coarse rank         " << Nt_coarse_rank << std::endl;
+            std::cout << "Nx coarse rank         " << Nx_coarse_rank << std::endl;
+        }
+        */
 
         //Test vectors
         tvec        = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
@@ -133,13 +142,18 @@ public:
     const int tblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksT[level]/LevelV::RanksT[level] : 1; //Number of blocks on t inside the current rank
     const int blocks_per_rank   = xblocks_per_rank*tblocks_per_rank; //Number of blocks inside the rank
     
-    //This is only different from zero when RanksX > Blocks_X (same with T)// 
+    //-------For the case when the blocks cross the ranks--------//
+    //Number of fine ranks inside a block
     const int xranks_per_block  = LevelV::RanksX[level]/LevelV::BlocksX[level]; //x-ranks inside a block 
     const int tranks_per_block  = LevelV::RanksT[level]/LevelV::BlocksT[level]; //t-ranks inside a block 
-    const int ranks_per_block   = xranks_per_block*tranks_per_block;       
-    const int t_total_blocks = tblocks_per_rank * mpi::ranks_t_c; //Number of lattice blocks inside one MPI rank on the coarse grid.
-	const int x_total_blocks = xblocks_per_rank * mpi::ranks_x_c;
-    //---------------------//
+    const int ranks_per_block   = xranks_per_block*tranks_per_block;  //Number of ranks inside a lattice block
+    //Number of blocks inside a coarse rank. We only use these numbers when ranks_per_block > 1  
+    const int xblocks_per_coarse_rank = LevelV::BlocksX[level] / mpi::coarse_ranks_x; //Number of lattice blocks inside one MPI rank on the coarse grid.
+	const int tblocks_per_coarse_rank = LevelV::BlocksT[level] / mpi::coarse_ranks_t;
+    const int blocks_per_coarse_rank  = xblocks_per_coarse_rank * tblocks_per_coarse_rank;
+    int Nt_coarse_rank; //Nt sites on the coarse rank 
+    int Nx_coarse_rank; 
+    //----------------------------------------------------------//
 
     const int Nx;   //Nx on the fine grid in rank r (no halo)
     const int Nt;   //Nt on the fine grid in rank r (no halo)
@@ -148,8 +162,8 @@ public:
     const int Ntest = (level != LevelV::maxLevel) ? LevelV::Ntest[level]: 1;     //Number of test vectors to go to the next level
     const int DOF = 2*colors;         //Degrees of freedom at each lattice site at this level
 
-    const int x_elements = (level != LevelV::maxLevel) ?  Nx / xblocks_per_rank: 1;
-    const int t_elements = (level != LevelV::maxLevel) ?  Nt / tblocks_per_rank: 1; 
+    const int x_elements = (level != LevelV::maxLevel && ranks_per_block<=1) ?  Nx / xblocks_per_rank: 1;
+    const int t_elements = (level != LevelV::maxLevel && ranks_per_block<=1) ?  Nt / tblocks_per_rank: 1; 
     const int sites_per_block = x_elements * t_elements;
     const int NBlocks = (level != LevelV::maxLevel) ? LevelV::NBlocks[level]: 1; //Number of lattice blocks 
     
