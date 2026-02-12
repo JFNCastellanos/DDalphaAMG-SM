@@ -126,6 +126,14 @@ public:
             makeDirac(); //Initialize Dirac Operator on the fine grid
         else
             defineColumnType(level, Nx, Nt,DOF); //DataType needed for the halo exchange at level l
+
+        if (ranks_per_block>1){
+            xblocks =  xblocks_per_coarse_rank;
+            tblocks =  tblocks_per_coarse_rank;
+            blocks  =  blocks_per_coarse_rank;
+            x_elements = Nx_coarse_rank/xblocks_per_coarse_rank;
+            t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;
+        }
         
         
     };
@@ -155,6 +163,9 @@ public:
     int Nx_coarse_rank; 
     //----------------------------------------------------------//
 
+
+    int xblocks, tblocks, blocks;
+
     const int Nx;   //Nx on the fine grid in rank r (no halo)
     const int Nt;   //Nt on the fine grid in rank r (no halo)
     const int Ntot; //Nx*Nt
@@ -162,8 +173,8 @@ public:
     const int Ntest = (level != LevelV::maxLevel) ? LevelV::Ntest[level]: 1;     //Number of test vectors to go to the next level
     const int DOF = 2*colors;         //Degrees of freedom at each lattice site at this level
 
-    const int x_elements = (level != LevelV::maxLevel && ranks_per_block<=1) ?  Nx / xblocks_per_rank: 1;
-    const int t_elements = (level != LevelV::maxLevel && ranks_per_block<=1) ?  Nt / tblocks_per_rank: 1; 
+    int x_elements = (level != LevelV::maxLevel && ranks_per_block<=1) ?  Nx / xblocks_per_rank: 1;
+    int t_elements = (level != LevelV::maxLevel && ranks_per_block<=1) ?  Nt / tblocks_per_rank: 1; 
     const int sites_per_block = x_elements * t_elements;
     const int NBlocks = (level != LevelV::maxLevel) ? LevelV::NBlocks[level]: 1; //Number of lattice blocks 
     
@@ -190,6 +201,11 @@ public:
 
     void orthonormalize();      //Local orthonormalization of the test vectors
     void checkOrthogonality();  //Check orthogonality of the test vectors
+
+
+    //Same functions but for the case when the blocks cross the ranks
+    void orthonormalize_v2();
+    void checkOrthogonality_v2();
 
     //Index functions for gauge links. These correspond to the current level
 	//get index for A_coeff 1D array

@@ -21,8 +21,6 @@ void Level::P_vc(const spinor& vc,spinor& out){
 		//Vc will only be called from with this size  spinor vc_coarse_rank((xblocks_per_coarse_rank+2)*(tblocks_per_coarse_rank+2)*Ntest*2);	
 		std::vector<spinor> gathered_tvec(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));	//Gather test vectors data from other ranks
 		//Gather test vectors from all the ranks living inside the coarse rank.
-		int x_elements_c = Nx_coarse_rank/xblocks_per_coarse_rank;
-		int t_elements_c = Nt_coarse_rank/tblocks_per_coarse_rank;
 		spinor gathered_out((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
 		for(int cc=0;cc<Ntest;cc++)
 			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
@@ -33,8 +31,8 @@ void Level::P_vc(const spinor& vc,spinor& out){
 			bx_shifted = bx+1;
 			bt_shifted = bt+1;
 			//Coordinates inside the block (bx,bt) for a spinor with halo
-			xini = x_elements_c*bx+1; xfin = xini + x_elements_c;
-			tini = t_elements_c*bt+1; tfin = tini + t_elements_c;
+			xini = x_elements*bx+1; xfin = xini + x_elements;
+			tini = t_elements*bt+1; tfin = tini + t_elements;
 			for(int cc = 0; cc < Ntest; cc++){
 				for(int x=xini; x<xfin; x++){
 				for(int t=tini; t<tfin; t++){	
@@ -93,9 +91,6 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 		
 		std::vector<spinor> gathered_tvec(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));	//Gather test vectors data from other ranks
 		spinor gathered_v((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
-		int x_elements_c = Nx_coarse_rank/xblocks_per_coarse_rank;
-		int t_elements_c = Nt_coarse_rank/tblocks_per_coarse_rank;
-		spinor gathered_out((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
 		for(int cc=0;cc<Ntest;cc++)
 			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
 		gather_to_coarse_rank(v,gathered_v);
@@ -105,8 +100,8 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 			bt = b % tblocks_per_coarse_rank; 
 			bx_shifted = bx+1;
 			bt_shifted = bt+1;
-			xini = x_elements_c*bx+1; xfin = xini + x_elements_c;
-			tini = t_elements_c*bt+1; tfin = tini + t_elements_c;
+			xini = x_elements*bx+1; xfin = xini + x_elements;
+			tini = t_elements*bt+1; tfin = tini + t_elements;
 			for(int cc=0; cc<Ntest; cc++){
 				for(int x=xini; x<xfin; x++){
 				for(int t=tini; t<tfin; t++){	
@@ -560,4 +555,154 @@ void Level::checkOrthogonality() {
 	
 	if (mpi::rank2d == 0)
 		std::cout << "Test vectors on level " << level << " are orthonormalized " << std::endl;
+}
+
+
+
+//Local orthonormalization.
+void Level::orthonormalize_v2(){	
+    //Given a set of test vectors, returns a local orthonormalization.
+    //For the set of test vectors (v1^(1)|v2^(1)|...|v_Nv^(1)|...|v1^(Nagg)|...|v_Nv^(Nagg)), we
+    //orthonormalize the sets {v1^{a}, ..., vn^(a)} for each aggregate.
+    //This follows the steps from Section 3.1 of A. Frommer et al "Adaptive Aggregation-Based Domain Decomposition 
+    //Multigrid for the Lattice Wilson-Dirac Operator", SIAM, 36 (2014).
+
+	//Orthonormalization by applying Gram-Schmidt
+	c_double proj; 
+	c_double norm;
+
+	int bx, bt, bx_shifted, bt_shifted, xini, xfin, tini, tfin;
+	int indx;
+	//Lattice blocks
+	std::vector<spinor> gathered_tvec(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));	//Gather test vectors data from other ranks
+	for(int cc=0;cc<Ntest;cc++)
+		gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+
+	int commID = mpi::rank_dictionary[mpi::rank2d];
+	int coarse_rank;
+	MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
+
+	if (coarse_rank == 0){
+		for (int b = 0; b<blocks_per_coarse_rank; b++) {	
+			bx = b / tblocks_per_coarse_rank;
+			bt = b % tblocks_per_coarse_rank; 
+			//----Coordinates of the elements inside block----//
+			xini = x_elements*bx+1; xfin = xini + x_elements;
+			tini = t_elements*bt+1; tfin = tini + t_elements; 
+			//-----------------------------------------------//
+			//Spin defining the aggregate for a particular block
+			for (int s = 0; s < 2; s++) {
+				//Looping over the test vectors
+				for (int nt = 0; nt < Ntest; nt++) {
+					for (int ntt = 0; ntt < nt; ntt++) {
+						proj = 0;
+						for(int x=xini; x<xfin; x++){
+						for(int t=tini; t<tfin; t++){	
+						for(int c=0; c<colors; c++){
+							indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
+							proj += gathered_tvec[nt].val[indx] * std::conj(gathered_tvec[ntt].val[indx]);
+
+						}
+						}
+						}
+						for(int x=xini; x<xfin; x++){
+						for(int t=tini; t<tfin; t++){	
+						for(int c=0; c<colors; c++){
+							indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
+							gathered_tvec[nt].val[indx] -= proj * gathered_tvec[ntt].val[indx];
+
+						}
+						}
+						}
+					}
+					//normalize
+					norm = 0.0;
+					for(int x=xini; x<xfin; x++){
+					for(int t=tini; t<tfin; t++){	
+					for(int c=0; c<colors; c++){
+						indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
+						norm += gathered_tvec[nt].val[indx] * std::conj(gathered_tvec[nt].val[indx]);
+
+					}
+					}
+					}
+					norm = sqrt(std::real(norm)) + 0.0*I_number;
+					for(int x=xini; x<xfin; x++){
+					for(int t=tini; t<tfin; t++){	
+					for(int c=0; c<colors; c++){
+						indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
+						gathered_tvec[nt].val[indx] /= norm;
+
+					}
+					}
+					} 
+				
+				}
+			} 	
+		}
+	}
+		
+	for(int cc=0;cc<Ntest;cc++)
+		scatter_to_local_rank_from_coarse_rank(gathered_tvec[cc],tvec[cc]);
+}
+
+void Level::checkOrthogonality_v2(){
+	int bx, bt, xini, xfin, tini, tfin;
+	c_double dot_product;
+	int indx;
+	//Lattice blocks
+	std::vector<spinor> gathered_tvec(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));	//Gather test vectors data from other ranks
+	for(int cc=0;cc<Ntest;cc++)
+		gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+
+	int commID = mpi::rank_dictionary[mpi::rank2d];
+	int coarse_rank;
+	MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
+	//For other ranks the gathered_tvec remain as zero
+	if (coarse_rank == 0){
+		for (int b = 0; b<blocks_per_coarse_rank; b++) {	
+			bx = b / tblocks_per_coarse_rank;
+			bt = b % tblocks_per_coarse_rank; 
+			//----Coordinates of the elements inside block----//
+			xini = x_elements*bx+1; xfin = xini + x_elements;
+			tini = t_elements*bt+1; tfin = tini + t_elements; 
+			//-----------------------------------------------//
+			//Spin defining the aggregate for a particular block
+			for (int s = 0; s < 2; s++) {
+				//Looping over the test vectors
+				for (int nt = 0; nt < Ntest; nt++) {
+				for (int ntt = 0; ntt < Ntest; ntt++) {
+					dot_product = 0.0;
+					for(int x=xini; x<xfin; x++){
+					for(int t=tini; t<tfin; t++){	
+					for(int c=0; c<colors; c++){
+						indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
+						dot_product += std::conj(gathered_tvec[nt].val[indx]) * gathered_tvec[ntt].val[indx]; //v_nt . v_ntt
+					}
+					}
+					}
+
+					if (std::abs(dot_product) > 1e-8 && nt!=ntt) {
+						if (mpi::rank2d == 0){
+							std::cout << "Block " << b << " spin " << s << std::endl;
+							std::cout << "Level " << level << std::endl;
+							std::cout << "Test vectors " << nt << " and " << ntt << " are not orthogonal: " << dot_product << std::endl;
+						}
+					//exit(1);
+					}
+					else if(std::abs(dot_product-1.0) > 1e-8 && nt==ntt){
+						if (mpi::rank2d == 0){
+							std::cout << "Level " << level << std::endl;
+							std::cout << "Test vector " << nt << " not normalized " << dot_product << std::endl;
+						}
+					//exit(1);
+					}
+				}
+				}
+			}
+		}
+	}
+	
+	if (coarse_rank == 0)
+		std::cout << "Test vectors on level " << level << " are orthonormalized " << " from comm " << commID << std::endl;
 }

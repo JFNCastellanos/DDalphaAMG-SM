@@ -760,7 +760,7 @@ void test_Pdagg_rank_coarsening(const spinor& U){
 	    for(int s=0; s<2; s++){
             indx 	= x*(Nt+2)*colors*2 + t*colors*2 + c*2 	+ s;
 			indxtv 	= indx*Ntest + cc;
-            level.tvec[cc].val[indx] = indxtv+1+mpi::rank2d;            
+            level.tvec[cc].val[indx] = indxtv+1;          
             count++;
         }
     }
@@ -780,9 +780,6 @@ void test_Pdagg_rank_coarsening(const spinor& U){
         std::cout << "Nx coarse rank " << level.Nx_coarse_rank << std::endl;
         std::cout << "x_elements_c           " << level.Nx_coarse_rank/level.xblocks_per_coarse_rank << std::endl;
     }
-
-    int x_elements_c = level.Nx_coarse_rank/level.xblocks_per_coarse_rank;
-    int t_elements_c = level.Nt_coarse_rank/level.tblocks_per_coarse_rank;
 
     int root_rank = 0;
     int commID = mpi::rank_dictionary[mpi::rank2d];
@@ -827,4 +824,32 @@ void test_Pdagg_rank_coarsening(const spinor& U){
 
     }
 
+}
+
+//Verify that P^+ P vc = vc for the case when ranks are agglomerated
+void Check_PPdagg_coarsening(const  spinor& U){
+    int l = 0;
+    Level level(l,U);
+    int indxtv, indx;
+    int Nt, Nx, colors, Ntest;
+    Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
+    static std::mt19937 randomInt(50); //Same seed for all the MPI copies
+	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
+    
+    for(int cc = 0; cc < level.Ntest; cc++){
+        for(int x=1; x<=level.Nx; x++){
+        for(int t=1; t<=level.Nt; t++){
+	    for(int c=0; c<level.colors; c++){
+	    for(int s=0; s<2; s++){
+            indx 	= x*(Nt+2)*colors*2 + t*colors*2 + c*2 	+ s;
+            level.tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);            
+        }
+    }
+    }
+    }      
+    }
+
+
+    level.orthonormalize_v2();
+    level.checkOrthogonality_v2();
 }
