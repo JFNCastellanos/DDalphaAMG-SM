@@ -52,7 +52,13 @@ namespace mpi{
     constexpr int coarse_ranks_t     = 2;               //Number of working ranks on the coarse level t-dir
     extern MPI_Group cart_comm_group;                   //Group corresponding to cart_comm.
     extern MPI_Group* coarse_group;                     //Group of ranks associated with rank_c on the coarse grid.
-    extern MPI_Comm* coarse_comm;                       //New communicator from that group of processes.
+    extern MPI_Comm* coarse_comm;                       //New communicator for agglomerated ranks
+    extern MPI_Comm comm_coarse_level;                  //Communciator for the working ranks on the coarse level
+    extern int top_c;                                     
+    extern int bot_c; 
+    extern int right_c; 
+    extern int left_c; 
+    extern int coarse_rank2d;                           //Rank id in comm_coarse_level
     extern int ranks_x_c;                               //Number of x agglomerated ranks
     extern int ranks_t_c;                               //Number of t agglomerated ranks
     extern int size_c;                                  //ranks_x_c * ranks_t_c

@@ -44,6 +44,12 @@ namespace mpi{
     MPI_Group cart_comm_group;                   
     MPI_Group* coarse_group  = nullptr;  
     MPI_Comm* coarse_comm   = nullptr;   
+    MPI_Comm comm_coarse_level = MPI_COMM_NULL;
+    int top_c = 0;                                     
+    int bot_c = 0; 
+    int right_c = 0; 
+    int left_c = 0; 
+    int coarse_rank2d;
     int ranks_x_c = 1;                              
     int ranks_t_c = 1;                               
     int size_c = 1;  

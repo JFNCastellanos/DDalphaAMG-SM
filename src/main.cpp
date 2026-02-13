@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     //test_Pdagg_rank_coarsening(U);
     //Check_PPdagg_coarsening(U);
 
-    test_PPdagg_any_case(U);
+    //test_PPdagg_any_case(U);
 
     //Free coordinate arrays
     free_lattice_arrays();

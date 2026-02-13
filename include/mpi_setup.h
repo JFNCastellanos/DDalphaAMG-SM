@@ -93,7 +93,7 @@ inline void buildCartesianTopology(){
  */
 inline void coarseLevelCommunicators(){
 
-    //Define a communicator for the group of ranks on the fine level
+    //Group of ranks that communicate on the finest level
     MPI_Comm_group(mpi::cart_comm, &mpi::cart_comm_group);
 
     //Number of agglomerated ranks
@@ -143,8 +143,57 @@ inline void coarseLevelCommunicators(){
         mpi::displs_coarse[r] = (global_x_start * (mpi::Nt_coarse_rank + 2) + global_t_start) * 2;
     }
 
+    //Now we prepare a communicator to send/receive data among the fine-grid ranks that will be working on the coarse levels
+    //i.e. the root_ranks of the agglomerated communicators.
+    int coarse_level_ranks[mpi::ranks_coarse_level];
+    int coarse_rank, commID;
+    int count = 0;
 
+    MPI_Comm temp_comm; //Temporary communicator
+    MPI_Group temp_group;
+
+    
+    //We store the fine-grid ranks that will be working on the coarse levels
+    for(int r=0; r<mpi::size; r++){	   
+        int rx = r / mpi::ranks_t; // coarse-group x coordinate
+        int rt = r % mpi::ranks_t; // coarse-group t coordinate
+        int rc = (rx%mpi::ranks_x_c) * mpi::ranks_t_c + (rt%mpi::ranks_t_c);
+        if (rc == 0){
+            coarse_level_ranks[count++] = r;  
+        }
+    }
+
+    
+    MPI_Group_incl(mpi::cart_comm_group, mpi::ranks_coarse_level, coarse_level_ranks, &temp_group);
+    MPI_Comm_create(mpi::cart_comm, temp_group, &temp_comm);
+    
+
+    
+    int dims[2] = {mpi::coarse_ranks_x, mpi::coarse_ranks_t};
+    int periods[2] = {1, 1}; // periodic in both dims
+    int reorder = 1;         // allow rank reordering
+
+    //temp_comm is only defined for its member ranks
+    if (temp_comm != MPI_COMM_NULL){
+        MPI_Comm_rank(temp_comm, &mpi::coarse_rank2d);
+        MPI_Cart_create(temp_comm, 2, dims, periods, reorder, &mpi::comm_coarse_level);
+        //MPI_Cart_shift(cart_comm, Direction, Displacement, - direction,  +direction);
+        //Along t direction
+        MPI_Cart_shift(mpi::comm_coarse_level, 1, 1, &mpi::left_c, &mpi::right_c);
+        //Along x direction
+        MPI_Cart_shift(mpi::comm_coarse_level, 0, 1, &mpi::top_c , &mpi::bot_c);
+
+    }
+
+    /*
+    if (mpi::comm_coarse_level != MPI_COMM_NULL){
+        printf("[MPI process on cart_comm %d, on comm_coarse_level %d. Neighbors top_c %d bot_c %d right_c %d left_c %d\n",
+        mpi::rank2d,mpi::coarse_rank2d, mpi::top_c, mpi::bot_c, mpi::right_c, mpi::left_c);
+    }
+    */
+    
 }
+
 
 inline void defineDataTypes(){
     //Create a new data type for the blocks corresponding to each rank
