@@ -157,7 +157,7 @@ void Check_PPdagg(const int& l, const spinor& U){
     int indxtv, indx;
     int Nt, Nx, colors, Ntest;
     Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
-    static std::mt19937 randomInt(50); //Same seed for all the MPI copies
+    static std::mt19937 randomInt(mpi::rank2d); 
 	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
     
     for(int cc = 0; cc < level.Ntest; cc++){
@@ -173,10 +173,8 @@ void Check_PPdagg(const int& l, const spinor& U){
     }      
     }
 
-    std::cout << "before orth " << std::endl;
-    level.orthonormalize();
-    std::cout << "after orth " << std::endl;
 
+    level.orthonormalize();
     level.checkOrthogonality();
     
     spinor vc((level.xblocks_per_rank+2)*(level.tblocks_per_rank+2)*2*Ntest);
@@ -194,6 +192,8 @@ void Check_PPdagg(const int& l, const spinor& U){
     level.Pdagg_v(temp,PdaggPvc);
 
     for(int i = 0; i< (level.xblocks_per_rank+2)*(level.tblocks_per_rank+2)*2*Ntest; i++){
+        //if (std::abs(vc.val[i])>1e-8)
+        //    std::cout << "vc " << vc.val[i] << "  P^+ P vc " <<  PdaggPvc.val[i] << std::endl;
         if (std::abs(vc.val[i]-PdaggPvc.val[i]) > 1e-8 ){
             if (mpi::rank2d == 0){
                 std::cout << "P^+ P vc != vc" << std::endl;
@@ -892,7 +892,8 @@ void Check_PPdagg_coarsening(const  spinor& U){
     if (coarse_rank == 0){
         //This also loops over the halo, which remains as zero here, so there should be no problem.
         for(int i = 0; i< (level.xblocks_per_coarse_rank+2)*(level.tblocks_per_coarse_rank+2)*2*Ntest; i++){     
-            //std::cout << "vc " << vc.val[i] << "  P^+ P vc " <<  PdaggPvc.val[i] << std::endl;
+            //if (std::abs(vc.val[i])>1e-8)
+            //    std::cout << "vc " << vc.val[i] << "  P^+ P vc " <<  PdaggPvc.val[i] << std::endl;
             if (std::abs(vc.val[i]-PdaggPvc.val[i]) > 1e-8 ){
                 if (mpi::rank2d == 0){
                     std::cout << "P^+ P vc != vc" << std::endl;

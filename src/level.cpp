@@ -113,7 +113,6 @@ void Level::orthonormalize(){
 	int bx, bt, bx_shifted, bt_shifted, xini, xfin, tini, tfin;
 	int indx;
 	
-	
 	std::vector<spinor>* tv = &tvec;
 
 	if (ranks_per_block>1){
@@ -121,12 +120,6 @@ void Level::orthonormalize(){
 			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
 		tv = &gathered_tvec;
 	}
-
-	int commID = mpi::rank_dictionary[mpi::rank2d];
-	int coarse_rank;
-	MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
-
-
 
 	for (int b = 0; b<blocks_per_coarse_rank; b++) {	
 		bx = b / tblocks_per_coarse_rank;
@@ -486,19 +479,18 @@ void Level::checkOrthogonality() {
 	int bx, bt, xini, xfin, tini, tfin;
 	c_double dot_product;
 	int indx;
+	int coarse_rank=0;
 
 	std::vector<spinor>* tv = &tvec;
 	if (ranks_per_block > 1){
 		//clean_gathered_tvec();
 		for(int cc=0;cc<Ntest;cc++)
 			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
-
 		tv = &gathered_tvec;
+		int commID = mpi::rank_dictionary[mpi::rank2d];
+		MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
 	}
 
-	int commID = mpi::rank_dictionary[mpi::rank2d];
-	int coarse_rank;
-	MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);
 	if ( (coarse_rank == 0 && ranks_per_block>1) || (ranks_per_block<1) ){
 	for (int b = 0; b<blocks_per_coarse_rank; b++) {	
 		bx = b / tblocks_per_coarse_rank;
