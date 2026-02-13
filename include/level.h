@@ -97,8 +97,7 @@ public:
 
         //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
         int Ntot_halo = (Nx+2)*(Nt+2);
-        Nt_coarse_rank          = Nt*mpi::ranks_t_c; //Nt sites on the coarse rank 
-        Nx_coarse_rank          = Nx*mpi::ranks_x_c; 
+        
 
         /*
         if (mpi::rank2d == 0){
@@ -131,6 +130,8 @@ public:
             xblocks =  xblocks_per_coarse_rank;
             tblocks =  tblocks_per_coarse_rank;
             blocks  =  blocks_per_coarse_rank;
+            Nt_coarse_rank   = Nt*mpi::ranks_t_c; //Nt sites on the coarse rank 
+            Nx_coarse_rank   = Nx*mpi::ranks_x_c; 
             x_elements = Nx_coarse_rank/xblocks_per_coarse_rank;
             t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;
         }
