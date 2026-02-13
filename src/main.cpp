@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
 
     int l = 0;
     //AssembleP_Pdagg(l,U);
-    //Check_PPdagg(l,U);
+    Check_PPdagg(l,U);
     //test_Doperator_fine_level(U);
     //rank_agglomeration_test();
 
@@ -74,9 +74,11 @@ int main(int argc, char **argv) {
     //coarse_gauge_links_test(U);
     //test_Dc(U);
     //check_boundaries(U);
-    test_P_vc_rank_coarsening(U);
-    test_Pdagg_rank_coarsening(U);
+    //test_P_vc_rank_coarsening(U);
+    //test_Pdagg_rank_coarsening(U);
     //Check_PPdagg_coarsening(U);
+
+    //test_PPdagg_any_case(U);
 
     //Free coordinate arrays
     free_lattice_arrays();

@@ -172,9 +172,13 @@ void Check_PPdagg(const int& l, const spinor& U){
     }
     }      
     }
-    level.orthonormalize();
-    level.checkOrthogonality();
 
+    std::cout << "before orth " << std::endl;
+    level.orthonormalize();
+    std::cout << "after orth " << std::endl;
+
+    level.checkOrthogonality();
+    
     spinor vc((level.xblocks_per_rank+2)*(level.tblocks_per_rank+2)*2*Ntest);
     spinor temp((Nx+2)*(Nt+2)*2*colors);
     spinor PdaggPvc((level.xblocks_per_rank+2)*(level.tblocks_per_rank+2)*2*Ntest);
@@ -828,12 +832,21 @@ void test_Pdagg_rank_coarsening(const spinor& U){
 
 //Verify that P^+ P vc = vc for the case when ranks are agglomerated
 void Check_PPdagg_coarsening(const  spinor& U){
+    //Gauge conf does not really matter here ...
+    if (mpi::size != 16){
+        printf("This test is meant to be run with 16 processes.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+    if (LevelV::BlocksT[0] != 2 || LevelV::BlocksX[0] != 2){
+        printf("This test is meant to be run with two levels and 2 blocks per dimension.\n");
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
     int l = 0;
     Level level(l,U);
     int indxtv, indx;
     int Nt, Nx, colors, Ntest;
     Nt = level.Nt; Nx = level.Nx; colors = level.colors; Ntest = level.Ntest;
-    static std::mt19937 randomInt(50); //Same seed for all the MPI copies
+    static std::mt19937 randomInt(mpi::rank2d); //Same seed for all the MPI copies
 	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
     
     for(int cc = 0; cc < level.Ntest; cc++){
@@ -850,8 +863,8 @@ void Check_PPdagg_coarsening(const  spinor& U){
     }
 
 
-    level.orthonormalize_v2();
-    level.checkOrthogonality_v2();
+    level.orthonormalize();
+    level.checkOrthogonality();
 
     MPI_Barrier(MPI_COMM_WORLD);
     spinor vc((level.xblocks_per_coarse_rank+2)*(level.tblocks_per_coarse_rank+2)*2*Ntest);
@@ -892,5 +905,19 @@ void Check_PPdagg_coarsening(const  spinor& U){
         std::cout << "Test passed: P^+ P vc = vc" << std::endl;
     }
     
-        
+}
+
+void test_PPdagg_any_case(const spinor& U){
+    int l = 0;
+    if ((mpi::size == 4) && (LevelV::BlocksT[0] == 4 || LevelV::BlocksX[0] == 4)){
+        if (mpi::rank2d == 0)
+            std::cout << "Checking case when blocks are inside a rank" << std::endl;
+        Check_PPdagg(l, U);
+    }
+    
+    if ((mpi::size == 16) && (LevelV::BlocksT[0] == 2 || LevelV::BlocksX[0] == 2)){
+        if (mpi::rank2d == 0)
+            std::cout << "Checking case when blocks cross the ranks" << std::endl;
+        Check_PPdagg_coarsening(U);
+    }
 }

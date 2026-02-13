@@ -196,6 +196,13 @@ public:
     spinor G2; 
     spinor G3; 
 
+    inline void clean_gathered_tvec(){
+        for(int cc=0;cc<Ntest;cc++){
+            for(int i = 0; i<((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors); i++)
+                gathered_tvec[cc].val[i] = 0.0; //Clean the buffer
+        }
+    }
+
 
 /*
 	Prolongation operator times a spinor x = P v
@@ -213,11 +220,6 @@ public:
 
     void orthonormalize();      //Local orthonormalization of the test vectors
     void checkOrthogonality();  //Check orthogonality of the test vectors
-
-
-    //Same functions but for the case when the blocks cross the ranks
-    void orthonormalize_v2();
-    void checkOrthogonality_v2();
 
     //Index functions for gauge links. These correspond to the current level
 	//get index for A_coeff 1D array
