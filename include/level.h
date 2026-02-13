@@ -97,7 +97,11 @@ public:
 
         //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
         int Ntot_halo = (Nx+2)*(Nt+2);
-        
+        Nx_coarse_rank = Nx;
+        Nt_coarse_rank = Nt;
+        xblocks_per_coarse_rank = xblocks_per_rank; //Number of lattice blocks inside one MPI rank on the coarse grid.
+	    tblocks_per_coarse_rank = tblocks_per_rank;
+        blocks_per_coarse_rank  = blocks_per_rank;
 
         /*
         if (mpi::rank2d == 0){
@@ -112,7 +116,7 @@ public:
         //Test vectors
         tvec        = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
         tvec_copy   = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
-
+        
        	    
         G1 = spinor(Ntot_halo*2*2*colors*colors);
         G2 = spinor(Ntot_halo*2*2*colors*colors*2);
@@ -127,15 +131,18 @@ public:
             defineColumnType(level, Nx, Nt,DOF); //DataType needed for the halo exchange at level l
 
         if (ranks_per_block>1){
-            xblocks =  xblocks_per_coarse_rank;
-            tblocks =  tblocks_per_coarse_rank;
-            blocks  =  blocks_per_coarse_rank;
             Nt_coarse_rank   = Nt*mpi::ranks_t_c; //Nt sites on the coarse rank 
             Nx_coarse_rank   = Nx*mpi::ranks_x_c; 
+            xblocks_per_coarse_rank = LevelV::BlocksX[level] / mpi::coarse_ranks_x; //Number of lattice blocks inside one MPI rank on the coarse grid.
+	        tblocks_per_coarse_rank = LevelV::BlocksT[level] / mpi::coarse_ranks_t;
+            blocks_per_coarse_rank  = xblocks_per_coarse_rank * tblocks_per_coarse_rank;   
             x_elements = Nx_coarse_rank/xblocks_per_coarse_rank;
-            t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;
+            t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;                    
         }
-        
+        //Buffers 
+        gathered_tvec = std::vector<spinor>(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));//Gather test vectors data from other ranks
+		gathered_out  = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
+        gathered_v    = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
         
     };
 
@@ -145,6 +152,10 @@ public:
 
     std::vector<spinor> tvec;       //[Ntest][(Nt+2).(Nx+2).colors.spins]
     std::vector<spinor> tvec_copy;  
+    //Buffers used in P and P^+ implementations. 
+    std::vector<spinor> gathered_tvec;	//Gather test vectors data from other ranks
+	spinor gathered_out;
+    spinor gathered_v;
 
     const int level; 
     const int xblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksX[level]/LevelV::RanksX[level] : 1; //Number of blocks on x inside the current rank
@@ -156,10 +167,10 @@ public:
     const int xranks_per_block  = LevelV::RanksX[level]/LevelV::BlocksX[level]; //x-ranks inside a block 
     const int tranks_per_block  = LevelV::RanksT[level]/LevelV::BlocksT[level]; //t-ranks inside a block 
     const int ranks_per_block   = xranks_per_block*tranks_per_block;  //Number of ranks inside a lattice block
-    //Number of blocks inside a coarse rank. We only use these numbers when ranks_per_block > 1  
-    const int xblocks_per_coarse_rank = LevelV::BlocksX[level] / mpi::coarse_ranks_x; //Number of lattice blocks inside one MPI rank on the coarse grid.
-	const int tblocks_per_coarse_rank = LevelV::BlocksT[level] / mpi::coarse_ranks_t;
-    const int blocks_per_coarse_rank  = xblocks_per_coarse_rank * tblocks_per_coarse_rank;
+    //Number of blocks inside a coarse rank. When ranks_per_block > 1, they differ from ranks_per_block
+    int xblocks_per_coarse_rank; //Number of lattice blocks inside one MPI rank on the coarse grid.
+	int tblocks_per_coarse_rank;
+    int blocks_per_coarse_rank;
     int Nt_coarse_rank; //Nt sites on the coarse rank 
     int Nx_coarse_rank; 
     //----------------------------------------------------------//
