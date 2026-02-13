@@ -314,9 +314,15 @@ void Level::D_operator(const spinor& v, spinor& out){
 */
 void Level::makeCoarseLinks(Level& next_level){
 	//Make gauge links for level l
-	std::vector<spinor> &w = tvec;
+	std::vector<spinor>* w = &tvec;
+	if (ranks_per_block > 1){
+		for(int cc=0; cc<Ntest;cc++)
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+		w = &gathered_tvec;
+	}
+
 	for(int cc=0; cc<Ntest;cc++)
-		exchange_halo_l(w[cc]);	//We exchange halos for the test vectors.
+		exchange_halo_l((w*)[cc]);	//We exchange halos for the test vectors.
 	
 
 
@@ -335,12 +341,12 @@ void Level::makeCoarseLinks(Level& next_level){
 	int indx;
 	int rn, ln; //right and left neighbors
 	int rb, lb; //right and left blocks
-	for(int b = 0; b<blocks_per_rank; b++){
-		bx = b / tblocks_per_rank;
-		bt = b % tblocks_per_rank;	
+	for(int b = 0; b<blocks_per_coarse_rank; b++){
+		bx = b / tblocks_per_coarse_rank;
+		bt = b % tblocks_per_coarse_rank;	
 		bx_shifted = bx+1;
 		bt_shifted = bt+1;
-		block = (bx_shifted)*(tblocks_per_rank+2) + bt_shifted;//Indexing for a coarse spinors with halo
+		block = (bx_shifted)*(tblocks_per_coarse_rank+2) + bt_shifted;//Indexing for a coarse spinors with halo
 		//Coordinates inside the block (bx,bt) for a spinor with halo
 		xini = x_elements*bx+1; xfin = xini + x_elements;
 		tini = t_elements*bt+1; tfin = tini + t_elements;
@@ -362,7 +368,7 @@ void Level::makeCoarseLinks(Level& next_level){
 			for(int b = 0; b<colors; b++){
 				//[w*_p^(block,alf)]_{c,alf}(x) [A(x)]^{alf,bet}_{c,b} [w_s^{block,bet}]_{b,bet}(x)
 				indx = n*colors*2 + c*2 + alf;
-				A_coeff.val[indxA] += std::conj(w[p].val[indx]) * G1.val[getG1index(n,alf,bet,c,b)] * w[s].val[n*colors*2 + b*2 + bet];
+				A_coeff.val[indxA] += std::conj((*w)[p].val[indx]) * G1.val[getG1index(n,alf,bet,c,b)] * (*w)[s].val[n*colors*2 + b*2 + bet];
 				for(int mu : {0,1}){
 					rn = rpb_l(x,t,mu); //(x,t)+hat{mu}
 					ln = lpb_l(x,t,mu); //(x,t)-hat{mu}
@@ -371,24 +377,24 @@ void Level::makeCoarseLinks(Level& next_level){
 					getLatticeBlock(rn, block_r); //block_r: block where rn lives
 					getLatticeBlock(ln, block_l); //block_l: block where ln lives
 
-					wG2 = std::conj(w[p].val[indx]) * G2.val[getG2G3index(n,alf,bet,c,b,mu)]; 
-					wG3 = std::conj(w[p].val[indx]) * G3.val[getG2G3index(n,alf,bet,c,b,mu)];
+					wG2 = std::conj((*w)[p].val[indx]) * G2.val[getG2G3index(n,alf,bet,c,b,mu)]; 
+					wG3 = std::conj((*w)[p].val[indx]) * G3.val[getG2G3index(n,alf,bet,c,b,mu)];
 
 					//Only diff from zero when n+hat{mu} in Block(x)
 					if (block_r == block){
-						A_coeff.val[indxA] 			+= wG2 * w[s].val[rn*colors*2 + b*2 + bet];
+						A_coeff.val[indxA] 			+= wG2 * (*w)[s].val[rn*colors*2 + b*2 + bet];
 					}
 					//Only diff from zero when n+hat{mu} in Block(x+hat{mu})
 					else if (block_r == rb){
-						B_coeff.val[indxBC[mu]] 	+= wG2 * w[s].val[rn*colors*2 + b*2 + bet]; 
+						B_coeff.val[indxBC[mu]] 	+= wG2 * (*w)[s].val[rn*colors*2 + b*2 + bet]; 
 					}
 					//Only diff from zero when n-hat{mu} in Block(x)
 					if (block_l == block){
-						A_coeff.val[indxA] 			+= wG3 * w[s].val[ln*colors*2 + b*2 + bet];
+						A_coeff.val[indxA] 			+= wG3 * (*w)[s].val[ln*colors*2 + b*2 + bet];
 					}
 					//Only diff from zero when n-hat{mu} in Block(x-hat{mu})
 					else if (block_l == lb){
-						C_coeff.val[indxBC[mu]] 	+= wG3 * w[s].val[ln*colors*2 + b*2 + bet];
+						C_coeff.val[indxBC[mu]] 	+= wG3 * (*w)[s].val[ln*colors*2 + b*2 + bet];
 					}
 				}//mu loop
 			}//b loop
@@ -472,7 +478,6 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 
 }
 */
-
 
 
 void Level::checkOrthogonality() {
