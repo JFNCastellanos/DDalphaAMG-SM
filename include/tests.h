@@ -492,7 +492,7 @@ void coarse_gauge_links_test(const spinor& U){
 
 void test_Dc(const spinor& U){
     std::vector<Level*> levels;
-    if (mpi::size != 16){
+    if (mpi::size != 4){
         printf("This test is meant to be run with 4 processes.\n");
         MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
     }
@@ -609,10 +609,10 @@ void check_boundaries(const spinor& U){
 		for(int t=tini;t<tfin;t++){
 			int n = x*(level0.Nt+2)+t;
 			for(int mu : {0,1}){
-				int rn = level0.rpb_l(x,t,mu); //(x,t)+hat{mu}
-				int ln = level0.lpb_l(x,t,mu); //(x,t)-hat{mu}
-				int rb = level1.rpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)+hat{mu}
-				int lb = level1.lpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)-hat{mu}
+				int rn = level0.rpb_l(x,t,mu,level0.Nx,level0.Nt); //(x,t)+hat{mu}
+				int ln = level0.lpb_l(x,t,mu,level0.Nx,level0.Nt); //(x,t)-hat{mu}
+				int rb = level1.rpb_l(bx_shifted,bt_shifted,mu,level1.Nx,level1.Nt); //(bx,bt)+hat{mu}
+				int lb = level1.lpb_l(bx_shifted,bt_shifted,mu,level1.Nx,level1.Nt); //(bx,bt)-hat{mu}
                 int block_r, block_l;
                 printf("(x,t,mu,n)      = (%d,%d,%d,%d)\n",x,t,mu,n);
                 printf("(x,t)+hat{mu}   = %d\n",rn);

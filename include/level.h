@@ -102,7 +102,8 @@ public:
         xblocks_per_coarse_rank = xblocks_per_rank; //Number of lattice blocks inside one MPI rank on the coarse grid.
 	    tblocks_per_coarse_rank = tblocks_per_rank;
         blocks_per_coarse_rank  = blocks_per_rank;
-
+        ranks_comm = LevelV::D_operator_communicator[level];
+        
         /*
         if (mpi::rank2d == 0){
             std::cout << "level " << level << " colors " << colors << "  test vectors " << Ntest  << std::endl;
@@ -123,13 +124,6 @@ public:
         G3 = spinor(Ntot_halo*2*2*colors*colors*2);
 
 
-
-
-        if (level == 0)
-            makeDirac(); //Initialize Dirac Operator on the fine grid
-        else
-            defineColumnType(level, Nx, Nt,DOF); //DataType needed for the halo exchange at level l
-
         if (ranks_per_block>1){
             Nt_coarse_rank   = Nt*mpi::ranks_t_c; //Nt sites on the coarse rank 
             Nx_coarse_rank   = Nx*mpi::ranks_x_c; 
@@ -137,12 +131,29 @@ public:
 	        tblocks_per_coarse_rank = LevelV::BlocksT[level] / mpi::coarse_ranks_t;
             blocks_per_coarse_rank  = xblocks_per_coarse_rank * tblocks_per_coarse_rank;   
             x_elements = Nx_coarse_rank/xblocks_per_coarse_rank;
-            t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;                    
+            t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;         
+            
+            //Buffers for the case when we do rank coarsening
+            gathered_tvec = std::vector<spinor>(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));//Gather test vectors data from other ranks
+		    gathered_out  = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
+            gathered_v    = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
+            gathered_G1   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
+            gathered_G2   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
+            gathered_G3   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
+
+            //Datatype for halo exchange of the test vectors when assembling the coarse gauge links
+            MPI_Type_vector(Nx_coarse_rank, DOF, (Nt_coarse_rank+2)*DOF, MPI_DOUBLE_COMPLEX, &coarse_column_type);
+            MPI_Type_commit(&coarse_column_type);    
         }
-        //Buffers 
-        gathered_tvec = std::vector<spinor>(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));//Gather test vectors data from other ranks
-		gathered_out  = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
-        gathered_v    = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
+        
+
+        if (level == 0)
+            makeDirac(); //Initialize Dirac Operator on the fine grid
+        else
+            defineColumnType(level, Nx, Nt,DOF); //DataType needed for the halo exchange at level l for D_operator
+        
+        
+        
         
     };
 
@@ -156,6 +167,12 @@ public:
     std::vector<spinor> gathered_tvec;	//Gather test vectors data from other ranks
 	spinor gathered_out;
     spinor gathered_v;
+    spinor gathered_G1;
+    spinor gathered_G2;
+    spinor gathered_G3;
+
+    MPI_Comm ranks_comm; //Communicator among the ranks on the current level 
+    MPI_Datatype coarse_column_type;
 
     const int level; 
     const int xblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksX[level]/LevelV::RanksX[level] : 1; //Number of blocks on x inside the current rank
@@ -164,8 +181,8 @@ public:
     
     //-------For the case when the blocks cross the ranks--------//
     //Number of fine ranks inside a block
-    const int xranks_per_block  = LevelV::RanksX[level]/LevelV::BlocksX[level]; //x-ranks inside a block 
-    const int tranks_per_block  = LevelV::RanksT[level]/LevelV::BlocksT[level]; //t-ranks inside a block 
+    const int xranks_per_block  = (level != LevelV::maxLevel) ? LevelV::RanksX[level]/LevelV::BlocksX[level] : 1; //x-ranks inside a block 
+    const int tranks_per_block  = (level != LevelV::maxLevel) ? LevelV::RanksT[level]/LevelV::BlocksT[level] : 1; //t-ranks inside a block 
     const int ranks_per_block   = xranks_per_block*tranks_per_block;  //Number of ranks inside a lattice block
     //Number of blocks inside a coarse rank. When ranks_per_block > 1, they differ from ranks_per_block
     int xblocks_per_coarse_rank; //Number of lattice blocks inside one MPI rank on the coarse grid.
@@ -266,8 +283,8 @@ public:
     //Given n on the fine grid with halo, return b on the coarse grid with halo
     inline void getLatticeBlock(const int& n, int& block){
         //printf("Inside getLatticeBlock\n");
-        int x = n / (Nt+2); //x coordinate of the lattice point 
-        int t = n % (Nt+2); //t coordinate of the lattice point
+        int x = n / (Nt_coarse_rank+2); //x coordinate of the lattice point 
+        int t = n % (Nt_coarse_rank+2); //t coordinate of the lattice point
        // printf("(x,t)=(%d,%d)\n",x,t);
         //Reconstructing the block 
         int block_x, block_t;
@@ -282,11 +299,11 @@ public:
             block_x -= 1;
 
        // printf("(block_x,block_t)=(%d,%d)\n",block_x,block_t);
-        block = block_x * (tblocks_per_rank+2) + block_t; //Block index in the SAP method
+        block = block_x * (tblocks_per_coarse_rank+2) + block_t; //Block index in the SAP method
     }
 
     //returns (x,t) + hat{mu} on the current level
-    inline int rpb_l(const int& x, const int& t, const int& mu){
+    inline int rpb_l(const int& x, const int& t, const int& mu, const int& Nx, const int& Nt){
         int xp = x+1;
         int tp = t+1;
         if (mu == 0)
@@ -300,7 +317,7 @@ public:
     }
 
     //returns (x,t)-hat{mu} on the current level
-    inline int lpb_l(const int& x, const int& t, const int& mu){
+    inline int lpb_l(const int& x, const int& t, const int& mu, const int& Nx, const int& Nt){
         int xm = x-1;
         int tm = t-1;
         if (mu == 0)
@@ -333,8 +350,8 @@ public:
     //Make coarse gauge links. They will be used in the next level as G1, G2 and G3.
     void makeCoarseLinks(Level& next_level); //& A_coeff,c_vector& B_coeff, c_vector& C_coeff);
 
-    //Exchange halo for spinor v among the working ranks at the current level
-    void exchange_halo_l(const spinor& v);
+    //Exchange halo for spinor v 
+    void exchange_halo_l(const spinor& v,const int& Nx, const int& Nt, const MPI_Datatype& column, const MPI_Comm& comm);
 
     /*
     Matrix-vector operation that defines the level l.

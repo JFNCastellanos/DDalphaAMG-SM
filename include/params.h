@@ -54,6 +54,8 @@ void readParameters(const std::string& inputFile){
         LevelV::RanksX[level] = (level == 0) ? mpi::ranks_x : 2;
         LevelV::RanksT[level] = (level == 0) ? mpi::ranks_t : 2;
 
+        
+
     }
     //Store the number of sites and degrees of freedom for the coarsest lattice as well
     LevelV::Nsites[maxLevel] =   LevelV::BlocksX[maxLevel-1] * LevelV::BlocksT[maxLevel-1];
@@ -70,6 +72,23 @@ void readParameters(const std::string& inputFile){
 
     LevelV::RanksX[maxLevel] = 2;
     LevelV::RanksT[maxLevel] = 2;
+
+    LevelV::D_operator_communicator[0] = mpi::cart_comm;
+    bool comm_is_cart_comm = true;
+    for(level = 0; level<LevelV::levels-1; level++){
+        int xranks_per_block  = (level != LevelV::maxLevel) ? LevelV::RanksX[level]/LevelV::BlocksX[level] : 1; //x-ranks inside a block 
+        int tranks_per_block  = (level != LevelV::maxLevel) ? LevelV::RanksT[level]/LevelV::BlocksT[level] : 1; //t-ranks inside a block 
+        int ranks_per_block   = xranks_per_block*tranks_per_block;  //Number of ranks inside a lattice block
+        if (ranks_per_block > 1 || comm_is_cart_comm == false){
+            comm_is_cart_comm = false;
+            LevelV::D_operator_communicator[level+1] = mpi::comm_coarse_level;
+        }
+        else{
+            LevelV::D_operator_communicator[level+1] = mpi::cart_comm;
+        }
+        
+    }
+   
 
     infile.close();
     if (mpi::rank2d == 0)

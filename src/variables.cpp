@@ -60,7 +60,7 @@ namespace mpi{
     
     int* rank_dictionary = nullptr;
     MPI_Datatype* column_type = nullptr;
-
+    
 }
 
 namespace CG{
@@ -117,6 +117,7 @@ namespace LevelV{
 
     int* RanksX = nullptr;
     int* RanksT = nullptr;
+    MPI_Comm* D_operator_communicator = nullptr;    //Communicator for D_operator at level l
 }
 
 
@@ -159,11 +160,12 @@ void allocate_lattice_arrays() {
 
     LevelV::RanksX = new int[LevelV::levels];
     LevelV::RanksT = new int[LevelV::levels];
+    LevelV::D_operator_communicator = new MPI_Comm[LevelV::levels];
 
     mpi::coarse_group       = new MPI_Group[mpi::ranks_coarse_level];
     mpi::coarse_comm        = new MPI_Comm[mpi::ranks_coarse_level];
     mpi::rank_dictionary    = new int[mpi::size];
-    mpi::column_type        = new MPI_Datatype[mpi::size];
+    mpi::column_type        = new MPI_Datatype[LevelV::levels];
 }
 
 void free_lattice_arrays() {
@@ -199,6 +201,7 @@ void free_lattice_arrays() {
 
     delete[] LevelV::RanksX;
     delete[] LevelV::RanksT;  
+    delete[] LevelV::D_operator_communicator;
 
     delete[] mpi::coarse_group;
     delete[] mpi::coarse_comm;

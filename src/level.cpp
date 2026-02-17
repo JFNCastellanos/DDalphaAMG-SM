@@ -233,12 +233,28 @@ void Level::makeDirac(){
 }
 
 
-//Exchange halo for spinor v among the working ranks at the current level
-void Level::exchange_halo_l(const spinor& v){
-	using namespace mpi;
-	//The current implementation only works when the aggregates don't cross the ranks
+//Exchange halo for spinor v among the working ranks at the current level. Level>=1. For level=0 we use the other
+//halo exchange in the Dirac operator
+void Level::exchange_halo_l(const spinor& v,const int& Nx, const int& Nt, const MPI_Datatype& column, const MPI_Comm& comm){
     int row_size = DOF * Nt;
 	int send_start, recv_start;   
+	int bot, top, left, right;
+	int result;
+    MPI_Comm_compare(comm, mpi::cart_comm, &result);
+	//If we have the communicator of the fine grid
+    if (result == MPI_IDENT) {
+		bot 	= mpi::bot;
+		top 	= mpi::top;
+		left 	= mpi::left;
+		right 	= mpi::right;
+    }
+	else{
+		bot 	= mpi::bot_c;
+		top 	= mpi::top_c;
+		left 	= mpi::left_c;
+		right 	= mpi::right_c;
+	}
+
 
     //Send top row to top rank. Receive top row from bot rank.
 	//(x*(Nt+2)+t)*DOF +dof
@@ -246,35 +262,34 @@ void Level::exchange_halo_l(const spinor& v){
 	recv_start = ((Nx+1)*(Nt+2)+1)*DOF;	//x=Nx+1, t=1
     MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, top, 0,
         &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, bot, 0,
-        cart_comm, MPI_STATUS_IGNORE);
+        comm, MPI_STATUS_IGNORE);
 
     //Send bot row to bot rank. Receive bot row from top rank.
 	send_start = (Nx*(Nt+2)+1)*DOF;	//x=Nx, t=1
 	recv_start = 1*DOF;				//x=0,	t=1
     MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, bot, 1,
         &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, top, 1,
-        cart_comm, MPI_STATUS_IGNORE);
+        comm, MPI_STATUS_IGNORE);
 
     //Send left column to left rank. Receive left column from right rank. 
 	send_start = ((Nt+2) + 1)*DOF;		//x=1,	t=1
 	recv_start = ((Nt+2)+(Nt+1))*DOF;	//x=1,	t=Nt+1
-    MPI_Sendrecv(&v.val[send_start], 1, column_type[level], left, 2,
-    &v.val[recv_start], 1, column_type[level], right, 2,
-    cart_comm, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&v.val[send_start], 1, column, left, 2,
+    	&v.val[recv_start], 1, column, right, 2,
+    	comm, MPI_STATUS_IGNORE);
 
     //Send right column to right rank. Receive right column from left rank. 
 	send_start = ((Nt+2)+Nt)*DOF;		//x=1,	t=Nt
 	recv_start = (Nt+2)*DOF;			//x=1,	t=0
-    MPI_Sendrecv(&v.val[send_start], 1, column_type[level], right, 3,
-    &v.val[recv_start], 1, column_type[level], left, 3,
-    cart_comm, MPI_STATUS_IGNORE);
+    MPI_Sendrecv(&v.val[send_start], 1, column, right, 3,
+    	&v.val[recv_start], 1, column, left, 3,
+    	comm, MPI_STATUS_IGNORE);
 }
 
 
 //Dirac operator at the current level
 void Level::D_operator(const spinor& v, spinor& out){	
-
-	exchange_halo_l(v); //Communicate halos
+	exchange_halo_l(v,Nx,Nt,mpi::column_type[level],ranks_comm);
 
 	int indx, indx1, indx2, n;
 	//n only runs in the interior of the lattice domain
@@ -291,8 +306,8 @@ void Level::D_operator(const spinor& v, spinor& out){
 			indx1 = n*colors*2+b*2+bet;
 			out.val[indx] -= G1.val[getG1index(n,alf,bet,c,b)] * v.val[indx1];
 			for(int mu:{0,1}){
-				indx1 = rpb_l(x,t,mu)*colors*2+b*2+bet;
-				indx2 = lpb_l(x,t,mu)*colors*2+b*2+bet;
+				indx1 = rpb_l(x,t,mu,Nx,Nt)*colors*2+b*2+bet;
+				indx2 = lpb_l(x,t,mu,Nx,Nt)*colors*2+b*2+bet;
 				out.val[indx] -= ( 	G2.val[getG2G3index(n,alf,bet,c,b,mu)] * rsign_l(t,mu) * v.val[indx1]
 								+ 	G3.val[getG2G3index(n,alf,bet,c,b,mu)] * lsign_l(t,mu) * v.val[indx2] 
 								);
@@ -306,23 +321,34 @@ void Level::D_operator(const spinor& v, spinor& out){
 	
 }
 
-
-
-
 /*
 	Make coarse gauge links. They will be used in the next level as G1, G2 and G3.
 */
 void Level::makeCoarseLinks(Level& next_level){
 	//Make gauge links for level l
 	std::vector<spinor>* w = &tvec;
+	spinor* g1 = &G1;
+	spinor* g2 = &G2;
+	spinor* g3 = &G3;
 	if (ranks_per_block > 1){
 		for(int cc=0; cc<Ntest;cc++)
-			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]); //DOFs should be a parameter
 		w = &gathered_tvec;
-	}
 
-	for(int cc=0; cc<Ntest;cc++)
-		exchange_halo_l((w*)[cc]);	//We exchange halos for the test vectors.
+		gather_to_coarse_rank(G1,gathered_G1,2*2*colors*colors);
+		gather_to_coarse_rank(G2,gathered_G2,2*2*colors*colors);
+		gather_to_coarse_rank(G3,gathered_G3,2*2*colors*colors);
+		g1 = &gathered_G1;
+		g2 = &gathered_G2;
+		g3 = &gathered_G3;
+		for(int cc=0; cc<Ntest;cc++)
+			exchange_halo_l((*w)[cc],Nx_coarse_rank,Nt_coarse_rank,coarse_column_type,mpi::comm_coarse_level);	//We exchange halos for the test vectors.
+		
+	}
+	else{
+		for(int cc=0; cc<Ntest;cc++)
+			exchange_halo_l((*w)[cc],Nx,Nt,mpi::column_type[level],ranks_comm);
+	}
 	
 
 
@@ -363,22 +389,22 @@ void Level::makeCoarseLinks(Level& next_level){
 		//Elements inside the lattice blocks
 		for(int x=xini;x<xfin;x++){
 		for(int t=tini;t<tfin;t++){
-			n = x*(Nt+2)+t;
+			n = x*(Nt_coarse_rank+2)+t;
 			for(int c = 0; c<colors; c++){
 			for(int b = 0; b<colors; b++){
 				//[w*_p^(block,alf)]_{c,alf}(x) [A(x)]^{alf,bet}_{c,b} [w_s^{block,bet}]_{b,bet}(x)
 				indx = n*colors*2 + c*2 + alf;
-				A_coeff.val[indxA] += std::conj((*w)[p].val[indx]) * G1.val[getG1index(n,alf,bet,c,b)] * (*w)[s].val[n*colors*2 + b*2 + bet];
+				A_coeff.val[indxA] += std::conj((*w)[p].val[indx]) * g1->val[getG1index(n,alf,bet,c,b)] * (*w)[s].val[n*colors*2 + b*2 + bet];
 				for(int mu : {0,1}){
-					rn = rpb_l(x,t,mu); //(x,t)+hat{mu}
-					ln = lpb_l(x,t,mu); //(x,t)-hat{mu}
-					rb = next_level.rpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)+hat{mu}
-					lb = next_level.lpb_l(bx_shifted,bt_shifted,mu); //(bx,bt)-hat{mu}
+					rn = rpb_l(x,t,mu,Nx_coarse_rank,Nt_coarse_rank); //(x,t)+hat{mu}
+					ln = lpb_l(x,t,mu,Nx_coarse_rank,Nt_coarse_rank); //(x,t)-hat{mu}
+					rb = next_level.rpb_l(bx_shifted,bt_shifted,mu,xblocks_per_coarse_rank,tblocks_per_coarse_rank); //(bx,bt)+hat{mu}
+					lb = next_level.lpb_l(bx_shifted,bt_shifted,mu,xblocks_per_coarse_rank,tblocks_per_coarse_rank); //(bx,bt)-hat{mu}
 					getLatticeBlock(rn, block_r); //block_r: block where rn lives
 					getLatticeBlock(ln, block_l); //block_l: block where ln lives
 
-					wG2 = std::conj((*w)[p].val[indx]) * G2.val[getG2G3index(n,alf,bet,c,b,mu)]; 
-					wG3 = std::conj((*w)[p].val[indx]) * G3.val[getG2G3index(n,alf,bet,c,b,mu)];
+					wG2 = std::conj((*w)[p].val[indx]) * g2->val[getG2G3index(n,alf,bet,c,b,mu)]; 
+					wG3 = std::conj((*w)[p].val[indx]) * g3->val[getG2G3index(n,alf,bet,c,b,mu)];
 
 					//Only diff from zero when n+hat{mu} in Block(x)
 					if (block_r == block){

@@ -132,6 +132,7 @@ namespace LevelV{
     extern double* GMRES_tol;
     extern int* RanksX;
     extern int* RanksT;
+    extern MPI_Comm* D_operator_communicator; 
 }
 
 
