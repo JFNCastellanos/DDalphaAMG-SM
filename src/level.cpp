@@ -82,7 +82,7 @@ void Level::scatter_to_local_rank_from_coarse_rank(const spinor& coarse_spinor, 
         	local_domain_linkG1_resized, root_rank, mpi::coarse_comm[commID]);
 	else if (dofs == DOF*DOF*2)
 		MPI_Scatterv(&coarse_spinor.val[0], counts_G2G3, displs_G2G3, coarse_domain_linkG2G3_resized, &local_spinor.val[input_ini_local],1,
-        	local_domain_linkG1_resized, root_rank, mpi::coarse_comm[commID]);
+        	local_domain_linkG2G3_resized, root_rank, mpi::coarse_comm[commID]);
 	else
 		std::cout << "Give a valid number of DOFs in function scatter_to_local_rank_from_coarse_rank" << std::endl;
 }

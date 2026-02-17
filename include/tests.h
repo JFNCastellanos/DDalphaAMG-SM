@@ -928,7 +928,9 @@ inline void test_PPdagg_any_case(const spinor& U){
 }
 
 void test_gather_Datatypes_level_class(Level& lev,const int dof);
-
 void gather_tests();
+
+void test_scatter_Datatypes_level_class(Level& lev,const int dof);
+void scatter_tests();
 
 #endif 

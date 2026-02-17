@@ -82,8 +82,10 @@ int main(int argc, char **argv) {
 
     //Free coordinate arrays
 
-    gather_tests();
-    
+    //gather_tests();
+    scatter_tests();
+
+
     free_lattice_arrays();
     MPI_Finalize();
 
