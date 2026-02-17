@@ -138,12 +138,10 @@ public:
 		    gathered_out  = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
             gathered_v    = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
             gathered_G1   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
-            gathered_G2   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
-            gathered_G3   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
-
-            //Datatype for halo exchange of the test vectors when assembling the coarse gauge links
-            MPI_Type_vector(Nx_coarse_rank, DOF, (Nt_coarse_rank+2)*DOF, MPI_DOUBLE_COMPLEX, &coarse_column_type);
-            MPI_Type_commit(&coarse_column_type);    
+            gathered_G2   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors*2);
+            gathered_G3   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors*2);
+            makeDatatypes();
+  
         }
         
 
@@ -161,6 +159,7 @@ public:
 
     const spinor U; //Gauge configuration
 
+    //------------For gathering and scattering data when rank coarsening is necessary-----------//
     std::vector<spinor> tvec;       //[Ntest][(Nt+2).(Nx+2).colors.spins]
     std::vector<spinor> tvec_copy;  
     //Buffers used in P and P^+ implementations. 
@@ -170,9 +169,24 @@ public:
     spinor gathered_G1;
     spinor gathered_G2;
     spinor gathered_G3;
+    MPI_Datatype local_domain_spinor;
+    MPI_Datatype local_domain_spinor_resized;
+    MPI_Datatype coarse_domain_spinor;
+    MPI_Datatype coarse_domain_spinor_resized;
+    MPI_Datatype local_domain_linkG1;
+    MPI_Datatype local_domain_linkG1_resized;
+    MPI_Datatype coarse_domain_linkG1;
+    MPI_Datatype coarse_domain_linkG1_resized;
+    MPI_Datatype local_domain_linkG2G3;
+    MPI_Datatype local_domain_linkG2G3_resized;
+    MPI_Datatype coarse_domain_linkG2G3;
+    MPI_Datatype coarse_domain_linkG2G3_resized;
+    //--------------------------------------------------------------------------------------------//
 
     MPI_Comm ranks_comm; //Communicator among the ranks on the current level 
-    MPI_Datatype coarse_column_type;
+    MPI_Datatype coarse_column_type; 
+
+
 
     const int level; 
     const int xblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksX[level]/LevelV::RanksX[level] : 1; //Number of blocks on x inside the current rank
@@ -191,9 +205,6 @@ public:
     int Nt_coarse_rank; //Nt sites on the coarse rank 
     int Nx_coarse_rank; 
     //----------------------------------------------------------//
-
-
-    int xblocks, tblocks, blocks;
 
     const int Nx;   //Nx on the fine grid in rank r (no halo)
     const int Nt;   //Nt on the fine grid in rank r (no halo)
@@ -220,6 +231,10 @@ public:
         }
     }
 
+    void makeType();
+    void makeDatatypes();
+    void gather_to_coarse_rank(const spinor& local_spinor, spinor& coarse_spinor);
+    void scatter_to_local_rank_from_coarse_rank(const spinor& coarse_spinor, spinor& local_spinor);
 
 /*
 	Prolongation operator times a spinor x = P v

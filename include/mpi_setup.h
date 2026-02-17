@@ -128,21 +128,6 @@ inline void coarseLevelCommunicators(){
         MPI_Comm_create(mpi::cart_comm, mpi::coarse_group[rcl], &mpi::coarse_comm[rcl]);
     }
 
-    mpi::Nx_coarse_rank = mpi::width_x*mpi::ranks_x_c;
-    mpi::Nt_coarse_rank = mpi::width_t*mpi::ranks_t_c;
-  
-    // Prepare counts and displacements (displacements in complex-element units)
-    for (int r = 0; r < mpi::size_c; r++) {
-        mpi::counts_coarse[r] = 1; // one instance of recv_domain_resized per contributing rank
-        int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
-        int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
-        // Global starting position inside the buffer including halo (halo at index 0)
-        int global_x_start = rx * mpi::width_x + 1; // +1 to skip halo
-        int global_t_start = rt * mpi::width_t + 1; // +1 to skip halo
-        // Displacement in complex-element units into buffer.val (including halo padding)
-        mpi::displs_coarse[r] = (global_x_start * (mpi::Nt_coarse_rank + 2) + global_t_start) * 2;
-    }
-
     //Now we prepare a communicator to send/receive data among the fine-grid ranks that will be working on the coarse levels
     //i.e. the root_ranks of the agglomerated communicators.
     int coarse_level_ranks[mpi::ranks_coarse_level];
@@ -191,6 +176,21 @@ inline void coarseLevelCommunicators(){
         mpi::rank2d,mpi::coarse_rank2d, mpi::top_c, mpi::bot_c, mpi::right_c, mpi::left_c);
     }
     */
+
+    mpi::Nx_coarse_rank = mpi::width_x*mpi::ranks_x_c;
+    mpi::Nt_coarse_rank = mpi::width_t*mpi::ranks_t_c;
+  
+    // Prepare counts and displacements (displacements in complex-element units)
+    for (int r = 0; r < mpi::size_c; r++) {
+        mpi::counts_coarse[r] = 1; // one instance of recv_domain_resized per contributing rank
+        int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
+        int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
+        // Global starting position inside the buffer including halo (halo at index 0)
+        int global_x_start = rx * mpi::width_x + 1; // +1 to skip halo
+        int global_t_start = rt * mpi::width_t + 1; // +1 to skip halo
+        // Displacement in complex-element units into buffer.val (including halo padding)
+        mpi::displs_coarse[r] = (global_x_start * (mpi::Nt_coarse_rank + 2) + global_t_start) * 2;
+    }
     
 }
 

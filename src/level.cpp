@@ -1,5 +1,62 @@
 #include "level.h"
 
+void Level::makeType(const int dofs, 
+	MPI_Datatype& local_domain, MPI_Datatype& local_domain_resized,
+	MPI_Datatype& coarse_domain, MPI_Datatype& coarse_domain_resized){
+	//Data type for the elements of a spinor inside a rank. 
+    //The datatype does not include the halo, but assumes the spinor to be sent has it
+    MPI_Type_vector(Nx,Nt*dofs,dofs*(Nt+2),MPI_DOUBLE_COMPLEX, &local_domain);
+    MPI_Type_commit(&local_domain);
+
+    //The displacement of local_domain_resized is in units of std::complex<double>
+    MPI_Type_create_resized(local_domain_spinor, 0, sizeof(std::complex<double>), &local_domain_resized);
+    MPI_Type_commit(&local_domain_resized);
+
+    // Gather inner domains from all ranks in the coarse communicator
+    // Buffer has size (Nx_coarse_rank+2)*(Nt_coarse_rank+2)*DOF
+    // Create a type that matches the global buffer layout (strided by full global row including halo)
+    MPI_Type_vector(Nx,                 // number of rows to place per rank
+        dofs * Nt,               		// elements per row (complex numbers)
+        dofs * (Nt_coarse_rank + 2),  	// stride between rows in global buffer (complex elements) including halo
+            MPI_DOUBLE_COMPLEX,
+            &coarse_domain);
+    MPI_Type_commit(&coarse_domain);
+
+    // Resize type so displacements are specified in units of one complex element
+    MPI_Type_create_resized(coarse_domain, 0, sizeof(std::complex<double>), &coarse_domain_resized);
+    MPI_Type_commit(&coarse_domain_resized);
+}
+
+void Level::makeDatatypes(){
+	//Data types for spinors
+	makeType(Nx,Nt,DOF,local_domain_spinor,local_domain_spinor_resized,coarse_domain_spinor,coarse_domain_spinor_resized);    
+	//Data types for coarse links
+	makeType(Nx,Nt,DOF*DOF,local_domain_linkG1,local_domain_linkG1_resized,coarse_domain_linkG1,coarse_domain_linkG1_resized);  
+	makeType(Nx,Nt,DOF*DOF*2,local_domain_linkG2G3,local_domain_linkG2G3_resized,coarse_domain_linkG2G3,coarse_domain_linkG2G3_resized);  
+}
+
+void Level::gather_to_coarse_rank(const spinor& local_spinor, spinor& coarse_spinor){
+	int commID = mpi::rank_dictionary[mpi::rank2d];  
+    static int input_ini_local = 2 * (mpi::width_t + 2 + 1); // start of [1,1] in local input (complex elements)
+    static int root_rank = 0;  //Root rank inside each communicator agglomerating ranks
+
+    // Use Gatherv: send 1 instance of the local strided type, receive into the resized global type
+    MPI_Gatherv(&local_spinor.val[input_ini_local],
+                1,
+                local_domain,
+                &coarse_spinor.val[0],
+                mpi::counts_coarse,
+                mpi::displs_coarse,
+                coarse_domain_resized,
+                root_rank,
+                mpi::coarse_comm[commID]);
+
+}
+void Level::scatter_to_local_rank_from_coarse_rank(const spinor& coarse_spinor, spinor& local_spinor){
+
+}
+
+
 //Prolongator times a vector on the coarse grid
 void Level::P_vc(const spinor& vc,spinor& out){
 	for(int i = 0; i < (Nx+2)*(Nt+2)*colors*2; i++)
@@ -335,9 +392,9 @@ void Level::makeCoarseLinks(Level& next_level){
 			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]); //DOFs should be a parameter
 		w = &gathered_tvec;
 
-		gather_to_coarse_rank(G1,gathered_G1,2*2*colors*colors);
-		gather_to_coarse_rank(G2,gathered_G2,2*2*colors*colors);
-		gather_to_coarse_rank(G3,gathered_G3,2*2*colors*colors);
+		//gather_to_coarse_rank(G1,gathered_G1,2*2*colors*colors);
+		//gather_to_coarse_rank(G2,gathered_G2,2*2*colors*colors);
+		//gather_to_coarse_rank(G3,gathered_G3,2*2*colors*colors);
 		g1 = &gathered_G1;
 		g2 = &gathered_G2;
 		g3 = &gathered_G3;

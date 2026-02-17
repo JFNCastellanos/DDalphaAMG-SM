@@ -45,6 +45,7 @@ namespace mpi{
     extern int top_left;
     extern int top_right;
     extern MPI_Comm cart_comm;
+    
 
     //Hardcoding the coarse levels for 4 ranks ...
     constexpr int ranks_coarse_level = 4;               //Number of working ranks on the coarse levels
