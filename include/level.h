@@ -122,6 +122,12 @@ public:
         G1 = spinor(Ntot_halo*2*2*colors*colors);
         G2 = spinor(Ntot_halo*2*2*colors*colors*2);
         G3 = spinor(Ntot_halo*2*2*colors*colors*2);
+        counts_spinor   = new int[mpi::size_c];  
+        displs_spinor   = new int[mpi::size_c];
+        counts_G1       = new int[mpi::size_c];  
+        displs_G1       = new int[mpi::size_c];
+        counts_G2G3     = new int[mpi::size_c];  
+        displs_G2G3     = new int[mpi::size_c];
 
 
         if (ranks_per_block>1){
@@ -155,7 +161,14 @@ public:
         
     };
 
-    ~Level() {}
+    ~Level() {
+        delete[] counts_spinor;  
+        delete[] displs_spinor;
+        delete[] counts_G1;  
+        delete[] displs_G1;
+        delete[] counts_G2G3;  
+        delete[] displs_G2G3;
+    }
 
     const spinor U; //Gauge configuration
 
@@ -173,14 +186,22 @@ public:
     MPI_Datatype local_domain_spinor_resized;
     MPI_Datatype coarse_domain_spinor;
     MPI_Datatype coarse_domain_spinor_resized;
+    int* counts_spinor;  
+    int* displs_spinor;
+  
     MPI_Datatype local_domain_linkG1;
     MPI_Datatype local_domain_linkG1_resized;
     MPI_Datatype coarse_domain_linkG1;
     MPI_Datatype coarse_domain_linkG1_resized;
+    int* counts_G1;  
+    int* displs_G1;
+
     MPI_Datatype local_domain_linkG2G3;
     MPI_Datatype local_domain_linkG2G3_resized;
     MPI_Datatype coarse_domain_linkG2G3;
     MPI_Datatype coarse_domain_linkG2G3_resized;
+    int* counts_G2G3;  
+    int* displs_G2G3;
     //--------------------------------------------------------------------------------------------//
 
     MPI_Comm ranks_comm; //Communicator among the ranks on the current level 
@@ -231,10 +252,11 @@ public:
         }
     }
 
-    void makeType();
+    void makeType(const int dofs, MPI_Datatype& local_domain, MPI_Datatype& local_domain_resized, 
+        MPI_Datatype& coarse_domain, MPI_Datatype& coarse_domain_resized);
     void makeDatatypes();
-    void gather_to_coarse_rank(const spinor& local_spinor, spinor& coarse_spinor);
-    void scatter_to_local_rank_from_coarse_rank(const spinor& coarse_spinor, spinor& local_spinor);
+    void gather_to_coarse_rank(const spinor& local_spinor, spinor& coarse_spinor, const int dofs);
+    void scatter_to_local_rank_from_coarse_rank(const spinor& coarse_spinor, spinor& local_spinor, const int dofs);
 
 /*
 	Prolongation operator times a spinor x = P v

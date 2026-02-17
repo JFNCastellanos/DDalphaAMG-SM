@@ -29,31 +29,62 @@ void Level::makeType(const int dofs,
 
 void Level::makeDatatypes(){
 	//Data types for spinors
-	makeType(Nx,Nt,DOF,local_domain_spinor,local_domain_spinor_resized,coarse_domain_spinor,coarse_domain_spinor_resized);    
+	makeType(DOF,local_domain_spinor,local_domain_spinor_resized,coarse_domain_spinor,coarse_domain_spinor_resized);    
 	//Data types for coarse links
-	makeType(Nx,Nt,DOF*DOF,local_domain_linkG1,local_domain_linkG1_resized,coarse_domain_linkG1,coarse_domain_linkG1_resized);  
-	makeType(Nx,Nt,DOF*DOF*2,local_domain_linkG2G3,local_domain_linkG2G3_resized,coarse_domain_linkG2G3,coarse_domain_linkG2G3_resized);  
+	makeType(DOF*DOF,local_domain_linkG1,local_domain_linkG1_resized,coarse_domain_linkG1,coarse_domain_linkG1_resized);  
+	makeType(DOF*DOF*2,local_domain_linkG2G3,local_domain_linkG2G3_resized,coarse_domain_linkG2G3,coarse_domain_linkG2G3_resized);  
+	// Prepare counts and displacements (displacements in complex-element units)
+    for (int r = 0; r < mpi::size_c; r++) {
+        counts_spinor[r] = 1; // one instance of recv_domain_resized per contributing rank
+		counts_G1[r] = 1;
+		counts_G2G3[r] = 1;
+        int rx = r / mpi::ranks_t_c; // coarse-group x coordinate
+        int rt = r % mpi::ranks_t_c; // coarse-group t coordinate
+        // Global starting position inside the buffer including halo (halo at index 0)
+        int global_x_start = rx * Nx + 1; // +1 to skip halo
+        int global_t_start = rt * Nt + 1; // +1 to skip halo
+        // Displacement in complex-element units into buffer.val (including halo padding)
+        displs_spinor[r] 	= (global_x_start * (Nt_coarse_rank + 2) + global_t_start) * DOF;
+		displs_G1[r] 		= (global_x_start * (Nt_coarse_rank + 2) + global_t_start) * DOF*DOF;
+		displs_G2G3[r] 		= (global_x_start * (Nt_coarse_rank + 2) + global_t_start) * DOF*DOF*2;
+    }
 }
 
-void Level::gather_to_coarse_rank(const spinor& local_spinor, spinor& coarse_spinor){
+void Level::gather_to_coarse_rank(const spinor& local_spinor, spinor& coarse_spinor, const int dofs){
 	int commID = mpi::rank_dictionary[mpi::rank2d];  
-    static int input_ini_local = 2 * (mpi::width_t + 2 + 1); // start of [1,1] in local input (complex elements)
+    int input_ini_local = dofs * (Nt + 2 + 1); // start of [1,1] in local input (complex elements)
     static int root_rank = 0;  //Root rank inside each communicator agglomerating ranks
 
-    // Use Gatherv: send 1 instance of the local strided type, receive into the resized global type
-    MPI_Gatherv(&local_spinor.val[input_ini_local],
-                1,
-                local_domain,
-                &coarse_spinor.val[0],
-                mpi::counts_coarse,
-                mpi::displs_coarse,
-                coarse_domain_resized,
-                root_rank,
-                mpi::coarse_comm[commID]);
+	if (dofs == DOF)
+    	MPI_Gatherv(&local_spinor.val[input_ini_local],1,local_domain_spinor,&coarse_spinor.val[0],
+			counts_spinor,displs_spinor,coarse_domain_spinor_resized,root_rank, mpi::coarse_comm[commID]);
+	else if (dofs == DOF*DOF)
+    	MPI_Gatherv(&local_spinor.val[input_ini_local],1,local_domain_linkG1,&coarse_spinor.val[0],
+			counts_G1,displs_G1,coarse_domain_linkG1_resized,root_rank, mpi::coarse_comm[commID]);
+	else if (dofs == DOF*DOF*2)
+    	MPI_Gatherv(&local_spinor.val[input_ini_local],1,local_domain_linkG2G3,&coarse_spinor.val[0],
+			counts_G2G3,displs_G2G3,coarse_domain_linkG2G3_resized,root_rank, mpi::coarse_comm[commID]);
+	else
+		std::cout << "Give a valid number of DOFs in function gather_to_coarse_rank" << std::endl;
+	
 
 }
-void Level::scatter_to_local_rank_from_coarse_rank(const spinor& coarse_spinor, spinor& local_spinor){
-
+void Level::scatter_to_local_rank_from_coarse_rank(const spinor& coarse_spinor, spinor& local_spinor,const int dofs){
+	int commID = mpi::rank_dictionary[mpi::rank2d];  
+    int input_ini_local = dofs * (Nt + 2 + 1); // start of [1,1] in local input (complex elements)
+    static int root_rank = 0;  //Root rank inside each communicator agglomerating ranks
+	
+	if (dofs == DOF)
+    	MPI_Scatterv(&coarse_spinor.val[0], counts_spinor, displs_spinor, coarse_domain_spinor_resized, &local_spinor.val[input_ini_local],1,
+        	local_domain_spinor_resized, root_rank, mpi::coarse_comm[commID]);
+	else if (dofs == DOF*DOF)
+		MPI_Scatterv(&coarse_spinor.val[0], counts_G1, displs_G1, coarse_domain_linkG1_resized, &local_spinor.val[input_ini_local],1,
+        	local_domain_linkG1_resized, root_rank, mpi::coarse_comm[commID]);
+	else if (dofs == DOF*DOF*2)
+		MPI_Scatterv(&coarse_spinor.val[0], counts_G2G3, displs_G2G3, coarse_domain_linkG2G3_resized, &local_spinor.val[input_ini_local],1,
+        	local_domain_linkG1_resized, root_rank, mpi::coarse_comm[commID]);
+	else
+		std::cout << "Give a valid number of DOFs in function scatter_to_local_rank_from_coarse_rank" << std::endl;
 }
 
 
@@ -73,7 +104,7 @@ void Level::P_vc(const spinor& vc,spinor& out){
 	spinor* v = &out;
 	if (ranks_per_block > 1){
 		for(int cc=0;cc<Ntest;cc++)
-			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc],DOF);
 		
 		tv = &gathered_tvec;
 		v  = &gathered_out;
@@ -105,7 +136,7 @@ void Level::P_vc(const spinor& vc,spinor& out){
 	}
 
 	if (ranks_per_block > 1)
-		scatter_to_local_rank_from_coarse_rank(gathered_out,out);
+		scatter_to_local_rank_from_coarse_rank(gathered_out,out,DOF);
 }
 	
 
@@ -125,8 +156,8 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 
 	if (ranks_per_block > 1){	
 		for(int cc=0;cc<Ntest;cc++)
-			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
-		gather_to_coarse_rank(v,gathered_v);
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc],DOF);
+		gather_to_coarse_rank(v,gathered_v,DOF);
 
 		vf = &gathered_v;
 		tv = &gathered_tvec;
@@ -174,7 +205,7 @@ void Level::orthonormalize(){
 
 	if (ranks_per_block>1){
 		for(int cc=0;cc<Ntest;cc++)
-			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc],DOF);
 		tv = &gathered_tvec;
 	}
 
@@ -239,7 +270,7 @@ void Level::orthonormalize(){
 		
 	if (ranks_per_block > 1){
 		for(int cc=0;cc<Ntest;cc++)
-			scatter_to_local_rank_from_coarse_rank(gathered_tvec[cc],tvec[cc]);
+			scatter_to_local_rank_from_coarse_rank(gathered_tvec[cc],tvec[cc],DOF);
 	}
 }
 
@@ -389,12 +420,12 @@ void Level::makeCoarseLinks(Level& next_level){
 	spinor* g3 = &G3;
 	if (ranks_per_block > 1){
 		for(int cc=0; cc<Ntest;cc++)
-			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]); //DOFs should be a parameter
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc],DOF); //DOFs should be a parameter
 		w = &gathered_tvec;
 
-		//gather_to_coarse_rank(G1,gathered_G1,2*2*colors*colors);
-		//gather_to_coarse_rank(G2,gathered_G2,2*2*colors*colors);
-		//gather_to_coarse_rank(G3,gathered_G3,2*2*colors*colors);
+		gather_to_coarse_rank(G1,gathered_G1,2*2*colors*colors);
+		gather_to_coarse_rank(G2,gathered_G2,2*2*colors*colors);
+		gather_to_coarse_rank(G3,gathered_G3,2*2*colors*colors);
 		g1 = &gathered_G1;
 		g2 = &gathered_G2;
 		g3 = &gathered_G3;
@@ -573,7 +604,7 @@ void Level::checkOrthogonality() {
 	if (ranks_per_block > 1){
 		//clean_gathered_tvec();
 		for(int cc=0;cc<Ntest;cc++)
-			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc]);
+			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc],DOF);
 		tv = &gathered_tvec;
 		int commID = mpi::rank_dictionary[mpi::rank2d];
 		MPI_Comm_rank(mpi::coarse_comm[commID], &coarse_rank);

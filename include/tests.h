@@ -1,3 +1,7 @@
+#ifndef TESTS_H
+#define TESTS_H
+
+
 #include "dirac_operator.h"
 #include "level.h"
 #include "sap.h"
@@ -5,7 +9,7 @@
 #include <random>
 
 
-void check_sol(const spinor& U,const spinor& rhs, const spinor& inverse, const double& m0){
+inline void check_sol(const spinor& U,const spinor& rhs, const spinor& inverse, const double& m0){
     spinor x(mpi::maxSizeH);
     D_phi(U,inverse,x,m0);
     int index;
@@ -29,7 +33,7 @@ void check_sol(const spinor& U,const spinor& rhs, const spinor& inverse, const d
 
     
 //Assemble P and Pdagg for level l.
-void AssembleP_Pdagg(const int& l, const spinor& U){
+inline void AssembleP_Pdagg(const int& l, const spinor& U){
     Level level(l,U);
     int indxtv, indx;
     int Nt, Nx, colors, Ntest;
@@ -152,7 +156,7 @@ void AssembleP_Pdagg(const int& l, const spinor& U){
 
 //P^+ P should be equal to the identity on the coarse level
 //This only works if the test vectors are locally orthonormalized
-void Check_PPdagg(const int& l, const spinor& U){
+inline void Check_PPdagg(const int& l, const spinor& U){
     Level level(l,U);
     int indxtv, indx;
     int Nt, Nx, colors, Ntest;
@@ -209,7 +213,7 @@ void Check_PPdagg(const int& l, const spinor& U){
 }
 
 //We check that the implementation of D_phi and D_operator have the exact same output on the fine level.
-void test_Doperator_fine_level(const spinor& U){
+inline void test_Doperator_fine_level(const spinor& U){
     spinor phi(mpi::maxSizeH);
     spinor out1(mpi::maxSizeH);
     spinor out2(mpi::maxSizeH);
@@ -255,7 +259,7 @@ void test_Doperator_fine_level(const spinor& U){
 }
 
 //Testing the rank agglomeration function.
-void rank_agglomeration_test(){
+inline void rank_agglomeration_test(){
 
     if (mpi::size != 16){
          printf("This test is meant to be run with 16 processes.\n");
@@ -294,7 +298,7 @@ void rank_agglomeration_test(){
 
 
 //Test inner_domain and recv_domain datatypes for gathering data.
-void gather_vector_test(){
+inline void gather_vector_test(){
     if (mpi::size != 16){
          printf("This test is meant to be run with 16 processes.\n");
         MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
@@ -350,7 +354,7 @@ void gather_vector_test(){
         
 }
 
-void scatter_vector_test(){
+inline void scatter_vector_test(){
     if (mpi::size != 16){
          printf("This test is meant to be run with 16 processes.\n");
         MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
@@ -406,7 +410,7 @@ void scatter_vector_test(){
 }
 
 
-void coarse_gauge_links_test(const spinor& U){
+inline void coarse_gauge_links_test(const spinor& U){
     if (mpi::size != 4){
          printf("This test is meant to be run with 4 processes.\n");
         MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
@@ -490,7 +494,7 @@ void coarse_gauge_links_test(const spinor& U){
 }
 
 
-void test_Dc(const spinor& U){
+inline void test_Dc(const spinor& U){
     std::vector<Level*> levels;
     if (mpi::size != 4){
         printf("This test is meant to be run with 4 processes.\n");
@@ -586,7 +590,7 @@ void test_Dc(const spinor& U){
 
 }
 
-void check_boundaries(const spinor& U){
+inline void check_boundaries(const spinor& U){
     int l0=0, l1=1;
     Level level0(l0,U);
     Level level1(l1,U);
@@ -634,7 +638,7 @@ void check_boundaries(const spinor& U){
 }
 
 //build P^transpose for the case when we do rank coarsening
-void test_P_vc_rank_coarsening(const spinor& U){
+inline void test_P_vc_rank_coarsening(const spinor& U){
     //Gauge conf does not really matter here ...
     if (mpi::size != 16){
         printf("This test is meant to be run with 16 processes.\n");
@@ -737,7 +741,7 @@ void test_P_vc_rank_coarsening(const spinor& U){
 
 }
 
-void test_Pdagg_rank_coarsening(const spinor& U){
+inline void test_Pdagg_rank_coarsening(const spinor& U){
     //Gauge conf does not really matter here ...
     if (mpi::size != 16){
         printf("This test is meant to be run with 16 processes.\n");
@@ -831,7 +835,7 @@ void test_Pdagg_rank_coarsening(const spinor& U){
 }
 
 //Verify that P^+ P vc = vc for the case when ranks are agglomerated
-void Check_PPdagg_coarsening(const  spinor& U){
+inline void Check_PPdagg_coarsening(const  spinor& U){
     //Gauge conf does not really matter here ...
     if (mpi::size != 16){
         printf("This test is meant to be run with 16 processes.\n");
@@ -908,7 +912,7 @@ void Check_PPdagg_coarsening(const  spinor& U){
     
 }
 
-void test_PPdagg_any_case(const spinor& U){
+inline void test_PPdagg_any_case(const spinor& U){
     int l = 0;
     if ((mpi::size == 4) && (LevelV::BlocksT[0] == 4 || LevelV::BlocksX[0] == 4)){
         if (mpi::rank2d == 0)
@@ -922,3 +926,9 @@ void test_PPdagg_any_case(const spinor& U){
         Check_PPdagg_coarsening(U);
     }
 }
+
+void test_gather_Datatypes_level_class(Level& lev,const int dof);
+
+void gather_tests();
+
+#endif 
