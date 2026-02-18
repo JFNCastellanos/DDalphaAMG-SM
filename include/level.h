@@ -140,17 +140,17 @@ public:
             t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;         
             
             //Buffers for the case when we do rank coarsening
-            gathered_tvec = std::vector<spinor>(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors));//Gather test vectors data from other ranks
-		    gathered_out  = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
-            gathered_v    = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors);
-            gathered_G1   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
-            gathered_G2   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors*2);
-            gathered_G3   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors*2);
+            gathered_tvec = std::vector<spinor>(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*DOF));//Gather test vectors data from other ranks
+		    gathered_out  = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*DOF);
+            gathered_v    = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*DOF);
+            gathered_G1   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*DOF*DOF);
+            gathered_G2   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*DOF*DOF);
+            gathered_G3   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*DOF*DOF);
+
+            //For the halo exchange between the coarsen ranks
             MPI_Type_vector(Nx_coarse_rank, DOF, (Nt_coarse_rank+2)*DOF, MPI_DOUBLE_COMPLEX, &coarse_column_type);
             MPI_Type_commit(&coarse_column_type); 
-
             makeDatatypes();
-  
         }
         
 
