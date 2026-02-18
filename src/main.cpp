@@ -53,9 +53,6 @@ int main(int argc, char **argv) {
     readParameters("../inputs");
     boundaries();
 
-
-    SAP_fine_level sap(mpi::width_x,  mpi::width_t, SAPV::sap_block_x, SAPV::sap_block_t, 2, 1);
-
     srand((mpi::rank2d+1));
     
     spinor U(mpi::maxSizeH);
@@ -83,9 +80,9 @@ int main(int argc, char **argv) {
     //gather_tests();
     //scatter_tests();
 
-    test_Dc_with_rank_coarsening();
+    //test_Dc_with_rank_coarsening();
 
-
+    test_SAP_in_level();
 
     //Free coordinate arrays
     free_lattice_arrays();

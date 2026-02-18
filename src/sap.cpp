@@ -80,7 +80,7 @@ void SAP_C::I_D_B_1_It(const spinor& v, spinor& x,const int& block){
 
 int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const bool& print){  
     double err;
-    double v_norm = sqrt(std::real(dot(v.val, v.val))); //norm of the right hand side
+    double v_norm = sqrt(std::real(dot(v, v))); //norm of the right hand side
 
     spinor DB_1_r(dofs*Ntot_original_w_halo);  //D_B^-1 r
     spinor r(dofs*Ntot_original_w_halo); //residual
@@ -142,8 +142,8 @@ int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const 
         }
         }
         }
-
-        err = sqrt(std::real(dot(r.val, r.val))); 
+        //This dot function is a virtual function from SAP_C
+        err = sqrt(std::real(dot(r, r))); 
         if (err < tol * v_norm) {
             if (print == true)
                 std::cout << "SAP converged in " << i << " iterations, error: " << err << std::endl;

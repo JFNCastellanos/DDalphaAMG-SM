@@ -441,8 +441,6 @@ void Level::makeCoarseLinks(Level& next_level){
 			exchange_halo_l((*w)[cc],Nx,Nt,mpi::column_type[level],ranks_comm);
 	}
 	
-
-
 	c_double wG2, wG3;
 	spinor &A_coeff = next_level.G1; 
 	spinor &B_coeff = next_level.G2;
@@ -524,78 +522,6 @@ void Level::makeCoarseLinks(Level& next_level){
 	} //alf
 	} //block
 }
-//Local Dc used for SAP
-/*
-void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block){
-
-	int RightPB_0, blockRPB_0; //Right periodic boundary in the 0-direction
-    int RightPB_1, blockRPB_1; //Right periodic boundary in the 1-direction
-    int LeftPB_0, blockLPB_0; //Left periodic boundary in the 0-direction
-    int LeftPB_1, blockLPB_1; //Left periodic boundary in the 1-direction
-
-	int RightPB, blockRPB;
-	int LeftPB, blockLPB;
-
-	spinor phi_RPB = spinor(2,c_vector(spins*colors,0));
-	spinor phi_LPB = spinor(2,c_vector(spins*colors,0));
-
-	//x is the index inside of the Schwarz block	
-	for(int x = 0; x<lattice_sites_per_block; x++){
-		int n = Blocks[block][x]; //n is the index of the lattice point in the original lattice
-
-		//If the neighbor sites are part of the same block we consider them for D 
-		//otherwise, we ignore them, i.e. we fix them to zero.
-		for(int mu: {0,1}){
-			getMandBlock(RightPB_l[parent->level][n][mu], RightPB, blockRPB);
-			getMandBlock(LeftPB_l[parent->level][n][mu], LeftPB, blockLPB);
-			if(blockRPB == block){
-				for(int dof=0; dof<parent->DOF; dof++)
-					phi_RPB[mu][dof] = in[RightPB][dof]; 
-			}
-        	else {
-				for(int dof=0; dof<parent->DOF; dof++)
-					phi_RPB[mu][dof] = 0;
-			}
-
-			if(blockLPB == block){
-				for(int dof=0; dof<parent->DOF; dof++)
-					phi_LPB[mu][dof] = in[LeftPB][dof]; 
-			}
-        	else {
-				for(int dof=0; dof<parent->DOF; dof++)
-					phi_LPB[mu][dof] = 0;
-			}
-
-		}
-
-		//Local application of the Dirac operator		
-		for(int alf = 0; alf<2; alf++){
-		for(int c = 0; c<colors; c++){
-				out[x][2*c+alf] = (mass::m0+2)*in[x][2*c+alf];
-				FLOPS += da + dcm;
-			for(int bet = 0; bet<2; bet++){
-			for(int b = 0; b<colors; b++){
-				out[x][2*c+alf] -= parent->G1[parent->getG1index(n,alf,bet,c,b)] * in[x][2*b+bet];
-				FLOPS += ca+cm;
-				for(int mu:{0,1}){
-					out[x][2*c+alf] -= 
-						( parent->G2[parent->getG2G3index(n,alf,bet,c,b,mu)] * SignR_l[parent->level][n][mu] * phi_RPB[mu][2*b+bet]
-						+ parent->G3[parent->getG2G3index(n,alf,bet,c,b,mu)] * SignL_l[parent->level][n][mu] * phi_LPB[mu][2*b+bet]
-						);
-					FLOPS += ca+ca+4*cm;
-				}
-
-			}
-			}
-		}
-		}
-		
-	}
-
-
-}
-*/
-
 
 void Level::checkOrthogonality() {
 	int bx, bt, xini, xfin, tini, tfin;
@@ -657,4 +583,50 @@ void Level::checkOrthogonality() {
 	}
 	if (mpi::rank2d == 0)
 		std::cout << "Test vectors on level " << level << " are orthonormalized " << std::endl;
+}
+
+//Local Dc used for SAP
+void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block){
+    int xp, xm, tp, tm;
+	int rpb_mu[2];
+	int lpb_mu[2];
+    int n, m;
+	int indx, indx1, indx2;
+	for(int mx = 1; mx <= x_elements; mx++){
+    for(int mt = 1; mt <= t_elements; mt++){
+		m = mx * (t_elements + 2) + mt; //Lattice coordinate for the block
+        n = Blocks[block][m]; //Already inside the domain, no halos
+
+		//Neighbor coordinates inside the block
+        xp = mx+1;
+        xm = mx-1;
+        tp = mt+1;
+        tm = mt-1;
+        rpb_mu[0]   = mx*(t_elements+2) + tp;   //Right
+        rpb_mu[1]   = xp*(t_elements+2) + mt;   //Down
+        lpb_mu[0]   = mx*(t_elements+2) + tm;   //Left
+        lpb_mu[1]   = xm*(t_elements+2) + mt;   //Up
+		for(int alf = 0; alf<2; alf++){
+		for(int c = 0; c<colors; c++){
+			indx = m*colors*2+c*2+alf;
+			out.val[indx] = (mass::m0+2)*in.val[indx];
+				for(int bet = 0; bet<2; bet++){
+				for(int b = 0; b<colors; b++){
+					indx1 = m*colors*2+b*2+bet;
+					out.val[indx] -= parent->G1.val[parent->getG1index(n,alf,bet,c,b)] * in.val[indx1];
+					for(int mu:{0,1}){
+						indx1 = rpb_mu[mu]*colors*2+b*2+2*bet;
+						indx2 = lpb_mu[mu]*colors*2+b*2+2*bet;
+						out.val[indx] -= 
+							( parent->G2.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx1]
+							+ parent->G3.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx2]
+							);
+					}
+
+				}
+				}
+			}
+			}
+	}
+	}
 }

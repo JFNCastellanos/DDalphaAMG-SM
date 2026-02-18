@@ -9,56 +9,61 @@
 */
 class Level {
 public:   
-    //SAP for smoothing D_operator. It is not used for the coarsest level but we declare it anyway.
+    //SAP for smoothing D_operator. 
     //-------------------------------Nested class-------------------------------//
-    /*
     class SAP_level_l : public SAP_C {
     public:
-        SAP_level_l(const int& dim1, const int& dim2, const double& tol,const int& Nt, const int& Nx,const int& block_x,const int& block_t,
-        const int& spins, const int& colors,Level* parent) :
-        SAP_C(dim1, dim2, tol, Nt, Nx, block_x, block_t,spins,colors), parent(parent) {        
+        SAP_level_l(Level* parent) :
+        parent(parent), 
+        SAP_C(parent->Nx, parent->Nt,               //Dimensions on the current rank
+            LevelV::SAP_Block_x[parent->level],     //SAP blocks on the x direction
+            LevelV::SAP_Block_t[parent->level],     //SAP blocks on the t direction
+            2, parent->colors) 
+        {        
+            /*
+            if (mpi::rank2d == 0){
+            std::cout << "SAP in level " << parent->level << " initialized" << std::endl;
+            std::cout << "SAP Block_x  " << LevelV::SAP_Block_x[parent->level] << "    SAP Block_t " 
+            << LevelV::SAP_Block_t[parent->level] << std::endl;
+            std::cout << "Nx " << parent->Nx << "   Nt  " << parent->Nt << std::endl;
+            }
+            */
         }
 
     private: 
         Level* parent; //Parent class
 
-        
         //Global D operation
-        
-        void funcGlobal(const spinor& in, spinor& out) override { 
+        void funcGlobal(spinor& in, spinor& out) override { 
             parent->D_operator(in, out); //Dirac operator at the current level
         }
 
-        
         //Local D operations
-        
         void D_local(const spinor& in, spinor& out, const int& block);
 
         void funcLocal(const spinor& in, spinor& out) override { 
             D_local( in, out,current_block);
         }
 
-        
-        //    Given a lattice point with index n, it returns the corresponding 
-        //    SAP block and the local index m within that block.
-        
-        inline void getMandBlock(const int& n, int &m, int &block) {
-            int x = n / Nx; //x coordinate of the lattice point 
-            int t = n % Nt; //t coordinate of the lattice point
-            //Reconstructing the block and m index from x and t
-            int block_x = x / x_elements; //Block index in the x direction
-            int block_t = t / t_elements; //Block index in the t direction
-            block = block_x * Block_t + block_t; //Block index in the SAP method
-
-            int mx = x % x_elements; //x coordinate in the block
-            int mt = t % t_elements; //t coordinate in the block
-            m = mx * t_elements + mt; //Index in the block
+        c_double dot(const spinor& X, const spinor& Y) override{
+             c_double local_z = 0;
+            //reduction over all lattice points and spin components
+            int index;
+            for(int x = 1; x<=parent->Nx; x++){
+                for(int t = 1; t<=parent->Nt; t++){
+                    for(int mu=0; mu<parent->DOF; mu++){
+                        index = (x*(parent->Nt+2) + t)*parent->DOF + mu;
+                        local_z += X.val[index] * std::conj(Y.val[index]);
+                    }
+                }
+            }
+            c_double z;
+            MPI_Allreduce(&local_z, &z, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, parent->ranks_comm);
+            return z;
         }
 
     };
-
-    SAP_level_l sap_l; 
-    */
+    SAP_level_l* sap_l; 
     //----------------------------------------------------------------------------//
     //GMRES for the current level. We use it for solving the coarsest system. We could use it as as smoother as well.
     /*
@@ -93,7 +98,6 @@ public:
         Nt(LevelV::NtSites[level]/LevelV::RanksT[level]),
         Ntot(Nx*Nt)
     {
-
         //Gauge links to define D_operator (matrix problem at this level). We define them with halos.
         int Ntot_halo = (Nx+2)*(Nt+2);
         Nx_coarse_rank = Nx;
@@ -153,7 +157,6 @@ public:
             makeDatatypes();
         }
         
-
         if (level == 0)
             makeDirac(); //Initialize Dirac Operator on the fine grid
         else
@@ -170,9 +173,8 @@ public:
             std::cout << "xblocks_per_coarse_rank       " << xblocks_per_coarse_rank << std::endl;
         }
         */
-        
-        
-        
+
+        sap_l = new SAP_level_l(this);
     };
 
     ~Level() {
@@ -182,6 +184,7 @@ public:
         delete[] displs_G1;
         delete[] counts_G2G3;  
         delete[] displs_G2G3;
+        delete sap_l;
     }
 
     const spinor U; //Gauge configuration

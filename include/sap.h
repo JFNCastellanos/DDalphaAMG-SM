@@ -169,6 +169,11 @@ private:
     */
     virtual void funcLocal(const spinor& in, spinor& out) = 0; 
 
+    /*
+    Dot product
+    */
+    virtual c_double dot(const spinor& X, const spinor& Y) = 0;
+
 };
 
 
@@ -197,6 +202,23 @@ private:
 
     void funcLocal(const spinor& in, spinor& out) override { 
         D_B(*U, in, out, m0,this->current_block);
+    }
+
+    c_double dot(const spinor& X, const spinor& Y) override {
+        c_double local_z = 0;
+        //reduction over all lattice points and spin components
+        int index;
+        for(int x = 1; x<=mpi::width_x; x++){
+            for(int t = 1; t<=mpi::width_t; t++){
+                for(int mu=0; mu<LV::dof; mu++){
+                    index = idx(x,t,mu);
+                    local_z += X.val[index] * std::conj(Y.val[index]);
+                }
+            }
+        }
+        c_double z;
+        MPI_Allreduce(&local_z, &z, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, mpi::cart_comm);
+        return z;
     }
 
 };

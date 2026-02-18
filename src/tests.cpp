@@ -260,3 +260,91 @@ void test_Dc_with_rank_coarsening(){
     for (auto ptr : levels) delete ptr;
 
 }
+
+
+void test_SAP_in_level(){   
+    std::vector<Level*> levels;
+    spinor U(mpi::maxSizeH);
+
+    //if (mpi::size != 16){
+    //    printf("This test is meant to be run with 4 processes.\n");
+    //    MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    //}
+    for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            U.val[2*n]        = RandomU1();
+            U.val[2*n+1]      = RandomU1();
+        }
+    }
+
+    for(int l = 0; l<LevelV::levels; l++){
+        Level* level = new Level(l,U);
+        levels.push_back(level);
+    }
+
+    //Random test vectors ... 
+    static std::mt19937 randomInt(mpi::rank2d); 
+	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
+    for(int l=0; l<LevelV::maxLevel; l++){
+        for(int cc = 0; cc < levels[l]->Ntest; cc++){
+            for(int x=1; x<=levels[l]->Nx; x++){
+            for(int t=1; t<=levels[l]->Nt; t++){
+	        for(int c=0; c<levels[l]->colors; c++){
+	        for(int s=0; s<2; s++){
+                int indx 	= x*(levels[l]->Nt+2)*levels[l]->colors*2 + t*levels[l]->colors*2 + c*2 	+ s;
+                levels[l]->tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);            
+            }
+            }
+            }
+            }  
+        }   
+        levels[l]->orthonormalize();                //Orthonormalize test vectors
+        levels[l]->checkOrthogonality();            //Checking orthogonality   
+        levels[l]->makeCoarseLinks(*levels[l+1]);   //Make coarse links
+    }
+
+
+    //Checking that sap_l gives the same result as sap_fine_level
+
+    int l = 0;
+    spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+    spinor x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+    for(int x=1; x<=levels[l]->Nx; x++){
+    for(int t=1; t<=levels[l]->Nt; t++){
+	for(int dof=0; dof<levels[l]->DOF; dof++){
+        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+        rhs.val[indx] = 1;
+    }
+    }
+    }
+    
+    double tol=1e-10;
+    bool print=true;
+    int nu = 100;
+    levels[l]->sap_l->SAP(rhs,x_level,nu, tol,  print);
+
+    MPI_Barrier(levels[l]->ranks_comm);
+
+    if (mpi::rank2d == 0)
+        std::cout << "Outer SAP solver" << std::endl;
+    spinor x_fine((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+
+    SAP_fine_level sap(mpi::width_x,  mpi::width_t, LevelV::SAP_Block_x[l], LevelV::SAP_Block_t[l], 2, 1);
+    sap.set_params(U,mass::m0);
+    sap.SAP(rhs,x_fine,nu, tol,print);
+
+    if (mpi::rank2d == 0){
+        for(int x=1; x<=levels[l]->Nx; x++){
+        for(int t=1; t<=levels[l]->Nt; t++){
+	    for(int dof=0; dof<levels[l]->DOF; dof++){
+            int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+            std::cout << "x_level " << x_level.val[indx] << std::endl;
+            std::cout << "x_fine  " << x_fine.val[indx]  << std::endl;
+        }
+        }
+        }
+    }
+
+
+}
