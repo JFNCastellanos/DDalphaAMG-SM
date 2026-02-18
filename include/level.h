@@ -104,15 +104,7 @@ public:
         blocks_per_coarse_rank  = blocks_per_rank;
         ranks_comm = LevelV::D_operator_communicator[level];
         
-        /*
-        if (mpi::rank2d == 0){
-            std::cout << "level " << level << " colors " << colors << "  test vectors " << Ntest  << std::endl;
-            std::cout << "ranks per block        " << ranks_per_block << std::endl;
-            std::cout << "blocks_per_coarse_rank " << blocks_per_coarse_rank << std::endl;
-            std::cout << "Nt coarse rank         " << Nt_coarse_rank << std::endl;
-            std::cout << "Nx coarse rank         " << Nx_coarse_rank << std::endl;
-        }
-        */
+            
 
         //Test vectors
         tvec        = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
@@ -159,7 +151,17 @@ public:
         else
             defineColumnType(level, Nx, Nt,DOF); //DataType needed for the halo exchange at level l for D_operator
         
-        
+        /*
+        if (mpi::rank2d == 0){
+            std::cout << "level " << level << " colors " << colors << "  test vectors " << Ntest  << std::endl;
+            std::cout << "ranks per block        " << ranks_per_block << std::endl;
+            std::cout << "blocks_per_coarse_rank " << blocks_per_coarse_rank << std::endl;
+            std::cout << "Nt coarse rank         " << Nt_coarse_rank << std::endl;
+            std::cout << "Nx coarse rank         " << Nx_coarse_rank << std::endl;
+            std::cout << "tblocks_per_coarse_rank       " << tblocks_per_coarse_rank << std::endl;
+            std::cout << "xblocks_per_coarse_rank       " << xblocks_per_coarse_rank << std::endl;
+        }
+        */
         
         
     };
@@ -209,8 +211,6 @@ public:
 
     MPI_Comm ranks_comm; //Communicator among the ranks on the current level 
     MPI_Datatype coarse_column_type; 
-
-
 
     const int level; 
     const int xblocks_per_rank  = (level != LevelV::maxLevel) ? LevelV::BlocksX[level]/LevelV::RanksX[level] : 1; //Number of blocks on x inside the current rank

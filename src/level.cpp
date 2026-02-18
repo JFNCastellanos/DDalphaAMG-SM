@@ -183,6 +183,7 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 			}
 		}
 	}
+
 }
 	
 
@@ -328,6 +329,7 @@ void Level::exchange_halo_l(const spinor& v,const int& Nx, const int& Nt, const 
 	int send_start, recv_start;   
 	int bot, top, left, right;
 	int result;
+	//I cannot use Comm_compare when comm = MPI_COMM_NULL
     MPI_Comm_compare(comm, mpi::cart_comm, &result);
 	//If we have the communicator of the fine grid
     if (result == MPI_IDENT) {

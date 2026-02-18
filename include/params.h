@@ -27,6 +27,8 @@ void readParameters(const std::string& inputFile){
     int level; 
     int maxLevel = LevelV::maxLevel;
     int sap_block_x, sap_block_t;
+    LevelV::RanksX[0] = mpi::ranks_x;
+    LevelV::RanksT[0] = mpi::ranks_t;
     //read parameters for level < max_level
     while (infile >> level >> block_x >> block_t >> ntest >> sap_block_x >> sap_block_t) {
         LevelV::BlocksX[level] = block_x;
@@ -51,11 +53,6 @@ void readParameters(const std::string& inputFile){
         LevelV::GMRES_restarts[level] = 20;
         LevelV::GMRES_tol[level] = 1e-10;
 
-        LevelV::RanksX[level] = (level == 0) ? mpi::ranks_x : 2;
-        LevelV::RanksT[level] = (level == 0) ? mpi::ranks_t : 2;
-
-        
-
     }
     //Store the number of sites and degrees of freedom for the coarsest lattice as well
     LevelV::Nsites[maxLevel] =   LevelV::BlocksX[maxLevel-1] * LevelV::BlocksT[maxLevel-1];
@@ -70,9 +67,6 @@ void readParameters(const std::string& inputFile){
     LevelV::GMRES_restarts[maxLevel] = 20;
     LevelV::GMRES_tol[maxLevel] = 0.1;
 
-    LevelV::RanksX[maxLevel] = 2;
-    LevelV::RanksT[maxLevel] = 2;
-
     LevelV::D_operator_communicator[0] = mpi::cart_comm;
     bool comm_is_cart_comm = true;
     for(level = 0; level<LevelV::levels-1; level++){
@@ -82,9 +76,13 @@ void readParameters(const std::string& inputFile){
         if (ranks_per_block > 1 || comm_is_cart_comm == false){
             comm_is_cart_comm = false;
             LevelV::D_operator_communicator[level+1] = mpi::comm_coarse_level;
+            LevelV::RanksX[level+1] = mpi::coarse_ranks_x;
+            LevelV::RanksT[level+1] = mpi::coarse_ranks_t;
         }
         else{
             LevelV::D_operator_communicator[level+1] = mpi::cart_comm;
+            LevelV::RanksX[level+1] = mpi::ranks_x;
+            LevelV::RanksT[level+1] = mpi::ranks_t;
         }
         
     }

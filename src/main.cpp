@@ -80,12 +80,14 @@ int main(int argc, char **argv) {
 
     //test_PPdagg_any_case(U);
 
-    //Free coordinate arrays
-
     //gather_tests();
-    scatter_tests();
+    //scatter_tests();
+
+    test_Dc_with_rank_coarsening();
 
 
+
+    //Free coordinate arrays
     free_lattice_arrays();
     MPI_Finalize();
 
