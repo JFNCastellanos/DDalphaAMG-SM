@@ -423,15 +423,14 @@ void Level::makeCoarseLinks(Level& next_level){
 			gather_to_coarse_rank(tvec[cc],gathered_tvec[cc],DOF); //DOFs should be a parameter
 		w = &gathered_tvec;
 
-		gather_to_coarse_rank(G1,gathered_G1,2*2*colors*colors);
-		gather_to_coarse_rank(G2,gathered_G2,2*2*colors*colors);
-		gather_to_coarse_rank(G3,gathered_G3,2*2*colors*colors);
+		gather_to_coarse_rank(G1,gathered_G1,DOF*DOF);
+		gather_to_coarse_rank(G2,gathered_G2,2*DOF*DOF);
+		gather_to_coarse_rank(G3,gathered_G3,2*DOF*DOF);
 		g1 = &gathered_G1;
 		g2 = &gathered_G2;
 		g3 = &gathered_G3;
 		for(int cc=0; cc<Ntest;cc++)
 			exchange_halo_l((*w)[cc],Nx_coarse_rank,Nt_coarse_rank,coarse_column_type,mpi::comm_coarse_level);	//We exchange halos for the test vectors.
-		
 	}
 	else{
 		for(int cc=0; cc<Ntest;cc++)

@@ -129,7 +129,7 @@ public:
         counts_G2G3     = new int[mpi::size_c];  
         displs_G2G3     = new int[mpi::size_c];
 
-
+        //In case we have to agglomerate the ranks
         if (ranks_per_block>1){
             Nt_coarse_rank   = Nt*mpi::ranks_t_c; //Nt sites on the coarse rank 
             Nx_coarse_rank   = Nx*mpi::ranks_x_c; 
@@ -146,6 +146,9 @@ public:
             gathered_G1   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors);
             gathered_G2   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors*2);
             gathered_G3   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*2*colors*colors*2);
+            MPI_Type_vector(Nx_coarse_rank, DOF, (Nt_coarse_rank+2)*DOF, MPI_DOUBLE_COMPLEX, &coarse_column_type);
+            MPI_Type_commit(&coarse_column_type); 
+
             makeDatatypes();
   
         }
