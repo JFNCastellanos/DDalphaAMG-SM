@@ -330,60 +330,62 @@ void Level::exchange_halo_l(const spinor& v,const int& Nx, const int& Nt, const 
 	int bot, top, left, right;
 	int result;
 	//I cannot use Comm_compare when comm = MPI_COMM_NULL
-    MPI_Comm_compare(comm, mpi::cart_comm, &result);
+   
 	//If we have the communicator of the fine grid
-    if (result == MPI_IDENT) {
-		bot 	= mpi::bot;
-		top 	= mpi::top;
-		left 	= mpi::left;
-		right 	= mpi::right;
-    }
-	else{
-		bot 	= mpi::bot_c;
-		top 	= mpi::top_c;
-		left 	= mpi::left_c;
-		right 	= mpi::right_c;
+	if (comm != MPI_COMM_NULL){
+		MPI_Comm_compare(comm, mpi::cart_comm, &result);
+    	if (result == MPI_IDENT) {
+			bot 	= mpi::bot;
+			top 	= mpi::top;
+			left 	= mpi::left;
+			right 	= mpi::right;
+    	}
+		else{
+			//In this case we call comm_coarse_level
+			bot 	= mpi::bot_c;
+			top 	= mpi::top_c;
+			left 	= mpi::left_c;
+			right 	= mpi::right_c;
+		}
+
+    	//Send top row to top rank. Receive top row from bot rank.
+		//(x*(Nt+2)+t)*DOF +dof
+	
+		send_start = ((Nt+2) + 1)*DOF;   	//x=1, t=1
+		recv_start = ((Nx+1)*(Nt+2)+1)*DOF;	//x=Nx+1, t=1
+    	MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, top, 0,
+        	&v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, bot, 0,
+        	comm, MPI_STATUS_IGNORE);
+
+    	//Send bot row to bot rank. Receive bot row from top rank.
+		send_start = (Nx*(Nt+2)+1)*DOF;	//x=Nx, t=1
+		recv_start = 1*DOF;				//x=0,	t=1
+    	MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, bot, 1,
+        	&v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, top, 1,
+        	comm, MPI_STATUS_IGNORE);
+
+    	//Send left column to left rank. Receive left column from right rank. 
+		send_start = ((Nt+2) + 1)*DOF;		//x=1,	t=1
+		recv_start = ((Nt+2)+(Nt+1))*DOF;	//x=1,	t=Nt+1
+    	MPI_Sendrecv(&v.val[send_start], 1, column, left, 2,
+    		&v.val[recv_start], 1, column, right, 2,
+    		comm, MPI_STATUS_IGNORE);
+
+    	//Send right column to right rank. Receive right column from left rank. 
+		send_start = ((Nt+2)+Nt)*DOF;		//x=1,	t=Nt
+		recv_start = (Nt+2)*DOF;			//x=1,	t=0
+    	MPI_Sendrecv(&v.val[send_start], 1, column, right, 3,
+    		&v.val[recv_start], 1, column, left, 3,
+    		comm, MPI_STATUS_IGNORE);
 	}
-
-
-    //Send top row to top rank. Receive top row from bot rank.
-	//(x*(Nt+2)+t)*DOF +dof
-	send_start = ((Nt+2) + 1)*DOF;   //x=1, t=1
-	recv_start = ((Nx+1)*(Nt+2)+1)*DOF;	//x=Nx+1, t=1
-    MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, top, 0,
-        &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, bot, 0,
-        comm, MPI_STATUS_IGNORE);
-
-    //Send bot row to bot rank. Receive bot row from top rank.
-	send_start = (Nx*(Nt+2)+1)*DOF;	//x=Nx, t=1
-	recv_start = 1*DOF;				//x=0,	t=1
-    MPI_Sendrecv(&v.val[send_start], row_size, MPI_DOUBLE_COMPLEX, bot, 1,
-        &v.val[recv_start], row_size, MPI_DOUBLE_COMPLEX, top, 1,
-        comm, MPI_STATUS_IGNORE);
-
-    //Send left column to left rank. Receive left column from right rank. 
-	send_start = ((Nt+2) + 1)*DOF;		//x=1,	t=1
-	recv_start = ((Nt+2)+(Nt+1))*DOF;	//x=1,	t=Nt+1
-    MPI_Sendrecv(&v.val[send_start], 1, column, left, 2,
-    	&v.val[recv_start], 1, column, right, 2,
-    	comm, MPI_STATUS_IGNORE);
-
-    //Send right column to right rank. Receive right column from left rank. 
-	send_start = ((Nt+2)+Nt)*DOF;		//x=1,	t=Nt
-	recv_start = (Nt+2)*DOF;			//x=1,	t=0
-    MPI_Sendrecv(&v.val[send_start], 1, column, right, 3,
-    	&v.val[recv_start], 1, column, left, 3,
-    	comm, MPI_STATUS_IGNORE);
 }
 
 
 //Dirac operator at the current level
 void Level::D_operator(const spinor& v, spinor& out){	
 	exchange_halo_l(v,Nx,Nt,mpi::column_type[level],ranks_comm);
-
 	int indx, indx1, indx2, n;
 	//n only runs in the interior of the lattice domain
-
 	for(int x = 1; x<=Nx; x++){
 	for(int t = 1; t<=Nt; t++){
 		n = x*(Nt+2)+t;
@@ -487,8 +489,8 @@ void Level::makeCoarseLinks(Level& next_level){
 				for(int mu : {0,1}){
 					rn = rpb_l(x,t,mu,Nx_coarse_rank,Nt_coarse_rank); //(x,t)+hat{mu}
 					ln = lpb_l(x,t,mu,Nx_coarse_rank,Nt_coarse_rank); //(x,t)-hat{mu}
-					rb = next_level.rpb_l(bx_shifted,bt_shifted,mu,xblocks_per_coarse_rank,tblocks_per_coarse_rank); //(bx,bt)+hat{mu}
-					lb = next_level.lpb_l(bx_shifted,bt_shifted,mu,xblocks_per_coarse_rank,tblocks_per_coarse_rank); //(bx,bt)-hat{mu}
+					rb = next_level.rpb_l(bx_shifted,bt_shifted,mu,next_level.Nx,next_level.Nt); //(bx,bt)+hat{mu}
+					lb = next_level.lpb_l(bx_shifted,bt_shifted,mu,next_level.Nx,next_level.Nt); //(bx,bt)-hat{mu}
 					getLatticeBlock(rn, block_r); //block_r: block where rn lives
 					getLatticeBlock(ln, block_l); //block_l: block where ln lives
 

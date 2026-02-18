@@ -103,6 +103,16 @@ public:
 	    tblocks_per_coarse_rank = tblocks_per_rank;
         blocks_per_coarse_rank  = blocks_per_rank;
         ranks_comm = LevelV::D_operator_communicator[level];
+
+        //rankID in ranks_comm  
+        ranks_on_t = mpi::ranks_t;
+        if (ranks_comm != MPI_COMM_NULL){
+            int result;
+            MPI_Comm_compare(ranks_comm, mpi::cart_comm, &result);
+    	    if (result != MPI_IDENT) 
+                ranks_on_t = mpi::coarse_ranks_t;
+            MPI_Comm_rank(ranks_comm, &rank_in_comm);
+        }
         
             
 
@@ -210,6 +220,8 @@ public:
     //--------------------------------------------------------------------------------------------//
 
     MPI_Comm ranks_comm; //Communicator among the ranks on the current level 
+    int rank_in_comm; //rankID on ranks_comm
+    int ranks_on_t;   //Number of ranks on t in ranks_comm, necessary for l-sign and r-sign
     MPI_Datatype coarse_column_type; 
 
     const int level; 
@@ -372,14 +384,14 @@ public:
 
     inline c_double rsign_l(const int& t, const int& mu){
         c_double sign=1;
-        if ((mpi::rank2d+1) % mpi::ranks_t == 0 && mu == 0)
+        if ((rank_in_comm+1) % ranks_on_t == 0 && mu == 0)
 			sign = (t == Nt) ? -1 : 1;     //sign for the "right" boundary in time
         return sign;
     }
 
     inline c_double lsign_l(const int& t, const int& mu){
         c_double sign=1;
-        if (mpi::rank2d % mpi::ranks_t == 0 && mu == 0)
+        if (rank_in_comm % ranks_on_t == 0 && mu == 0)
 			sign = (t == 1) ? -1 : 1;     //sign for the "left" boundary in time	 
         return sign;
     }

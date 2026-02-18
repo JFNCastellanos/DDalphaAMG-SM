@@ -49,7 +49,7 @@ namespace mpi{
     int bot_c = 0; 
     int right_c = 0; 
     int left_c = 0; 
-    int coarse_rank2d;
+    int coarse_rank2d; //For ranks which don't work on the coarse level
     int ranks_x_c = 1;                              
     int ranks_t_c = 1;                               
     int size_c = 1;  

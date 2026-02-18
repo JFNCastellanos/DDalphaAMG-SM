@@ -219,7 +219,7 @@ void test_Dc_with_rank_coarsening(){
         }
         }
         }
-        
+
         spinor out1((levels[l+1]->Nt_coarse_rank+2)*(levels[l+1]->Nx_coarse_rank+2)*levels[l+1]->DOF);
         spinor out2((levels[l]->tblocks_per_coarse_rank+2)*(levels[l]->xblocks_per_coarse_rank+2)*levels[l+1]->DOF);
         // Dc = P^+ D P
@@ -230,7 +230,8 @@ void test_Dc_with_rank_coarsening(){
         levels[l]->D_operator(v,temp);
         levels[l]->Pdagg_v(temp,out2);
         
-        if (mpi::rank2d == 0){
+        //Only check on the workinh ranks of the coarse level ...
+        if (levels[l+1]->ranks_comm != MPI_COMM_NULL){
             for(int x = 1; x<=levels[l+1]->Nx; x++){
                 for(int t = 1; t<=levels[l+1]->Nt; t++){
                     int n = x*(levels[l+1]->Nt+2)+t;
@@ -247,8 +248,10 @@ void test_Dc_with_rank_coarsening(){
                     } 
                 }
             }
-            std::cout << "Dc coincides with P^+ D P at level " << l+1 << std::endl;
+            std::cout << "Dc coincides with P^+ D P at level " << l+1  << " on rank " << mpi::rank2d << std::endl;
         }
+            
+        
         
     }
     
