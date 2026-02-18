@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include "sap.h"
-#include "gather_scatter.h"
 
 /*
     One level of the AMG method
@@ -114,16 +113,15 @@ public:
             MPI_Comm_rank(ranks_comm, &rank_in_comm);
         }
         
-            
-
         //Test vectors
         tvec        = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
         tvec_copy   = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
         
-       	    
+        //Coarse gauge links
         G1 = spinor(Ntot_halo*2*2*colors*colors);
         G2 = spinor(Ntot_halo*2*2*colors*colors*2);
         G3 = spinor(Ntot_halo*2*2*colors*colors*2);
+        //Arrays needed for gather/scatter data for rank coarsening
         counts_spinor   = new int[mpi::size_c];  
         displs_spinor   = new int[mpi::size_c];
         counts_G1       = new int[mpi::size_c];  
@@ -141,7 +139,7 @@ public:
             x_elements = Nx_coarse_rank/xblocks_per_coarse_rank;
             t_elements = Nt_coarse_rank/tblocks_per_coarse_rank;         
             
-            //Buffers for the case when we do rank coarsening
+            //Buffers for rank coarsening
             gathered_tvec = std::vector<spinor>(Ntest,spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*DOF));//Gather test vectors data from other ranks
 		    gathered_out  = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*DOF);
             gathered_v    = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*DOF);
@@ -149,7 +147,7 @@ public:
             gathered_G2   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*DOF*DOF);
             gathered_G3   = spinor((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*DOF*DOF);
 
-            //For the halo exchange between the coarsen ranks
+            //Halo exchange for rank coarsening
             MPI_Type_vector(Nx_coarse_rank, DOF, (Nt_coarse_rank+2)*DOF, MPI_DOUBLE_COMPLEX, &coarse_column_type);
             MPI_Type_commit(&coarse_column_type); 
             makeDatatypes();
@@ -172,6 +170,7 @@ public:
             std::cout << "xblocks_per_coarse_rank       " << xblocks_per_coarse_rank << std::endl;
         }
         */
+        
         
         
     };
@@ -259,13 +258,6 @@ public:
     spinor G1; 
     spinor G2; 
     spinor G3; 
-
-    inline void clean_gathered_tvec(){
-        for(int cc=0;cc<Ntest;cc++){
-            for(int i = 0; i<((Nt_coarse_rank+2)*(Nx_coarse_rank+2)*2*colors); i++)
-                gathered_tvec[cc].val[i] = 0.0; //Clean the buffer
-        }
-    }
 
     void makeType(const int dofs, MPI_Datatype& local_domain, MPI_Datatype& local_domain_resized, 
         MPI_Datatype& coarse_domain, MPI_Datatype& coarse_domain_resized);

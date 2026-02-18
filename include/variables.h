@@ -63,10 +63,6 @@ namespace mpi{
     extern int ranks_x_c;                               //Number of x agglomerated ranks
     extern int ranks_t_c;                               //Number of t agglomerated ranks
     extern int size_c;                                  //ranks_x_c * ranks_t_c
-    extern int Nx_coarse_rank;                          //Nx sites on the coarse ranks
-    extern int Nt_coarse_rank;                          //Nt sites on the coarse ranks
-    extern int* counts_coarse;                          //Elements to be sent or received
-    extern int* displs_coarse;                          //Displacements array for gathering/scattering
 
     extern int* rank_dictionary;  //Coarse communicator corresponding to rank2d
 

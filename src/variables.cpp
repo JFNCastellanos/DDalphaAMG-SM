@@ -52,11 +52,7 @@ namespace mpi{
     int coarse_rank2d; //For ranks which don't work on the coarse level
     int ranks_x_c = 1;                              
     int ranks_t_c = 1;                               
-    int size_c = 1;  
-    int Nx_coarse_rank = 1;                        
-    int Nt_coarse_rank = 1;                                                  
-    int* counts_coarse = nullptr;
-    int* displs_coarse = nullptr;
+    int size_c = 1;                                             
     
     int* rank_dictionary = nullptr;
     MPI_Datatype* column_type = nullptr;
@@ -207,8 +203,5 @@ void free_lattice_arrays() {
     delete[] mpi::coarse_comm;
     delete[] mpi::rank_dictionary;
     
-    //NOTE: these two are initialized in coarseLevelCommunicators()
-    delete[] mpi::counts_coarse;
-    delete[] mpi::displs_coarse;
     delete[] mpi::column_type;
 }
