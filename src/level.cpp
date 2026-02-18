@@ -9,7 +9,7 @@ void Level::makeType(const int dofs,
     MPI_Type_commit(&local_domain);
 
     //The displacement of local_domain_resized is in units of std::complex<double>
-    MPI_Type_create_resized(local_domain_spinor, 0, sizeof(std::complex<double>), &local_domain_resized);
+    MPI_Type_create_resized(local_domain, 0, sizeof(std::complex<double>), &local_domain_resized);
     MPI_Type_commit(&local_domain_resized);
 
     // Gather inner domains from all ranks in the coarse communicator
