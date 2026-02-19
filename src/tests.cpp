@@ -262,7 +262,7 @@ void test_Dc_with_rank_coarsening(){
 }
 
 
-void test_SAP_in_level(){   
+void test_SAP_in_level_0(){   
     std::vector<Level*> levels;
     spinor U(mpi::maxSizeH);
 
@@ -270,6 +270,97 @@ void test_SAP_in_level(){
     //    printf("This test is meant to be run with 4 processes.\n");
     //    MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
     //}
+    for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            U.val[2*n]        = RandomU1();
+            U.val[2*n+1]      = RandomU1();
+        }
+    }
+
+    for(int l = 0; l<2; l++){
+        Level* level = new Level(l,U);
+        levels.push_back(level);
+    }
+
+    //Random test vectors ... 
+    static std::mt19937 randomInt(mpi::rank2d); 
+	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
+    for(int l=0; l<1; l++){
+        for(int cc = 0; cc < levels[l]->Ntest; cc++){
+            for(int x=1; x<=levels[l]->Nx; x++){
+            for(int t=1; t<=levels[l]->Nt; t++){
+	        for(int c=0; c<levels[l]->colors; c++){
+	        for(int s=0; s<2; s++){
+                int indx 	= x*(levels[l]->Nt+2)*levels[l]->colors*2 + t*levels[l]->colors*2 + c*2 	+ s;
+                levels[l]->tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);            
+            }
+            }
+            }
+            }  
+        }   
+        levels[l]->orthonormalize();                //Orthonormalize test vectors
+        levels[l]->checkOrthogonality();            //Checking orthogonality   
+        levels[l]->makeCoarseLinks(*levels[l+1]);   //Make coarse links
+    }
+
+
+    //Checking that sap_l gives the same result as sap_fine_level
+    int l = 0;
+    spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+    spinor x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+
+    for(int x=1; x<=levels[l]->Nx; x++){
+    for(int t=1; t<=levels[l]->Nt; t++){
+	for(int dof=0; dof<levels[l]->DOF; dof++){
+        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+        rhs.val[indx] = RandomU1();
+    }
+    }
+    }
+    
+    spinor x_fine((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+    SAP_fine_level sap(mpi::width_x,  mpi::width_t, LevelV::SAP_Block_x[l], LevelV::SAP_Block_t[l], 2, 1);
+    sap.set_params(U,mass::m0);
+
+    double tol=1e-10;
+    bool print=true;
+    int nu = 100;
+   
+    if (mpi::rank2d == 0)
+        std::cout << "SAP solver inside class Level" << std::endl;
+    levels[l]->sap_l->SAP(rhs,x_level,nu,tol,print);
+
+    if (mpi::rank2d == 0)
+        std::cout << "Outer SAP solver" << std::endl;
+   
+    sap.SAP(rhs,x_fine,nu,tol,print);
+    
+    for(int x=1; x<=levels[l]->Nx; x++){
+    for(int t=1; t<=levels[l]->Nt; t++){
+	for(int dof=0; dof<levels[l]->DOF; dof++){
+        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+         if (std::abs(x_level.val[indx]-x_fine.val[indx]) > 1e-8){
+            std::cout << "Different solutions on rank " << mpi::rank2d << " at level " << l << std::endl;
+            std::cout << "x_level " << x_level.val[indx] << std::endl;
+            std::cout << "x_fine  " << x_fine.val[indx]  << std::endl;
+            return ;
+         }
+    }
+    }
+    }
+ 
+    std::cout << "Both implementations give the same solution on rank " << mpi::rank2d << " level " << l << std::endl;
+
+}
+
+void test_SAP_in_every_level(){   
+    std::vector<Level*> levels;
+    spinor U(mpi::maxSizeH);
+
+    if (mass::m0<0 && mpi::rank2d == 0)
+        printf("This test might fail if the original matrix is too ill-conditioned.\nTry with a larger mass\n");
+    
     for(int x = 1; x<=mpi::width_x; x++){
         for(int t = 1; t<=mpi::width_t; t++){
             int n = x*(mpi::width_t+2)+t;
@@ -306,113 +397,46 @@ void test_SAP_in_level(){
 
 
     //Checking that sap_l gives the same result as sap_fine_level
-    int l = 0;
-    spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
-    spinor x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+    for(int l = 0; l<LevelV::levels; l++){
+    //for(int l = 0; l<1; l++){
+    if (levels[l]->ranks_comm != MPI_COMM_NULL){
+        spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+        spinor x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+        spinor D_x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
 
-    spinor Dphi_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
-    spinor Dphi((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
-    for(int x=1; x<=levels[l]->Nx; x++){
-    for(int t=1; t<=levels[l]->Nt; t++){
-	for(int dof=0; dof<levels[l]->DOF; dof++){
-        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
-        rhs.val[indx] = 1;
-    }
-    }
-    }
+        for(int x=1; x<=levels[l]->Nx; x++){
+        for(int t=1; t<=levels[l]->Nt; t++){
+	    for(int dof=0; dof<levels[l]->DOF; dof++){
+            int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+            rhs.val[indx] = RandomU1();
+        }
+        }
+        }
     
-    spinor x_fine((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
-    SAP_fine_level sap(mpi::width_x,  mpi::width_t, LevelV::SAP_Block_x[l], LevelV::SAP_Block_t[l], 2, 1);
-    sap.set_params(U,mass::m0);
-
-
-    /*
-    int block = 0;
-    spinor in(sap.Nvars_w_halo);
-    for(int x=1; x<=sap.x_elements; x++){
-    for(int t=1; t<=sap.t_elements; t++){
-	for(int dof=0; dof<sap.dofs; dof++){
-        int indx= (x*(sap.t_elements+2)+t)*sap.dofs + dof;
-        in.val[indx] = 1;
-    }
-    }
-    }
-
-    spinor out(sap.Nvars_w_halo);
-    spinor out_level(sap.Nvars_w_halo);
-
-    sap.D_B(U,in,out,mass::m0,block);
-    levels[l]->sap_l->D_local(in,out_level,block);
-
-    for(int x=1; x<=sap.x_elements; x++){
-    for(int t=1; t<=sap.t_elements; t++){
-	for(int dof=0; dof<sap.dofs; dof++){
-        int indx= (x*(sap.t_elements+2)+t)*sap.dofs + dof;
-         if (std::abs(out_level.val[indx]-out.val[indx]) > 1e-8){
-            std::cout << "Different solutions on rank " << mpi::rank2d << " at level " << l << std::endl;
-            std::cout << "out_level " << out_level.val[indx] << std::endl;
-            std::cout << "out       " << out.val[indx]  << std::endl;
-            std::cout << "x " << x << " t " << t << " dof " << std::endl;
-           // return ;
-         }
-    }
-    }
-    }
-    */
-
-    double tol=1e-10;
-    bool print=true;
-    int nu = 100;
-/*
-    D_phi(U, rhs,  Dphi,mass::m0);
-
-    levels[l]->D_operator(rhs, Dphi_level);
-
-    
-    for(int x=1; x<=levels[l]->Nx; x++){
-    for(int t=1; t<=levels[l]->Nt; t++){
-	for(int dof=0; dof<levels[l]->DOF; dof++){
-        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
-         if (std::abs(Dphi_level.val[indx]-Dphi.val[indx]) > 1e-8){
-            std::cout << "Different solutions on rank " << mpi::rank2d << " at level " << l << std::endl;
-            std::cout << "Dphi_level " << Dphi_level.val[indx] << std::endl;
-            std::cout << "Dphi       " << Dphi.val[indx]  << std::endl;
-            return ;
-         }
-    }
-    }
-    }
-*/
-
-
    
-    if (mpi::rank2d == 0)
-        std::cout << "SAP solver inside class Level" << std::endl;
-    levels[l]->sap_l->SAP(rhs,x_level,nu,tol,print);
-
-    if (mpi::rank2d == 0)
-        std::cout << "Outer SAP solver" << std::endl;
+        double tol=1e-10;
+        bool print=true;
+        int nu = 100;
    
-    sap.SAP(rhs,x_fine,nu,tol,print);
-    
+        levels[l]->sap_l->SAP(rhs,x_level,nu,tol,print); //D^-1 rhs
+        levels[l]->D_operator(x_level,D_x_level);//D D^-1 rhs
 
-    
-
-    
-    for(int x=1; x<=levels[l]->Nx; x++){
-    for(int t=1; t<=levels[l]->Nt; t++){
-	for(int dof=0; dof<levels[l]->DOF; dof++){
-        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
-         if (std::abs(x_level.val[indx]-x_fine.val[indx]) > 1e-8){
-            std::cout << "Different solutions on rank " << mpi::rank2d << " at level " << l << std::endl;
-            std::cout << "x_level " << x_level.val[indx] << std::endl;
-            std::cout << "x_fine  " << x_fine.val[indx]  << std::endl;
-            return ;
-         }
-    }
-    }
-    }
+        for(int x=1; x<=levels[l]->Nx; x++){
+        for(int t=1; t<=levels[l]->Nt; t++){
+	    for(int dof=0; dof<levels[l]->DOF; dof++){
+            int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+            if (std::abs(D_x_level.val[indx]-rhs.val[indx]) > 1e-8){
+                std::cout << "rhs /= D_operator (D^-1 rhs) on rank " << mpi::rank2d << " at level " << l << std::endl;
+                std::cout << "D_x_level " << D_x_level.val[indx] << std::endl;
+                std::cout << "rhs       " << rhs.val[indx]  << std::endl;
+                return ;
+            }
+        }
+        }
+        }
  
-    std::cout << "Both implementations give the same solution on rank " << mpi::rank2d << std::endl;
-
+        if (mpi::rank2d == 0)
+            std::cout << "D_operator (SAP_l rhs) = rhs on rank " << mpi::rank2d << " level " << l << " i.e. solution is correct" << std::endl;
+    }
+    }
 }

@@ -145,13 +145,13 @@ int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const 
         //This dot function is a virtual function from SAP_C
         err = sqrt(std::real(dot(r, r))); 
         if (err < tol * v_norm) {
-            if (print == true)
+            if (print == true && mpi::rank2d == 0)
                 std::cout << "SAP converged in " << i << " iterations, error: " << err << std::endl;
             return i;
         }
     }
 
-    if (print == true)
+    if (print == true && mpi::rank2d == 0)
         std::cout << "SAP didn't converge in " << nu << " iterations, error: " << err << std::endl;
 
     return nu; 

@@ -623,6 +623,8 @@ void scatter_tests();
 
 void test_Dc_with_rank_coarsening();
 
-void test_SAP_in_level();
+void test_SAP_in_level_0();
+
+void test_SAP_in_every_level();
 
 #endif 

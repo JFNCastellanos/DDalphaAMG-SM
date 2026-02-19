@@ -104,11 +104,11 @@ public:
         coloring_blocks         =   (NBlocks != 1) ? NBlocks/2: 1;          //Number of red or black blocks
 
 
-        if (mpi::rank2d == 0){
+        /*if (mpi::rank2d == 0){
             std::cout << "SAP_C initialized with " << NBlocks << " blocks, each with " << Ntot_no_halo << " lattice points." << std::endl;
             std::cout << "x_elements: " << x_elements << ", t_elements: " << t_elements << std::endl;
             std::cout << "variables_per_block: " << Nvars_no_halo << ", coloring_blocks: " << coloring_blocks << std::endl;
-        }
+        }*/
 
         //Lattice coordinate of elements in each block
         Blocks      = std::vector<std::vector<int>>(block_x*block_t, std::vector<int>((x_elements+2)*(t_elements+2), 0));
@@ -191,7 +191,7 @@ public:
         m0 = bare_mass;
     }
 
-//private: 
+private: 
     const spinor* U; 
     double m0; 
 

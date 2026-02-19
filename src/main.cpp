@@ -81,8 +81,8 @@ int main(int argc, char **argv) {
     //scatter_tests();
 
     //test_Dc_with_rank_coarsening();
-
-    test_SAP_in_level();
+    //test_SAP_in_level_0();
+    test_SAP_in_every_level();
 
     //Free coordinate arrays
     free_lattice_arrays();

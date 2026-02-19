@@ -29,8 +29,7 @@ public:
             }
             */
         }
-
-    //private: 
+    private: 
         Level* parent; //Parent class
 
         //Global D operation
