@@ -306,10 +306,12 @@ void test_SAP_in_level(){
 
 
     //Checking that sap_l gives the same result as sap_fine_level
-
     int l = 0;
     spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
     spinor x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+
+    spinor Dphi_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+    spinor Dphi((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
     for(int x=1; x<=levels[l]->Nx; x++){
     for(int t=1; t<=levels[l]->Nt; t++){
 	for(int dof=0; dof<levels[l]->DOF; dof++){
@@ -319,32 +321,98 @@ void test_SAP_in_level(){
     }
     }
     
+    spinor x_fine((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+    SAP_fine_level sap(mpi::width_x,  mpi::width_t, LevelV::SAP_Block_x[l], LevelV::SAP_Block_t[l], 2, 1);
+    sap.set_params(U,mass::m0);
+
+
+    /*
+    int block = 0;
+    spinor in(sap.Nvars_w_halo);
+    for(int x=1; x<=sap.x_elements; x++){
+    for(int t=1; t<=sap.t_elements; t++){
+	for(int dof=0; dof<sap.dofs; dof++){
+        int indx= (x*(sap.t_elements+2)+t)*sap.dofs + dof;
+        in.val[indx] = 1;
+    }
+    }
+    }
+
+    spinor out(sap.Nvars_w_halo);
+    spinor out_level(sap.Nvars_w_halo);
+
+    sap.D_B(U,in,out,mass::m0,block);
+    levels[l]->sap_l->D_local(in,out_level,block);
+
+    for(int x=1; x<=sap.x_elements; x++){
+    for(int t=1; t<=sap.t_elements; t++){
+	for(int dof=0; dof<sap.dofs; dof++){
+        int indx= (x*(sap.t_elements+2)+t)*sap.dofs + dof;
+         if (std::abs(out_level.val[indx]-out.val[indx]) > 1e-8){
+            std::cout << "Different solutions on rank " << mpi::rank2d << " at level " << l << std::endl;
+            std::cout << "out_level " << out_level.val[indx] << std::endl;
+            std::cout << "out       " << out.val[indx]  << std::endl;
+            std::cout << "x " << x << " t " << t << " dof " << std::endl;
+           // return ;
+         }
+    }
+    }
+    }
+    */
+
     double tol=1e-10;
     bool print=true;
     int nu = 100;
-    levels[l]->sap_l->SAP(rhs,x_level,nu, tol,  print);
+/*
+    D_phi(U, rhs,  Dphi,mass::m0);
 
-    MPI_Barrier(levels[l]->ranks_comm);
+    levels[l]->D_operator(rhs, Dphi_level);
+
+    
+    for(int x=1; x<=levels[l]->Nx; x++){
+    for(int t=1; t<=levels[l]->Nt; t++){
+	for(int dof=0; dof<levels[l]->DOF; dof++){
+        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+         if (std::abs(Dphi_level.val[indx]-Dphi.val[indx]) > 1e-8){
+            std::cout << "Different solutions on rank " << mpi::rank2d << " at level " << l << std::endl;
+            std::cout << "Dphi_level " << Dphi_level.val[indx] << std::endl;
+            std::cout << "Dphi       " << Dphi.val[indx]  << std::endl;
+            return ;
+         }
+    }
+    }
+    }
+*/
+
+
+   
+    if (mpi::rank2d == 0)
+        std::cout << "SAP solver inside class Level" << std::endl;
+    levels[l]->sap_l->SAP(rhs,x_level,nu,tol,print);
 
     if (mpi::rank2d == 0)
         std::cout << "Outer SAP solver" << std::endl;
-    spinor x_fine((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+   
+    sap.SAP(rhs,x_fine,nu,tol,print);
+    
 
-    SAP_fine_level sap(mpi::width_x,  mpi::width_t, LevelV::SAP_Block_x[l], LevelV::SAP_Block_t[l], 2, 1);
-    sap.set_params(U,mass::m0);
-    sap.SAP(rhs,x_fine,nu, tol,print);
+    
 
-    if (mpi::rank2d == 0){
-        for(int x=1; x<=levels[l]->Nx; x++){
-        for(int t=1; t<=levels[l]->Nt; t++){
-	    for(int dof=0; dof<levels[l]->DOF; dof++){
-            int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+    
+    for(int x=1; x<=levels[l]->Nx; x++){
+    for(int t=1; t<=levels[l]->Nt; t++){
+	for(int dof=0; dof<levels[l]->DOF; dof++){
+        int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+         if (std::abs(x_level.val[indx]-x_fine.val[indx]) > 1e-8){
+            std::cout << "Different solutions on rank " << mpi::rank2d << " at level " << l << std::endl;
             std::cout << "x_level " << x_level.val[indx] << std::endl;
             std::cout << "x_fine  " << x_fine.val[indx]  << std::endl;
-        }
-        }
-        }
+            return ;
+         }
     }
-
+    }
+    }
+ 
+    std::cout << "Both implementations give the same solution on rank " << mpi::rank2d << std::endl;
 
 }

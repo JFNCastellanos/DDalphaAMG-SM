@@ -615,8 +615,8 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 					indx1 = m*colors*2+b*2+bet;
 					out.val[indx] -= parent->G1.val[parent->getG1index(n,alf,bet,c,b)] * in.val[indx1];
 					for(int mu:{0,1}){
-						indx1 = rpb_mu[mu]*colors*2+b*2+2*bet;
-						indx2 = lpb_mu[mu]*colors*2+b*2+2*bet;
+						indx1 = rpb_mu[mu]*colors*2+b*2+bet;
+						indx2 = lpb_mu[mu]*colors*2+b*2+bet;
 						out.val[indx] -= 
 							( parent->G2.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx1]
 							+ parent->G3.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx2]

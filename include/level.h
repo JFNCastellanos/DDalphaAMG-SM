@@ -30,7 +30,7 @@ public:
             */
         }
 
-    private: 
+    //private: 
         Level* parent; //Parent class
 
         //Global D operation
@@ -42,7 +42,7 @@ public:
         void D_local(const spinor& in, spinor& out, const int& block);
 
         void funcLocal(const spinor& in, spinor& out) override { 
-            D_local( in, out,current_block);
+            D_local( in, out,this->current_block);
         }
 
         c_double dot(const spinor& X, const spinor& Y) override{
