@@ -3,8 +3,7 @@
 
 
 #include "dirac_operator.h"
-#include "level.h"
-#include "sap.h"
+#include "amg.h"
 #include <random>
 
 
@@ -628,6 +627,8 @@ void test_SAP_in_level_0();
 void test_SAP_in_every_level();
 
 void test_gmres_coarse_level();
+
+void test_AMG();
 
 
 #endif 

@@ -84,7 +84,9 @@ int main(int argc, char **argv) {
     //test_SAP_in_level_0();
     //test_SAP_in_every_level();
 
-    test_gmres_coarse_level();
+    //test_gmres_coarse_level();
+
+    test_AMG();
 
     //Free coordinate arrays
 

@@ -14,6 +14,7 @@ set(SOURCES
     src/sap.cpp                 #SAP class
     src/level.cpp               #Multigrid level class
     src/tests.cpp
+    src/amg.cpp                 #Algebraic multigrid
     src/main.cpp                #Main program
 )
 

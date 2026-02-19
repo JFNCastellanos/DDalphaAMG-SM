@@ -419,6 +419,7 @@ void test_SAP_in_every_level(){
         int nu = 100;
    
         levels[l]->sap_l->SAP(rhs,x_level,nu,tol,print); //D^-1 rhs
+        
         levels[l]->D_operator(x_level,D_x_level);//D D^-1 rhs
 
         for(int x=1; x<=levels[l]->Nx; x++){
@@ -528,3 +529,21 @@ void test_gmres_coarse_level(){
     }
 
 }
+
+void test_AMG(){
+    spinor U(mpi::maxSizeH);
+     for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            U.val[2*n]        = RandomU1();
+            U.val[2*n+1]      = RandomU1();
+        }
+    }
+
+    int nu1 = 2;
+    int nu2 = 2;
+    int Nit = 1;
+    AlgebraicMG AMG(U, mass::m0, nu1, nu2); 
+    AMG.setUpPhase(Nit);
+}
+
