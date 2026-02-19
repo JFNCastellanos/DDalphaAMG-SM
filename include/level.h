@@ -65,16 +65,20 @@ public:
     SAP_level_l* sap_l; 
     //----------------------------------------------------------------------------//
     //GMRES for the current level. We use it for solving the coarsest system. We could use it as as smoother as well.
-    /*
+    
     class GMRES_level_l : public FGMRES {
 	public:
-    	GMRES_level_l(const int& dim1, const int& dim2, const int& m, const int& restarts, const double& tol, Level* parent) : 
-		FGMRES(dim1, dim2, m, restarts, tol), parent(parent) {}
+    	GMRES_level_l(Level* parent) : parent(parent), 
+		FGMRES(parent->Ntot, parent->DOF, (parent->Nx+2)*(parent->Nt+2)*parent->DOF,1,1,parent->Nx,parent->Nt, 
+        AMGV::gmres_restart_length_coarse_level ,AMGV::gmres_restarts_coarse_level, AMGV::gmres_tol_coarse_level) {}
     
     	~GMRES_level_l() { };
     
 	private:
 		Level* parent; //Pointer to the enclosing AMG instance
+        const int Nt  = parent->Nt;
+        const int Nx  = parent->Nx;
+        const int DOF = parent->DOF;
     	
     	//Implementation of the function that computes the matrix-vector product for the fine level
     	
@@ -85,10 +89,54 @@ public:
 		void preconditioner(const spinor& in, spinor& out) override {
             out = std::move(in); //Identity operation
 		}
+
+        c_double dot(c_double* A, c_double* B) override {
+            c_double local_z = 0;
+            //reduction over all lattice points and spin components
+            int index;
+            for(int x = 1; x<=Nx; x++){
+                for(int t = 1; t<=Nt; t++){
+                    for(int mu=0; mu<DOF; mu++){
+                    index = (x*(Nt+2) + t)*DOF + mu;
+                    local_z += A[index] * std::conj(B[index]);
+                    }
+                }
+            }
+            c_double z;
+            MPI_Allreduce(&local_z, &z, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, parent->ranks_comm);
+            return z;
+        }
+        // out = X + lambda * Y
+        void axpy(const spinor& X, const spinor& Y, const c_double &lambda,  spinor& out) override {
+            int index;
+            for(int x = 1; x<=Nx; x++){
+                for(int t = 1; t<=Nt; t++){
+                    for(int dof=0; dof<DOF; dof++){
+                        index = x * (Nt+2) + t;
+                        out.val[DOF*index+dof] = X.val[DOF*index+dof] + lambda * Y.val[DOF*index+dof];
+                    }
+                }
+            }
+        
+        }
+        // Y = lambda * X
+        void scal(const c_double& lambda, const spinor& X, spinor& Y) override {
+            // Y = lambda X
+            int index;
+            for(int x = 1; x<=Nx; x++){
+                for(int t = 1; t<=Nt; t++){
+                    for(int dof=0; dof<DOF; dof++){
+                        index = x * (Nt+2) + t;
+                        Y.val[DOF*index+dof] = lambda * X.val[DOF*index+dof];
+                    }
+                }
+            }
+        }
+
 	};
 
-	GMRES_level_l gmres_l;
-    */
+	GMRES_level_l* gmres_l;
+    
     //----------------------------------------------------------------------------//
     
     //Level Constructor
@@ -160,6 +208,10 @@ public:
             makeDirac(); //Initialize Dirac Operator on the fine grid
         else
             defineColumnType(level, Nx, Nt,DOF); //DataType needed for the halo exchange at level l for D_operator
+
+        //For solving the coarsest level
+        if (level == LevelV::maxLevel)
+            gmres_l = new GMRES_level_l(this);
         
         /*
         if (mpi::rank2d == 0){
@@ -184,6 +236,9 @@ public:
         delete[] counts_G2G3;  
         delete[] displs_G2G3;
         delete sap_l;
+        if (level == LevelV::maxLevel)
+            delete gmres_l;
+
     }
 
     const spinor U; //Gauge configuration

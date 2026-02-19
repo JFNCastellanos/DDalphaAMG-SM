@@ -82,9 +82,12 @@ int main(int argc, char **argv) {
 
     //test_Dc_with_rank_coarsening();
     //test_SAP_in_level_0();
-    test_SAP_in_every_level();
+    //test_SAP_in_every_level();
+
+    test_gmres_coarse_level();
 
     //Free coordinate arrays
+
     free_lattice_arrays();
     MPI_Finalize();
 

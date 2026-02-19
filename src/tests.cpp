@@ -440,3 +440,91 @@ void test_SAP_in_every_level(){
     }
     }
 }
+
+
+void test_gmres_coarse_level(){
+    std::vector<Level*> levels;
+    spinor U(mpi::maxSizeH);
+
+    if (mass::m0<0 && mpi::rank2d == 0)
+        printf("This test might fail if the original matrix is too ill-conditioned.\nTry with a larger mass\n");
+    
+    for(int x = 1; x<=mpi::width_x; x++){
+        for(int t = 1; t<=mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            U.val[2*n]        = RandomU1();
+            U.val[2*n+1]      = RandomU1();
+        }
+    }
+
+    for(int l = 0; l<LevelV::levels; l++){
+        Level* level = new Level(l,U);
+        levels.push_back(level);
+    }
+
+    //Random test vectors ... 
+    static std::mt19937 randomInt(mpi::rank2d); 
+	std::uniform_real_distribution<double> distribution(-1.0, 1.0); //mu, standard deviation
+    for(int l=0; l<LevelV::maxLevel; l++){
+        for(int cc = 0; cc < levels[l]->Ntest; cc++){
+            for(int x=1; x<=levels[l]->Nx; x++){
+            for(int t=1; t<=levels[l]->Nt; t++){
+	        for(int c=0; c<levels[l]->colors; c++){
+	        for(int s=0; s<2; s++){
+                int indx 	= x*(levels[l]->Nt+2)*levels[l]->colors*2 + t*levels[l]->colors*2 + c*2 	+ s;
+                levels[l]->tvec[cc].val[indx] = distribution(randomInt) + I_number * distribution(randomInt);            
+            }
+            }
+            }
+            }  
+        }   
+        levels[l]->orthonormalize();                //Orthonormalize test vectors
+        levels[l]->checkOrthogonality();            //Checking orthogonality   
+        levels[l]->makeCoarseLinks(*levels[l+1]);   //Make coarse links
+    }
+
+
+    int l = LevelV::maxLevel;
+    if (levels[l]->ranks_comm != MPI_COMM_NULL){
+        spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+        spinor x0((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+        spinor xGMRES((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+        spinor D_xGMRES((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+
+        for(int x=1; x<=levels[l]->Nx; x++){
+        for(int t=1; t<=levels[l]->Nt; t++){
+	    for(int dof=0; dof<levels[l]->DOF; dof++){
+            int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+            rhs.val[indx] = RandomU1();
+        }
+        }
+        }
+    
+        double tol=1e-10;
+        bool print=true;
+        int nu = 100;
+   
+        levels[l]->gmres_l->fgmres(rhs, x0, xGMRES, print);
+        levels[l]->D_operator(xGMRES,D_xGMRES);//D D^-1 rhs
+
+        for(int x=1; x<=levels[l]->Nx; x++){
+        for(int t=1; t<=levels[l]->Nt; t++){
+	    for(int dof=0; dof<levels[l]->DOF; dof++){
+            int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+            if (std::abs(D_xGMRES.val[indx]-rhs.val[indx]) > 1e-8){
+                std::cout << "rhs /= D_operator (D^-1 rhs) on rank " << mpi::rank2d << " at level " << l << std::endl;
+                std::cout << "D_x_level " << D_xGMRES.val[indx] << std::endl;
+                std::cout << "rhs       " << rhs.val[indx]  << std::endl;
+                return ;
+            }
+        }
+        }
+        }
+ 
+        if (mpi::rank2d == 0)
+            std::cout << "D_operator (SAP_l rhs) = rhs on rank " << mpi::rank2d << " level " << l << " i.e. solution is correct" << std::endl;
+    
+    
+    }
+
+}

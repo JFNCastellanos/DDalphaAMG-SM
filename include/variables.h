@@ -102,6 +102,27 @@ namespace SAPV {
     extern double sap_tolerance; //tolerance for the SAP method
 }
 
+//------------Parameters for AMG--------------//
+namespace AMGV{
+    extern int SAP_test_vectors_iterations; //Number of SAP iterations to smooth test vectors
+    //Parameters for the coarse level solver
+    extern int gmres_restarts_coarse_level; //restart length for GMRES at the coarse level
+    extern int gmres_restart_length_coarse_level; //GMRES restart length for the coarse level
+    extern double gmres_tol_coarse_level; //GMRES tolerance for the coarse level
+    //Parameters for GMRES as a smoother (the default AMG version uses SAP)
+    extern int gmres_restarts_smoother; //GMRES iterations for the smoother
+
+    extern int nu1; //Pre-smoothing iterations
+    extern int nu2; //Post-smoothing iterations
+    extern int Nit; //Number of iterations for improving the interpolator 
+
+    //Outer fgmres solver
+    extern int fgmres_k_cycle_restart_length;
+    extern int fgmres_k_cycle_restarts;
+    extern double fgmres_k_cycle_tol;
+    extern int cycle; //Cycling stratey. Cycle = 0 -> V-cycle, = 1 --> K-cycle
+}
+
 namespace LevelV{
     //Description on variables.cpp
     extern int levels;

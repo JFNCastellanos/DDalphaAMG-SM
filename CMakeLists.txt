@@ -17,8 +17,8 @@ set(SOURCES
     src/main.cpp                #Main program
 )
 
-set(NS "512")   #Lattice dimension x
-set(NT "512")   #Lattice dimension t
+set(NS "64")   #Lattice dimension x
+set(NT "64")   #Lattice dimension t
 
 configure_file(${CMAKE_SOURCE_DIR}/include/config.h.in ${CMAKE_SOURCE_DIR}/include/config.h)
 

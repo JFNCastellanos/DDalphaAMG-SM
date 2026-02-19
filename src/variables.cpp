@@ -77,6 +77,29 @@ namespace SAPV {
 }
 
 
+namespace AMGV {
+    int SAP_test_vectors_iterations = 2; //Number of SAP iterations to smooth test vectors
+    //Parameters for the coarse level solver. They can be changed in the main function
+    int gmres_restarts_coarse_level = 10; 
+    int gmres_restart_length_coarse_level = 20; //GMRES restart length for the coarse level
+    double gmres_tol_coarse_level = 1e-10; //GMRES tolerance for the coarse level
+
+    int gmres_restarts_smoother = 20; //Iterations for GMRES as a smoother (SAP is the default)
+
+    int nu1 = 0; //Pre-smoothing iterations
+    int nu2 = 2; //Post-smoothing iterations
+    int Nit = 1; //Number of iterations for improving the interpolator
+
+    bool SetUpDone = false; //Set to true when the setup is done
+
+    //Parameters for FGMRES used in the k-cycle
+    int fgmres_k_cycle_restart_length = 5;
+    int fgmres_k_cycle_restarts = 2;
+    double fgmres_k_cycle_tol = 0.1;
+
+    int cycle = 0; //Cycling stratey. Cycle = 0 -> V-cycle, = 1 --> K-cycle
+}
+
 namespace LevelV{
     int levels;   //Number of levels
     int maxLevel; //Maximum level id is levels - 1b

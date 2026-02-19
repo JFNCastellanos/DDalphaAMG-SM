@@ -627,4 +627,7 @@ void test_SAP_in_level_0();
 
 void test_SAP_in_every_level();
 
+void test_gmres_coarse_level();
+
+
 #endif 
