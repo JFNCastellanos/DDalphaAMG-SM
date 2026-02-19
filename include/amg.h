@@ -71,7 +71,7 @@ public:
 	//std::vector<FGMRES_k_cycle*> fgmres_k_cycle_l; //Flexible GMRES used for the k-cycle on every level
 
     //Checks orthonormalization and verifies that P^+ D P = Dc
-    //void testSetUp();
+    void testSetUp();
     //Checks that SAP is working properly
     //void testSAP();
 

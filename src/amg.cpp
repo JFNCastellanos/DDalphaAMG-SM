@@ -53,3 +53,56 @@ void AlgebraicMG::setUpPhase(const int& Nit){
     if (mpi::rank2d == 0)std::cout << "Set-up phase finished" << std::endl;
 	
 }
+
+
+
+
+
+void AlgebraicMG::testSetUp(){
+    for(int l = 0; l<LevelV::maxLevel; l++){
+        if (mpi::rank2d == 0)
+            std::cout << "Checking level " << l+1 << std::endl;
+        spinor vc((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*levels[l+1]->DOF);
+        spinor v((levels[l]->Nt_coarse_rank+2)*(levels[l]->Nx_coarse_rank+2)*levels[l]->DOF);
+        spinor temp((levels[l]->Nt_coarse_rank+2)*(levels[l]->Nx_coarse_rank+2)*levels[l]->DOF);
+        for(int x = 1; x<=levels[l+1]->Nx; x++){
+        for(int t = 1; t<=levels[l+1]->Nt; t++){
+        for(int dof=0; dof<levels[l+1]->DOF; dof++){
+            int n = x*(levels[l+1]->Nt+2)+t;
+            vc.val[levels[l+1]->DOF*n+dof] = RandomU1();
+        }
+        }
+        }
+
+        spinor out1((levels[l+1]->Nt_coarse_rank+2)*(levels[l+1]->Nx_coarse_rank+2)*levels[l+1]->DOF);
+        spinor out2((levels[l]->tblocks_per_coarse_rank+2)*(levels[l]->xblocks_per_coarse_rank+2)*levels[l+1]->DOF);
+        // Dc = P^+ D P
+        levels[l+1]->D_operator(vc, out1);
+
+        //Explicit application of each operator. Should coincide with D_operator at leve l+1.
+        levels[l]->P_vc(vc,v);
+        levels[l]->D_operator(v,temp);
+        levels[l]->Pdagg_v(temp,out2);
+        
+        //Only check on the workinh ranks of the coarse level ...
+        if (levels[l+1]->ranks_comm != MPI_COMM_NULL){
+            for(int x = 1; x<=levels[l+1]->Nx; x++){
+                for(int t = 1; t<=levels[l+1]->Nt; t++){
+                    int n = x*(levels[l+1]->Nt+2)+t;
+                    for(int dof=0; dof<levels[l+1]->DOF; dof++){
+                        if (std::abs(out1.val[levels[l+1]->DOF*n+dof]-out2.val[levels[l+1]->DOF*n+dof]) > 1e-8){
+                            std::cout << "Both implementations of D don't coincide, rank " << mpi::rank2d << " level " << l+1 << std::endl;
+                            std::cout << "x " << x << " t " << t << " dof " << dof << std::endl;
+                            std::cout << "D_operator vc      " <<  out1.val[levels[l+1]->DOF*n+dof] << std::endl;
+                            std::cout << "P^+ D P vc         " <<  out2.val[levels[l+1]->DOF*n+dof] << std::endl;
+                            //std::cout << "vc                 " <<  vc.val[levels[l+1]->DOF*n+dof] << std::endl;
+                            std::cout << std::endl;      
+                            return; 
+                        }
+                    } 
+                }
+            }
+            std::cout << "Dc coincides with P^+ D P at level " << l+1  << " on rank " << mpi::rank2d << std::endl;
+        }
+    }
+}

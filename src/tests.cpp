@@ -545,5 +545,7 @@ void test_AMG(){
     int Nit = 1;
     AlgebraicMG AMG(U, mass::m0, nu1, nu2); 
     AMG.setUpPhase(Nit);
+    AMG.testSetUp();
 }
+
 
