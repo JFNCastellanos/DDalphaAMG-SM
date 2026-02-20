@@ -4,6 +4,7 @@
 
 #include "dirac_operator.h"
 #include "amg.h"
+#include "io.h"
 #include <random>
 
 
@@ -630,5 +631,6 @@ void test_gmres_coarse_level();
 
 void test_AMG();
 
+void test_open_conf();
 
 #endif 

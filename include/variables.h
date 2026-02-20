@@ -14,13 +14,9 @@ extern c_double I_number; //imaginary number
 namespace mass{extern double m0;}
 
 
-//For scattering and gathering information from the 2D rank topology
+//Datatypes for reading/writing gauge confs and rhs
 extern MPI_Datatype sub_block_type;
 extern MPI_Datatype sub_block_resized;
-extern MPI_Datatype local_domain;
-extern MPI_Datatype local_domain_resized;
-extern MPI_Datatype coarse_domain;
-extern MPI_Datatype coarse_domain_resized;
 
 //------------mpi settings-----------------//
 namespace mpi{

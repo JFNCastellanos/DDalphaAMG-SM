@@ -191,14 +191,16 @@ inline void defineDataTypes(){
     *          ---------------
     */
     //int MPI_Type_vector(int block_count, int block_length, int stride, MPI_Datatype old_datatype, MPI_Datatype* new_datatype);
-    MPI_Type_vector(mpi::width_x, mpi::width_t, LV::Nt, MPI_DOUBLE_COMPLEX, &sub_block_type);
+    
+    /*MPI_Type_vector(mpi::width_x, mpi::width_t, LV::Nt, MPI_DOUBLE_COMPLEX, &sub_block_type);
     MPI_Type_commit(&sub_block_type);
 
     //Resize the data type to use scatterV properly
     int extent = mpi::width_t;
     MPI_Type_create_resized(sub_block_type, 0, extent * sizeof(std::complex<double>), &sub_block_resized);
     MPI_Type_commit(&sub_block_resized);
-
+    */
+   
     //Create datatype for the halo exchange
     MPI_Type_vector(mpi::width_x, LV::dof, (mpi::width_t+2)*LV::dof, MPI_DOUBLE_COMPLEX, &mpi::column_type[0]);
     MPI_Type_commit(&mpi::column_type[0]);

@@ -16,11 +16,12 @@ set(SOURCES
     src/tests.cpp               #Different tests, to be removed in the future.
     src/amg.cpp                 #Algebraic multigrid
     src/methods.cpp             #Class for comparing different matrix-inversion methods
+    src/io.cpp                  #For reading/writing configurations or rhs
     src/main.cpp                #Main program
 )
 
-set(NS "512")   #Lattice dimension x
-set(NT "512")   #Lattice dimension t
+set(NS "64")   #Lattice dimension x
+set(NT "64")   #Lattice dimension t
 
 configure_file(${CMAKE_SOURCE_DIR}/include/config.h.in ${CMAKE_SOURCE_DIR}/include/config.h)
 
