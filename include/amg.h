@@ -63,6 +63,10 @@ public:
     }
     //Pages 84 and 85 of Rottmann's thesis explain how to implement this ...
     void setUpPhase(const int& Nit);
+     //Checks orthonormalization and verifies that P^+ D P = Dc
+    void testSetUp();
+    //Checks that SAP is working properly
+    void testSAP();
 //private:    
     const spinor U;
 	double m0; 
@@ -70,10 +74,7 @@ public:
     std::vector<Level*> levels; //If I try to use a vector of objects I will run out of memory
 	//std::vector<FGMRES_k_cycle*> fgmres_k_cycle_l; //Flexible GMRES used for the k-cycle on every level
 
-    //Checks orthonormalization and verifies that P^+ D P = Dc
-    void testSetUp();
-    //Checks that SAP is working properly
-    //void testSAP();
+   
 
     // psi_l = V_cycle(l,eta_l)
     //void v_cycle(const int& l, const spinor& eta_l, spinor& psi_l);

@@ -5,11 +5,11 @@ project(DDalphaAMG VERSION 1.0)
 
 
 set(SOURCES
-    src/variables.cpp           #Relevant parameters for the lattice
+    src/variables.cpp           #Relevant parameters for the method, the lattice, MPI, etc.
     src/utils.cpp               #Utility functions
-    src/halo_exchange.cpp       #Implementation of the halo exchange for a field
-    src/dirac_operator.cpp      #Implementation of D, D^+
-    src/conjugate_gradient.cpp  #Conjugate gradient and Bi-cgstab
+    src/halo_exchange.cpp       #Implementation of the halo exchange for a field on the finest level.
+    src/dirac_operator.cpp      #Implementation of D, D^+ on the finest level
+    src/conjugate_gradient.cpp  #Conjugate gradient and Bi-cgstab (to compare solutions)
     src/fgmres.cpp              #FGMRES class
     src/sap.cpp                 #SAP class
     src/level.cpp               #Multigrid level class
@@ -18,8 +18,8 @@ set(SOURCES
     src/main.cpp                #Main program
 )
 
-set(NS "64")   #Lattice dimension x
-set(NT "64")   #Lattice dimension t
+set(NS "128")   #Lattice dimension x
+set(NT "128")   #Lattice dimension t
 
 configure_file(${CMAKE_SOURCE_DIR}/include/config.h.in ${CMAKE_SOURCE_DIR}/include/config.h)
 

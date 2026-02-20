@@ -87,6 +87,7 @@ int main(int argc, char **argv) {
     //test_gmres_coarse_level();
 
     test_AMG();
+    
 
     //Free coordinate arrays
 

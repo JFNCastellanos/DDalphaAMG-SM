@@ -106,3 +106,49 @@ void AlgebraicMG::testSetUp(){
         }
     }
 }
+
+void AlgebraicMG::testSAP(){
+    for(int l = 0; l<LevelV::levels; l++){
+        //for(int l = 0; l<1; l++){
+        if (levels[l]->ranks_comm != MPI_COMM_NULL){
+            spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+            spinor x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+            spinor D_x_level((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
+
+            for(int x=1; x<=levels[l]->Nx; x++){
+            for(int t=1; t<=levels[l]->Nt; t++){
+	        for(int dof=0; dof<levels[l]->DOF; dof++){
+                int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+                rhs.val[indx] = RandomU1();
+            }
+            }
+            }
+    
+   
+            double tol=1e-10;
+            bool print=true;
+            int nu = 100;
+   
+            levels[l]->sap_l->SAP(rhs,x_level,nu,tol,print); //D^-1 rhs
+        
+            levels[l]->D_operator(x_level,D_x_level);//D D^-1 rhs
+
+            for(int x=1; x<=levels[l]->Nx; x++){
+            for(int t=1; t<=levels[l]->Nt; t++){
+	        for(int dof=0; dof<levels[l]->DOF; dof++){
+                int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
+                if (std::abs(D_x_level.val[indx]-rhs.val[indx]) > 1e-8){
+                    std::cout << "rhs /= D_operator (D^-1 rhs) on rank " << mpi::rank2d << " at level " << l << std::endl;
+                    std::cout << "D_x_level " << D_x_level.val[indx] << std::endl;
+                    std::cout << "rhs       " << rhs.val[indx]  << std::endl;
+                    return ;
+                }
+            }
+            }
+            }
+ 
+            if (mpi::rank2d == 0)
+                std::cout << "D_operator (SAP_l rhs) = rhs on rank " << mpi::rank2d << " level " << l << " i.e. solution is correct" << std::endl;
+        }
+    }
+}
