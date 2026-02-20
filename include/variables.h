@@ -79,16 +79,17 @@ namespace LV {
     constexpr int dof = 2;
 }
 
+//-----------CG solver------------//
 namespace CG{
     extern int max_iter; //Maximum number of iterations for the conjugate gradient method
     extern double tol; //Tolerance for convergence
 }
 
+//------------------BiCGstab--------------------//
 namespace BiCG{
     extern int max_iter; //Maximum number of iterations for the conjugate gradient method
     extern double tol; //Tolerance for convergence
 }
-
 
 //------------Schwarz alternating procedure parameters--------------//
 namespace SAPV {

@@ -225,12 +225,6 @@ private:
 
 };
 
-/*
-    SAP solver for D_B
-    Defined on sap.cpp
-*/
-extern SAP_fine_level sap;
-
 
 /*
     FGMRES for the fine level

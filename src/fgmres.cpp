@@ -82,7 +82,7 @@ int FGMRES::fgmres(const spinor& phi, const spinor& x0, spinor& x, const bool& p
         k++;
     }
     if (print_message == true && mpi::rank2d == 0) 
-        std::cout << "FGMRES did not converge in " << restarts << " restarts" << " Error " << err << std::endl;
+        std::cout << "FGMRES did not converge in " << restarts << " restarts of lenght " << m << " Error " << err << std::endl;
     
     return restarts*m;
 }

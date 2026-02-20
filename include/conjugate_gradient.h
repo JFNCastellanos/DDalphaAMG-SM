@@ -11,7 +11,7 @@
         
     The convergence criterion is ||r|| < ||phi|| * tol
 */
-int conjugate_gradient(const spinor& U, const spinor& phi, spinor& x, const double& m0); 
+int conjugate_gradient(const spinor& U, const spinor& phi, spinor& x, const double& m0,const bool print); 
 
 int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, const double& m0, const bool& print_message);
 

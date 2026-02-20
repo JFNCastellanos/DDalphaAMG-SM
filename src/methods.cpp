@@ -1,35 +1,58 @@
 #include "methods.h"
 
-void Methods::BiCG(spinor& x,const int max_it, const bool print){   
-    const bool save = false;
-    std::cout << "--------------Bi-CGstab inversion--------------" << std::endl;
-    start = clock();
-    x = bi_cgstab(&D_phi,LV::Ntot,2,GConf.Conf, rhs, x0, m0, max_it, 1e-10, print,save);
-    end = clock();
-    elapsed_time = double(end - start) / CLOCKS_PER_SEC;
-    std::cout << "Elapsed time for Bi-CGstab = " << elapsed_time << " seconds" << std::endl;
+void Methods::BiCG(const int max_it, const bool print){   
+    if (mpi::rank2d == 0) 
+        std::cout << "--------------Bi-CGstab inversion--------------" << std::endl;
+    BiCG::max_iter = max_it;
+    BiCG::tol = tol;
+    start = MPI_Wtime(); 
+    bi_cgstab(U,rhs,x0,*xBiCG,m0,print);
+    end = MPI_Wtime(); 
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed Bi-CGstab: %.4fs.\n\n", mpi::rank2d, end - start);
 }
 
-void Methods::GMRES(spinor& x, const int len, const int restarts,const bool print){
-    const bool save = false;
-    std::cout << "--------------GMRES without preconditioning--------------" << std::endl;
-    FGMRES_fine_level fgmres_fine_level(LV::Ntot, 2, len, restarts,1e-10,GConf.Conf, m0);
-    start = clock();
-    fgmres_fine_level.fgmres(rhs,x0,x,print,save);
-    end = clock();
-    elapsed_time = double(end - start) / CLOCKS_PER_SEC;
-    std::cout << "Elapsed time for GMRES = " << elapsed_time << " seconds" << std::endl; 
+void Methods::GMRES(const int len, const int restarts,const bool print){
+    if (mpi::rank2d == 0)
+        std::cout << "--------------GMRES without preconditioning--------------" << std::endl;
+    int x_ini = 1, t_ini = 1, x_fin = mpi::width_x, t_fin = mpi::width_t;
+    FGMRES_fine_level fgmres_fl(mpi::width_t*mpi::width_x, LV::dof, mpi::maxSizeH,
+        x_ini, t_ini, 
+        x_fin, t_fin, len, restarts, tol, U, m0);
+    
+    start = MPI_Wtime(); 
+    fgmres_fl.fgmres(rhs,x0,*xGMRES,print);
+    end = MPI_Wtime(); 
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed GMRES: %.4fs.\n\n", mpi::rank2d, end - start);
 }
 
-void Methods::CG(spinor& x){
-    std::cout << "--------Inverting the normal equations with CG----------" << std::endl; 
-    start = clock();
-    conjugate_gradient(GConf.Conf, rhs, x, m0);
-    end = clock();
-    elapsed_time = double(end - start) / CLOCKS_PER_SEC;
-    std::cout << "Elapsed time for CG = " << elapsed_time << " seconds" << std::endl;  
+void Methods::CG(const bool print){
+    if (mpi::rank2d == 0)
+        std::cout << "--------Inverting the normal equations with CG----------" << std::endl; 
+    start = MPI_Wtime();
+    conjugate_gradient(U, rhs, *xCG, m0,print);
+    end = MPI_Wtime();
+
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed CG: %.4fs.\n\n", mpi::rank2d, end - start);  
 }
 
+void Methods::SAP(const int iterations, const int xblocks, const int tblocks,const bool print){
+    double tol = 1e-10;
+    if (mpi::rank2d == 0)
+        std::cout << "--------------SAP as stand-alone solver --------------" << std::endl;
+    SAP_fine_level sap(mpi::width_x,  mpi::width_t, xblocks, tblocks, 2, 1);
+    sap.set_params(U,mass::m0);
+    start = MPI_Wtime();
+    sap.SAP(rhs,*xSAP,iterations,tol,print);
+    end = MPI_Wtime();
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed SAP: %.4fs.\n\n", mpi::rank2d, end - start);
+}
+
+
+/*
 void Methods::FGMRES_sap(spinor& x, const bool print){
     const bool save = false;
     int rank, size; 
@@ -44,22 +67,6 @@ void Methods::FGMRES_sap(spinor& x, const bool print){
     fgmres_sap.fgmres(rhs,x0,x,print,save);
     endT = MPI_Wtime();
     printf("[rank %d] time elapsed during FGMRES_SAP implementation: %.4fs.\n", rank, endT - startT);
-    fflush(stdout);
-
-}
-
-void Methods::SAP(spinor& x,const int iterations, const bool print){
-    int rank, size; 
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (rank == 0)
-        std::cout << "--------------SAP as stand-alone solver --------------" << std::endl;
-
-    MPI_Barrier(MPI_COMM_WORLD);
-    startT = MPI_Wtime();
-    sap.SAP(rhs,x,iterations, SAPV::sap_blocks_per_proc,print);
-    endT = MPI_Wtime();
-    printf("[rank %d] time elapsed during SAP implementation: %.4fs.\n", rank, endT - startT);
     fflush(stdout);
 
 }
@@ -91,3 +98,4 @@ void Methods::check_solution(const spinor& x_sol){
     }
     std::cout << "Solution is correct" << std::endl;
 }
+    */

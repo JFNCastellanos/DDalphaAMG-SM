@@ -1,7 +1,7 @@
 #include "conjugate_gradient.h"
 
 
-int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const double& m0){
+int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const double& m0,const bool print){
     using namespace mpi;
     int k = 0; //Iteration number
     double err;
@@ -50,7 +50,7 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
         //std::cout << "err_sqr " << err_sqr << std::endl;
 		err = sqrt(err_sqr); // err = sqrt(err_sqr)
         if (err < CG::tol*phi_norm2) {
-            if (mpi::rank2d == 0)
+            if (mpi::rank2d == 0 && print == true)
                 std::cout << "CG for DD^+ converged in " << k << " iterations" << " Error " << err << std::endl;
             return 1;
         }
