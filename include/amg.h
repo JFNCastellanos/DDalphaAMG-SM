@@ -61,30 +61,27 @@ public:
         for (auto ptr : levels) delete ptr;
        // for (auto ptr : fgmres_k_cycle_l) delete ptr;
     }
+
     //Pages 84 and 85 of Rottmann's thesis explain how to implement this ...
     void setUpPhase(const int& Nit);
-     //Checks orthonormalization and verifies that P^+ D P = Dc
+    //Checks orthonormalization and verifies that P^+ D P = Dc
     void testSetUp();
     //Checks that SAP is working properly
     void testSAP();
-//private:    
-    const spinor U;
-	double m0; 
-	const int nu1; const int nu2; 
-    std::vector<Level*> levels; //If I try to use a vector of objects I will run out of memory
-	//std::vector<FGMRES_k_cycle*> fgmres_k_cycle_l; //Flexible GMRES used for the k-cycle on every level
-
-   
-
+    
     // psi_l = V_cycle(l,eta_l)
     void v_cycle(const int& l, const spinor& eta_l, spinor& psi_l);
 
 	// psi_l = K_cycle(l,eta_l)
 	//void k_cycle(const int& l, const spinor& eta_l, spinor& psi_l);
-
     //Calls K or V-cycle depending on the value of AMGV::cycle. Stand-alone solver
-    //void applyMultilevel(const int& it, const spinor&rhs, spinor& out,const double tol,const bool print_message);
-    
+    void applyMultilevel(const int& it, const spinor&rhs, spinor& out,const double tol,const bool print_message);
+private:    
+    const spinor U;
+	double m0; 
+	const int nu1; const int nu2; 
+    std::vector<Level*> levels; //If I try to use a vector of objects I will run out of memory
+	//std::vector<FGMRES_k_cycle*> fgmres_k_cycle_l; //Flexible GMRES used for the k-cycle on every level
 
 };
 

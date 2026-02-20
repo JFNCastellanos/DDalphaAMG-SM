@@ -106,7 +106,65 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 }
 
 
+void AlgebraicMG::applyMultilevel(const int& it, const spinor&rhs, spinor& out,const double tol,const bool print_message){
+	spinor r(mpi::maxSizeH);
+	spinor Dx(mpi::maxSizeH);
+	double err;
+	double norm = sqrt(std::real(dot(rhs.val, rhs.val)));
+    int indx;
+	//If cycle = 0 --> V-cycle
+	if (AMGV::cycle == 0){
+		for(int i = 0; i<it; i++){
+			v_cycle(0, rhs, out);
+			levels[0]->D_operator(out,Dx);
+			for (int x = 1; x <= levels[0]->Nx; x++) {
+            for (int t = 1; t <= levels[0]->Nt; t++) {
+	        for (int dof = 0; dof < levels[0]->DOF; dof++) {
+                indx = (x*(levels[0]->Nt+2)+t)*levels[0]->DOF+dof;
+				r.val[indx] = rhs.val[indx] - Dx.val[indx];
+			}
+			}
+            }
+		
+			err = sqrt(std::real(dot(r.val, r.val)));
+        	if (err < tol* norm) {
+            	if (print_message == true && mpi::rank2d == 0) {
+            		std::cout << "V-cycle converged in " << i+1 << " cycles" << " Error " << err << std::endl;
+            	}
+            	return ;
+        	} 
+		}
+	    if (print_message == true && mpi::rank2d == 0) 
+        	std::cout << "V-cycle did not converge in " << it << " cycles" << " Error " << err << std::endl;
+    }
+    /*
+	else if (AMGV::cycle == 1){
+		for(int i = 0; i<it; i++){
+			k_cycle(0, rhs, out);
+			levels[0]->D_operator(out,Dx);
+			for(int n = 0;n < LevelV::Nsites[0]; n++){
+			for(int dof = 0; dof < LevelV::DOF[0]; dof++){
+				r[n][dof] = rhs[n][dof] - Dx[n][dof];
+			}
+			}
+		
+			err = sqrt(std::real(dot(r, r)));
+        	if (err < tol* norm) {
+            	if (print_message == true) {
+            		std::cout << "K-cycle converged in " << i+1 << " cycles" << " Error " << err << std::endl;
+            	}
+            	return ;
+        	} 
+		}
+		if (print_message == true) 
+        	std::cout << "K-cycle did not converge in " << it << " cycles" << " Error " << err << std::endl;
+	}
+    */
+}
 
+
+
+//-------------------Tests for Set Up phase and SAP-------------------//
 
 void AlgebraicMG::testSetUp(){
     for(int l = 0; l<LevelV::maxLevel; l++){

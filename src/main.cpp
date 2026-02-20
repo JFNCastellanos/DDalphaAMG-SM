@@ -99,10 +99,10 @@ int main(int argc, char **argv) {
     methods.GMRES(m,restarts,true);
     int xblocks = 4, tblocks = 4;
     methods.SAP(500,xblocks,tblocks,true);
+    methods.FGMRES_sap(m,restarts,true);
+    methods.Vcycle(100,true);
 
     
-
-
     //Free coordinate arrays
 
     free_lattice_arrays();

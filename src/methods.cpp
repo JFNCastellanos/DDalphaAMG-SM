@@ -52,41 +52,38 @@ void Methods::SAP(const int iterations, const int xblocks, const int tblocks,con
 }
 
 
-/*
-void Methods::FGMRES_sap(spinor& x, const bool print){
-    const bool save = false;
-    int rank, size; 
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (rank == 0)
+
+void Methods::FGMRES_sap(const int len, const int restarts, const bool print){
+    if (mpi::rank2d == 0)
         std::cout << "--------------Flexible GMRES with SAP preconditioning version --------------" << std::endl;
-     
-    MPI_Barrier(MPI_COMM_WORLD);
-    FGMRES_SAP fgmres_sap(LV::Ntot, 2, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts,FGMRESV::fgmres_tolerance,GConf.Conf, m0);
-    startT = MPI_Wtime();
-    fgmres_sap.fgmres(rhs,x0,x,print,save);
-    endT = MPI_Wtime();
-    printf("[rank %d] time elapsed during FGMRES_SAP implementation: %.4fs.\n", rank, endT - startT);
-    fflush(stdout);
+    
+    int x_ini = 1, t_ini = 1, x_fin = mpi::width_x, t_fin = mpi::width_t;
+    FGMRES_SAP fgmres_sap(LV::Ntot, LV::dof, mpi::maxSizeH,
+    x_ini, t_ini, 
+    x_fin, t_fin, len, restarts, tol, U, m0); 
 
+    start = MPI_Wtime();
+    fgmres_sap.fgmres(rhs,x0,*xFGMRES_SAP,print);
+    end = MPI_Wtime();
+
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed FGMRES_SAP: %.4fs.\n\n", mpi::rank2d, end - start);
 }
 
-void Methods::multigrid(spinor& x, const bool print){
-    int rank, size; 
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    if (rank == 0)
+void Methods::Vcycle(const int iterations,const bool print){
+    if (mpi::rank2d == 0)
         std::cout << "--------------Stand-alone AMG --------------" << std::endl;
-    startT = MPI_Wtime();
-    AlgebraicMG AMG(GConf, m0,AMGV::nu1, AMGV::nu2);
+
+    AlgebraicMG AMG(U, m0,AMGV::nu1, AMGV::nu2);
+    start = MPI_Wtime();
     AMG.setUpPhase(AMGV::Nit);
-    MPI_Barrier(MPI_COMM_WORLD);
-    //AMG.testSetUp();
-    AMG.applyMultilevel(100, rhs,x,1e-10,true);
-    endT = MPI_Wtime();
-    printf("[MPI process %d] time elapsed during the job: %.4fs.\n", rank, endT - startT);
+    AMG.applyMultilevel(iterations, rhs, *xVcycle,tol,print);  
+    end = MPI_Wtime();
+    if (mpi::rank2d == 0)
+        printf("[MPI process %d] time elapsed V-cycle AMG: %.4fs.\n\n", mpi::rank2d, end - start);
 }
 
+/*
 void Methods::check_solution(const spinor& x_sol){
     spinor xini(LV::Ntot, c_vector(2, 0)); //Initial guess
     D_phi(GConf.Conf, x_sol, xini, m0); //D_phi U x
