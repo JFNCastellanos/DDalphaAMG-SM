@@ -100,6 +100,13 @@ namespace AMGV {
     int cycle = 0; //Cycling stratey. Cycle = 0 -> V-cycle, = 1 --> K-cycle
 }
 
+//--------------Parameters for outer FGMRES solver--------------//
+namespace FGMRESV {
+    double fgmres_tolerance = 1e-10;    //Tolerance for FGMRES
+    int fgmres_restart_length = 20;     //Restart length for FGMRES
+    int fgmres_restarts = 50;           //Number of restarts for FGMRES
+}
+
 namespace LevelV{
     int levels;   //Number of levels
     int maxLevel; //Maximum level id is levels - 1b

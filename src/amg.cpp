@@ -1,4 +1,5 @@
 #include "amg.h"
+#include <cassert>
 
 void AlgebraicMG::setUpPhase(const int& Nit){
 	
@@ -63,12 +64,12 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 	}
 	else{
 		//Buffers
-        spinor Dpsi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));              //D_l psi_l
+		spinor Dpsi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));              //D_l psi_l
 		spinor r_l((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));               //r_l = eta_l - D_l psi_l
 		spinor eta_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //eta_{l+1}
 		spinor psi_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //psi_{l+1}
 		spinor P_psi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));             //P_l psi_{l+1}
-
+		
 		//Pre - smoothing
 		if (nu1 > 0)
 			levels[l]->sap_l->SAP(eta_l,psi_l,nu1,tol,false); 
@@ -92,7 +93,62 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
         for (int t = 1; t <= levels[l]->Nt; t++) {
 	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
             indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
-			psi_l.val[indx] += P_psi.val[indx];                                             //psi_l = psi_l + P_l psi_{l+1}
+			psi_l.val[indx] += P_psi.val[indx];                                         //psi_l = psi_l + P_l psi_{l+1}
+		}
+		}
+        }
+
+		//Post - smoothing
+		if (AMGV::nu2 > 0)
+			levels[l]->sap_l->SAP(eta_l,psi_l,nu2,tol,false); 
+		
+	}	
+
+}
+
+
+void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
+	double tol = 1e-10;
+    int indx;
+	if (l == LevelV::maxLevel){
+		//For the coarsest level we just use GMRES to find a solution
+		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false); //psi_l = D_l^-1 eta_l 
+	}
+	else{
+		//Buffers
+		spinor Dpsi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));              //D_l psi_l
+		spinor r_l((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));               //r_l = eta_l - D_l psi_l
+		spinor eta_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //eta_{l+1}
+		spinor psi_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //psi_{l+1}
+		spinor P_psi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));             //P_l psi_{l+1}
+		
+
+		//Pre - smoothing
+		if (nu1 > 0)
+			levels[l]->sap_l->SAP(eta_l,psi_l,nu1,tol,false); 
+	
+		//Coarse grid correction 
+		levels[l]->D_operator(psi_l,Dpsi); 
+
+		for (int x = 1; x <= levels[l]->Nx; x++) {
+        for (int t = 1; t <= levels[l]->Nt; t++) {
+	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
+        	indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
+			r_l.val[indx] = eta_l.val[indx] - Dpsi.val[indx];                           //r_l = eta_l - D_l psi_l
+		}
+		}
+        }
+
+		levels[l]->Pdagg_v(r_l,eta_l_1); //eta_{l+1} = P^H (eta_l - D_l psi_l)
+		fgmres_k_cycle_l[l+1]->fgmres(eta_l_1,eta_l_1,psi_l_1,false);
+		//psi_{l+1} = fgmres(l+1,eta_{l+1}) with K-cycle(l+1,rhs) as preconditioner
+
+		levels[l]->P_vc(psi_l_1,P_psi); //P_psi = P_l psi_{l+1}
+		for (int x = 1; x <= levels[l]->Nx; x++) {
+        for (int t = 1; t <= levels[l]->Nt; t++) {
+	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
+            indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
+			psi_l.val[indx] += P_psi.val[indx];                                         //psi_l = psi_l + P_l psi_{l+1}
 		}
 		}
         }
@@ -137,29 +193,37 @@ void AlgebraicMG::applyMultilevel(const int& it, const spinor&rhs, spinor& out,c
 	    if (print_message == true && mpi::rank2d == 0) 
         	std::cout << "V-cycle did not converge in " << it << " cycles" << " Error " << err << std::endl;
     }
-    /*
+    
 	else if (AMGV::cycle == 1){
 		for(int i = 0; i<it; i++){
 			k_cycle(0, rhs, out);
 			levels[0]->D_operator(out,Dx);
-			for(int n = 0;n < LevelV::Nsites[0]; n++){
-			for(int dof = 0; dof < LevelV::DOF[0]; dof++){
-				r[n][dof] = rhs[n][dof] - Dx[n][dof];
+			for (int x = 1; x <= levels[0]->Nx; x++) {
+            for (int t = 1; t <= levels[0]->Nt; t++) {
+	        for (int dof = 0; dof < levels[0]->DOF; dof++) {
+                indx = (x*(levels[0]->Nt+2)+t)*levels[0]->DOF+dof;
+				r.val[indx] = rhs.val[indx] - Dx.val[indx];
 			}
 			}
+            }
 		
-			err = sqrt(std::real(dot(r, r)));
+			err = sqrt(std::real(dot(r.val, r.val)));
         	if (err < tol* norm) {
-            	if (print_message == true) {
+            	if (print_message == true && mpi::rank2d == 0) {
             		std::cout << "K-cycle converged in " << i+1 << " cycles" << " Error " << err << std::endl;
             	}
             	return ;
         	} 
 		}
-		if (print_message == true) 
+		if (print_message == true && mpi::rank2d == 0) 
         	std::cout << "K-cycle did not converge in " << it << " cycles" << " Error " << err << std::endl;
 	}
-    */
+	else{
+		if (mpi::rank2d == 0)
+			printf("Insert a valid cycle 0 (V-cycle) or 1 (K-cycle). Instead %d was given\n",AMGV::cycle);
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+	}
+    
 }
 
 

@@ -124,6 +124,13 @@ namespace AMGV{
     extern int cycle; //Cycling stratey. Cycle = 0 -> V-cycle, = 1 --> K-cycle
 }
 
+//--------------Parameters for outer FGMRES--------------//
+namespace FGMRESV {
+    extern double fgmres_tolerance;     //Tolerance for FGMRES
+    extern int fgmres_restart_length;   //Restart length for FGMRES
+    extern int fgmres_restarts;         //Number of restarts for FGMRES
+}
+
 namespace LevelV{
     //Description on variables.cpp
     extern int levels;

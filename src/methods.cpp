@@ -6,7 +6,7 @@ void Methods::BiCG(const int max_it, const bool print){
     BiCG::max_iter = max_it;
     BiCG::tol = tol;
     start = MPI_Wtime(); 
-    bi_cgstab(U,rhs,x0,*xBiCG,m0,print);
+    bi_cgstab(U,rhs,x0,xBiCG,m0,print);
     end = MPI_Wtime(); 
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed Bi-CGstab: %.4fs.\n\n", mpi::rank2d, end - start);
@@ -21,7 +21,7 @@ void Methods::GMRES(const int len, const int restarts,const bool print){
         x_fin, t_fin, len, restarts, tol, U, m0);
     
     start = MPI_Wtime(); 
-    fgmres_fl.fgmres(rhs,x0,*xGMRES,print);
+    fgmres_fl.fgmres(rhs,x0,xGMRES,print);
     end = MPI_Wtime(); 
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed GMRES: %.4fs.\n\n", mpi::rank2d, end - start);
@@ -31,7 +31,7 @@ void Methods::CG(const bool print){
     if (mpi::rank2d == 0)
         std::cout << "--------Inverting the normal equations with CG----------" << std::endl; 
     start = MPI_Wtime();
-    conjugate_gradient(U, rhs, *xCG, m0,print);
+    conjugate_gradient(U, rhs, xCG, m0,print);
     end = MPI_Wtime();
 
     if (mpi::rank2d == 0)
@@ -45,7 +45,7 @@ void Methods::SAP(const int iterations, const int xblocks, const int tblocks,con
     SAP_fine_level sap(mpi::width_x,  mpi::width_t, xblocks, tblocks, 2, 1);
     sap.set_params(U,mass::m0);
     start = MPI_Wtime();
-    sap.SAP(rhs,*xSAP,iterations,tol,print);
+    sap.SAP(rhs,xSAP,iterations,tol,print);
     end = MPI_Wtime();
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed SAP: %.4fs.\n\n", mpi::rank2d, end - start);
@@ -63,7 +63,7 @@ void Methods::FGMRES_sap(const int len, const int restarts, const bool print){
     x_fin, t_fin, len, restarts, tol, U, m0); 
 
     start = MPI_Wtime();
-    fgmres_sap.fgmres(rhs,x0,*xFGMRES_SAP,print);
+    fgmres_sap.fgmres(rhs,x0, xFGMRES_SAP,print);
     end = MPI_Wtime();
 
     if (mpi::rank2d == 0)
@@ -72,16 +72,47 @@ void Methods::FGMRES_sap(const int len, const int restarts, const bool print){
 
 void Methods::Vcycle(const int iterations,const bool print){
     if (mpi::rank2d == 0)
-        std::cout << "--------------Stand-alone AMG --------------" << std::endl;
+        std::cout << "--------------Stand-alone AMG with a V-cycle----------------" << std::endl;
 
     AlgebraicMG AMG(U, m0,AMGV::nu1, AMGV::nu2);
+    AMGV::cycle == 0; //V-cycle
     start = MPI_Wtime();
     AMG.setUpPhase(AMGV::Nit);
-    AMG.applyMultilevel(iterations, rhs, *xVcycle,tol,print);  
+    AMG.applyMultilevel(iterations, rhs, xVcycle,tol,print);  
     end = MPI_Wtime();
     if (mpi::rank2d == 0)
-        printf("[MPI process %d] time elapsed V-cycle AMG: %.4fs.\n\n", mpi::rank2d, end - start);
+        printf("[rank %d] time elapsed V-cycle AMG: %.4fs.\n\n", mpi::rank2d, end - start);
 }
+
+void Methods::Kcycle(const int iterations,const bool print){
+    if (mpi::rank2d == 0)
+        std::cout << "--------------Stand-alone AMG with a K-cycle----------------" << std::endl;
+
+    AlgebraicMG AMG(U, m0,AMGV::nu1, AMGV::nu2);
+    AMGV::cycle = 1; //K-cycle
+    start = MPI_Wtime();
+    AMG.setUpPhase(AMGV::Nit);
+    AMG.applyMultilevel(iterations, rhs, xKcycle,tol,print);  
+    end = MPI_Wtime();
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed K-cycle AMG: %.4fs.\n\n", mpi::rank2d, end - start);
+}
+
+void Methods::FGMRES_amg(const int nu1, const int nu2,const int cycle,const bool print){
+    if (mpi::rank2d == 0 && cycle == 0)
+        std::cout << "--------------FGMRES with AMG V-cycle--------------" << std::endl;
+    else if (mpi::rank2d == 0 && cycle == 1)
+        std::cout << "--------------FGMRES with AMG K-cycle--------------" << std::endl;
+    
+    start = MPI_Wtime();
+    FGMRES_AMG f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2, cycle,m0);
+    f_amg.fgmres(rhs,x0,xFGMRES_AMG,print);
+    end = MPI_Wtime();
+    
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed FGMRES AMG: %.4fs.\n\n", mpi::rank2d, end - start);
+}
+
 
 /*
 void Methods::check_solution(const spinor& x_sol){

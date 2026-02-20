@@ -167,7 +167,7 @@ public:
         //Test vectors
         tvec        = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
         tvec_copy   = std::vector<spinor>(Ntest,spinor(Ntot_halo*DOF));
-        
+
         //Coarse gauge links
         G1 = spinor(Ntot_halo*2*2*colors*colors);
         G2 = spinor(Ntot_halo*2*2*colors*colors*2);
@@ -242,7 +242,7 @@ public:
     }
 
     const spinor U; //Gauge configuration
-
+    
     //------------For gathering and scattering data when rank coarsening is necessary-----------//
     std::vector<spinor> tvec;       //[Ntest][(Nt+2).(Nx+2).colors.spins]
     std::vector<spinor> tvec_copy;  
