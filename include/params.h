@@ -29,6 +29,7 @@ void readParameters(const std::string& inputFile){
     int sap_block_x, sap_block_t;
     LevelV::RanksX[0] = mpi::ranks_x;
     LevelV::RanksT[0] = mpi::ranks_t;
+    int count = 1;
     //read parameters for level < max_level
     while (infile >> level >> block_x >> block_t >> ntest >> sap_block_x >> sap_block_t) {
         LevelV::BlocksX[level] = block_x;
@@ -52,7 +53,7 @@ void readParameters(const std::string& inputFile){
         LevelV::GMRES_restart_len[level] = 20;
         LevelV::GMRES_restarts[level] = 20;
         LevelV::GMRES_tol[level] = 1e-10;
-
+        count++;
     }
     //Store the number of sites and degrees of freedom for the coarsest lattice as well
     LevelV::Nsites[maxLevel] =   LevelV::BlocksX[maxLevel-1] * LevelV::BlocksT[maxLevel-1];
@@ -89,6 +90,11 @@ void readParameters(const std::string& inputFile){
    
 
     infile.close();
+    if (mpi::rank2d == 0 && count!=LevelV::levels){
+        std::cout << "The number of levels in the inputs file does not match the number of levels assigned on the terminal" << std::endl;
+        MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
+    }
+
     if (mpi::rank2d == 0)
         std::cout << "Parameters read from " << NameData.str() << std::endl;
 }
