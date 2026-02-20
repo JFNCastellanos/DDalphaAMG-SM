@@ -127,7 +127,7 @@ public:
 
         The convergence criterion is ||r|| < ||phi|| * tol
     */
-    int SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const bool& print);
+    int SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const bool print);
 
     int nu;
     int Nt, Nx;                     //Dimensions of the original lattice without halos

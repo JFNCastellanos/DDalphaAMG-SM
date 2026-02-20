@@ -7,14 +7,15 @@ project(DDalphaAMG VERSION 1.0)
 set(SOURCES
     src/variables.cpp           #Relevant parameters for the method, the lattice, MPI, etc.
     src/utils.cpp               #Utility functions
-    src/halo_exchange.cpp       #Implementation of the halo exchange for a field on the finest level.
+    src/halo_exchange.cpp       #Implementation of the halo exchange for a field on the finest level
     src/dirac_operator.cpp      #Implementation of D, D^+ on the finest level
     src/conjugate_gradient.cpp  #Conjugate gradient and Bi-cgstab (to compare solutions)
     src/fgmres.cpp              #FGMRES class
     src/sap.cpp                 #SAP class
     src/level.cpp               #Multigrid level class
-    src/tests.cpp
+    src/tests.cpp               #Different tests, to be removed in the future.
     src/amg.cpp                 #Algebraic multigrid
+    src/methods.cpp             #Class for comparing different matrix-inversion methods
     src/main.cpp                #Main program
 )
 

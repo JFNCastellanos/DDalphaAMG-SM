@@ -54,6 +54,56 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 	
 }
 
+void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
+    double tol = 1e-10;
+    int indx;
+	if (l == LevelV::maxLevel){
+		//For the coarsest level we use GMRES to find a solution
+		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);                         //psi_l = D_l^-1 eta_l 
+	}
+	else{
+		//Buffers
+        spinor Dpsi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));              //D_l psi_l
+		spinor r_l((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));               //r_l = eta_l - D_l psi_l
+		spinor eta_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //eta_{l+1}
+		spinor psi_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //psi_{l+1}
+		spinor P_psi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));             //P_l psi_{l+1}
+
+		//Pre - smoothing
+		if (nu1 > 0)
+			levels[l]->sap_l->SAP(eta_l,psi_l,nu1,tol,false); 
+		
+		//Coarse grid correction 
+		levels[l]->D_operator(psi_l,Dpsi); 
+        for (int x = 1; x <= levels[l]->Nx; x++) {
+        for (int t = 1; t <= levels[l]->Nt; t++) {
+	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
+            indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
+			r_l.val[indx] = eta_l.val[indx] - Dpsi.val[indx];                           //r_l = eta_l - D_l psi_l
+		}
+		}
+        }
+		levels[l]->Pdagg_v(r_l,eta_l_1);                                                //eta_{l+1} = P^H (eta_l - D_l psi_l)
+		v_cycle(l+1,eta_l_1,psi_l_1);                                                   //psi_{l+1} = V-Cycle(l+1,eta_{l+1})
+
+		levels[l]->P_vc(psi_l_1,P_psi);                                                 //P_psi = P_l psi_{l+1}
+
+		for (int x = 1; x <= levels[l]->Nx; x++) {
+        for (int t = 1; t <= levels[l]->Nt; t++) {
+	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
+            indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
+			psi_l.val[indx] += P_psi.val[indx];                                             //psi_l = psi_l + P_l psi_{l+1}
+		}
+		}
+        }
+
+		//Post - smoothing
+		if (AMGV::nu2 > 0)
+			levels[l]->sap_l->SAP(eta_l,psi_l,nu2,tol,false); 
+		
+	}	
+
+}
 
 
 

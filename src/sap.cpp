@@ -78,7 +78,7 @@ void SAP_C::I_D_B_1_It(const spinor& v, spinor& x,const int& block){
 
 
 
-int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const bool& print){  
+int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const bool print){  
     double err;
     double v_norm = sqrt(std::real(dot(v, v))); //norm of the right hand side
 

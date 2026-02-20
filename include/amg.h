@@ -77,7 +77,7 @@ public:
    
 
     // psi_l = V_cycle(l,eta_l)
-    //void v_cycle(const int& l, const spinor& eta_l, spinor& psi_l);
+    void v_cycle(const int& l, const spinor& eta_l, spinor& psi_l);
 
 	// psi_l = K_cycle(l,eta_l)
 	//void k_cycle(const int& l, const spinor& eta_l, spinor& psi_l);
