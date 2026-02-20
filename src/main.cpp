@@ -100,8 +100,8 @@ int main(int argc, char **argv) {
     int xblocks = 4, tblocks = 4;
     //methods.SAP(500,xblocks,tblocks,true);
     //methods.FGMRES_sap(m,restarts,true);
-    methods.Vcycle(100,true);
-    methods.Kcycle(100,true);
+    //methods.Vcycle(100,true);
+    //methods.Kcycle(100,true);
     int cycle = 1;
     methods.FGMRES_amg(AMGV::nu1,AMGV::nu2,cycle,true);
 
