@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
     std::ostringstream NameData;
     int i = 0;
     double beta = 2;
-    NameData << "../2D_U1_Ns" << LV::Nx << "_Nt" << LV::Nt
+    NameData << "../confs/2D_U1_Ns" << LV::Nx << "_Nt" << LV::Nt
                 << "_b" << format(beta)
                 << "_m" << format(mass::m0)
                 << "_" << i << ".ctxt";

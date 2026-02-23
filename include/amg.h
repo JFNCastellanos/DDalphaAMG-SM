@@ -104,15 +104,31 @@ public:
                 this, 
                 l);
 			fgmres_k_cycle_l.push_back(fgmres);
-            
     	}
 
-    
+        //Buffers for the V and K cycle
+        for(int l = 0; l<LevelV::maxLevel; l++){
+            spinor* buff1 = new spinor((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));
+            spinor* buff2 = new spinor((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));
+            spinor* buff3 = new spinor((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));
+            spinor* buff4 = new spinor((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF)); 
+            spinor* buff5 = new spinor((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF)); 
+            Dpsi_vec.push_back(buff1);
+            r_l_vec.push_back(buff2);
+            P_psi_vec.push_back(buff3);
+            eta_l_1_vec.push_back(buff4);
+            psi_l_1_vec.push_back(buff5);            
+        }    
     }    
     	
     ~AlgebraicMG() {
         for (auto ptr : levels) delete ptr;
-       // for (auto ptr : fgmres_k_cycle_l) delete ptr;
+        for (auto ptr : fgmres_k_cycle_l) delete ptr;
+        for (auto ptr : Dpsi_vec) delete ptr;
+        for (auto ptr : r_l_vec) delete ptr;
+        for (auto ptr : P_psi_vec) delete ptr;
+        for (auto ptr : eta_l_1_vec) delete ptr;
+        for (auto ptr : psi_l_1_vec) delete ptr;
     }
 
     //Pages 84 and 85 of Rottmann's thesis explain how to implement this ...
@@ -129,12 +145,30 @@ public:
 	void k_cycle(const int& l, const spinor& eta_l, spinor& psi_l);
     //Calls K or V-cycle depending on the value of AMGV::cycle. Stand-alone solver
     void applyMultilevel(const int& it, const spinor&rhs, spinor& out,const double tol,const bool print_message);
+
+    inline void clean_buffers(int l){
+        for(int i=0; i<(levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF); i++){
+            Dpsi_vec[l]->val[i]      = 0;
+            r_l_vec[l]->val[i]       = 0;
+            P_psi_vec[l]->val[i]     = 0;
+        }
+        for(int i=0; i<(levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF); i++){
+            eta_l_1_vec[l]->val[i]   = 0;
+            psi_l_1_vec[l]->val[i]   = 0;
+        }
+    }
 private:    
     const spinor U;
 	double m0; 
 	const int nu1; const int nu2; 
     std::vector<Level*> levels; //If I try to use a vector of objects I will run out of memory
 	std::vector<FGMRES_k_cycle*> fgmres_k_cycle_l; //Flexible GMRES used for the k-cycle on every level
+    std::vector<spinor*> Dpsi_vec;
+    std::vector<spinor*> r_l_vec;
+    std::vector<spinor*> P_psi_vec;
+    std::vector<spinor*> eta_l_1_vec;
+    std::vector<spinor*> psi_l_1_vec;
+
 
 };
 

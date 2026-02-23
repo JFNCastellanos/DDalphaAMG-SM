@@ -63,12 +63,12 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);                         //psi_l = D_l^-1 eta_l 
 	}
 	else{
-		//Buffers
-		spinor Dpsi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));              //D_l psi_l
-		spinor r_l((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));               //r_l = eta_l - D_l psi_l
-		spinor eta_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //eta_{l+1}
-		spinor psi_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //psi_{l+1}
-		spinor P_psi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));             //P_l psi_{l+1}
+		spinor &Dpsi = *Dpsi_vec[l];          //D_l psi_l
+		spinor &r_l = *r_l_vec[l];            //r_l = eta_l - D_l psi_l
+		spinor &eta_l_1 = *eta_l_1_vec[l];    //eta_{l+1}
+		spinor &psi_l_1 = *psi_l_1_vec[l];    //psi_{l+1}
+		spinor &P_psi = *P_psi_vec[l];        //P_l psi_{l+1}
+		clean_buffers(l);
 		
 		//Pre - smoothing
 		if (nu1 > 0)
@@ -116,12 +116,13 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false); //psi_l = D_l^-1 eta_l 
 	}
 	else{
-		//Buffers
-		spinor Dpsi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));              //D_l psi_l
-		spinor r_l((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));               //r_l = eta_l - D_l psi_l
-		spinor eta_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //eta_{l+1}
-		spinor psi_l_1((levels[l+1]->Nt+2)*(levels[l+1]->Nx+2)*(levels[l+1]->DOF));     //psi_{l+1}
-		spinor P_psi((levels[l]->Nt+2)*(levels[l]->Nx+2)*(levels[l]->DOF));             //P_l psi_{l+1}
+		spinor &Dpsi = *Dpsi_vec[l];          //D_l psi_l
+		spinor &r_l = *r_l_vec[l];            //r_l = eta_l - D_l psi_l
+		spinor &eta_l_1 = *eta_l_1_vec[l];    //eta_{l+1}
+		spinor &psi_l_1 = *psi_l_1_vec[l];    //psi_{l+1}
+		spinor &P_psi = *P_psi_vec[l];        //P_l psi_{l+1}
+		clean_buffers(l);
+		
 		
 
 		//Pre - smoothing
