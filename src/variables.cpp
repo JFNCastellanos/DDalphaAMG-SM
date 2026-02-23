@@ -3,8 +3,10 @@
 double pi=3.14159265359;
 c_double I_number(0, 1); //imaginary number
 
-MPI_Datatype sub_block_type;
-MPI_Datatype sub_block_resized;
+MPI_Datatype global_conf_type;
+MPI_Datatype global_conf_resized;
+MPI_Datatype local_conf_type;
+MPI_Datatype local_conf_resized;
 MPI_Datatype column_type;
 MPI_Datatype local_domain;
 MPI_Datatype local_domain_resized;
@@ -82,9 +84,7 @@ namespace AMGV {
     //Parameters for the coarse level solver. They can be changed in the main function
     int gmres_restarts_coarse_level = 10; 
     int gmres_restart_length_coarse_level = 20; //GMRES restart length for the coarse level
-    double gmres_tol_coarse_level = 1e-10; //GMRES tolerance for the coarse level
-
-    int gmres_restarts_smoother = 20; //Iterations for GMRES as a smoother (SAP is the default)
+    double gmres_tol_coarse_level = 0.1; //GMRES tolerance for the coarse level
 
     int nu1 = 0; //Pre-smoothing iterations
     int nu2 = 2; //Post-smoothing iterations

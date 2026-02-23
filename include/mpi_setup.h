@@ -200,7 +200,29 @@ inline void defineDataTypes(){
     MPI_Type_create_resized(sub_block_type, 0, extent * sizeof(std::complex<double>), &sub_block_resized);
     MPI_Type_commit(&sub_block_resized);
     */
-   
+
+   MPI_Type_vector(mpi::width_x,mpi::width_t*2,2*(mpi::width_t+2),MPI_DOUBLE_COMPLEX, &local_conf_type);
+    MPI_Type_commit(&local_conf_type);
+
+    //The displacement of local_domain_resized is in units of std::complex<double>
+    MPI_Type_create_resized(local_conf_type, 0, sizeof(std::complex<double>), &local_conf_resized);
+    MPI_Type_commit(&local_conf_resized);
+
+    // Gather inner domains from all ranks in the coarse communicator
+    // Buffer has size (Nx_coarse_rank+2)*(Nt_coarse_rank+2)*DOF
+    // Create a type that matches the global buffer layout (strided by full global row including halo)
+    MPI_Type_vector(mpi::width_x,                 // number of rows to place per rank
+        2 * mpi::width_t,               		// elements per row (complex numbers)
+        2 * (LV::Nt + 2),  	// stride between rows in global buffer (complex elements) including halo
+            MPI_DOUBLE_COMPLEX,
+            &global_conf_type);
+    MPI_Type_commit(&global_conf_type);
+
+    // Resize type so displacements are specified in units of one complex element
+    MPI_Type_create_resized(global_conf_type, 0, sizeof(std::complex<double>), &global_conf_resized);
+    MPI_Type_commit(&global_conf_resized);
+
+
     //Create datatype for the halo exchange
     MPI_Type_vector(mpi::width_x, LV::dof, (mpi::width_t+2)*LV::dof, MPI_DOUBLE_COMPLEX, &mpi::column_type[0]);
     MPI_Type_commit(&mpi::column_type[0]);

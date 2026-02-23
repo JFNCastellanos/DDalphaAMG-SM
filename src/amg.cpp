@@ -58,7 +58,7 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
     double tol = 1e-10;
     int indx;
-	if (l == LevelV::maxLevel){
+	if (l == LevelV::maxLevel && levels[l]->ranks_comm != MPI_COMM_NULL){
 		//For the coarsest level we use GMRES to find a solution
 		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);                         //psi_l = D_l^-1 eta_l 
 	}
@@ -84,8 +84,9 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 		}
 		}
         }
-		levels[l]->Pdagg_v(r_l,eta_l_1);                                                //eta_{l+1} = P^H (eta_l - D_l psi_l)
-		v_cycle(l+1,eta_l_1,psi_l_1);                                                   //psi_{l+1} = V-Cycle(l+1,eta_{l+1})
+		levels[l]->Pdagg_v(r_l,eta_l_1);          
+		if (levels[l+1]->ranks_comm != MPI_COMM_NULL)                                   //eta_{l+1} = P^H (eta_l - D_l psi_l)
+			v_cycle(l+1,eta_l_1,psi_l_1);                                                   //psi_{l+1} = V-Cycle(l+1,eta_{l+1})
 
 		levels[l]->P_vc(psi_l_1,P_psi);                                                 //P_psi = P_l psi_{l+1}
 
@@ -110,7 +111,7 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 	double tol = 1e-10;
     int indx;
-	if (l == LevelV::maxLevel){
+	if (l == LevelV::maxLevel && levels[l]->ranks_comm != MPI_COMM_NULL){
 		//For the coarsest level we just use GMRES to find a solution
 		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false); //psi_l = D_l^-1 eta_l 
 	}
@@ -140,7 +141,8 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
         }
 
 		levels[l]->Pdagg_v(r_l,eta_l_1); //eta_{l+1} = P^H (eta_l - D_l psi_l)
-		fgmres_k_cycle_l[l+1]->fgmres(eta_l_1,eta_l_1,psi_l_1,false);
+		if (levels[l+1]->ranks_comm != MPI_COMM_NULL)
+			fgmres_k_cycle_l[l+1]->fgmres(eta_l_1,eta_l_1,psi_l_1,false);
 		//psi_{l+1} = fgmres(l+1,eta_{l+1}) with K-cycle(l+1,rhs) as preconditioner
 
 		levels[l]->P_vc(psi_l_1,P_psi); //P_psi = P_l psi_{l+1}

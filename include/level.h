@@ -64,7 +64,7 @@ public:
     };
     SAP_level_l* sap_l; 
     //----------------------------------------------------------------------------//
-    //GMRES for the current level. We use it for solving the coarsest system. We could use it as as smoother as well.
+    //GMRES for the current level. We use it for solving the coarsest system. We could use it for smoothing as well.
     
     class GMRES_level_l : public FGMRES {
 	public:

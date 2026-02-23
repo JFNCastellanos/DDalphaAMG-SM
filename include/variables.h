@@ -15,8 +15,10 @@ namespace mass{extern double m0;}
 
 
 //Datatypes for reading/writing gauge confs and rhs
-extern MPI_Datatype sub_block_type;
-extern MPI_Datatype sub_block_resized;
+extern MPI_Datatype global_conf_type;
+extern MPI_Datatype global_conf_resized;
+extern MPI_Datatype local_conf_type;
+extern MPI_Datatype local_conf_resized;
 
 //------------mpi settings-----------------//
 namespace mpi{
