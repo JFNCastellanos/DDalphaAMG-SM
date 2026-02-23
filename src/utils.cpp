@@ -73,8 +73,7 @@ void printParameters(){
         std::cout << "* SAP blocks per rank" << std::endl;
         for(int l=0; l< levels-1; l++){
             std::cout << "| Level " << l << " Schwarz Block T " << SAP_Block_t[l] << " Schwarz Block X " << SAP_Block_x[l]  
-            << " Number of blocks " << SAP_Block_t[l]*SAP_Block_x[l] << 
-            " Each block has " << SAP_variables_per_block[l] << " variables" << std::endl;
+            << " Number of blocks " << SAP_Block_t[l]*SAP_Block_x[l] << std::endl;
         }
         std::cout << "---------------------------------------------------------------------------------------" << std::endl;
         std::cout << "* Sites and degrees of freedom at each level" << std::endl;
