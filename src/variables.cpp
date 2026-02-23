@@ -72,9 +72,9 @@ namespace BiCG{
 }
 
 namespace SAPV {
-    int sap_gmres_restart_length    = 10;        //GMRES restart length for the Schwarz blocks. 
-    int sap_gmres_restarts          = 10;        //GMRES iterations for the Schwarz blocks.
-    double sap_gmres_tolerance      = 1e-10;     //GMRES tolerance for the Schwarz blocks
+    int sap_gmres_restart_length    = 5;        //GMRES restart length for the Schwarz blocks. 
+    int sap_gmres_restarts          = 5;        //GMRES iterations for the Schwarz blocks.
+    double sap_gmres_tolerance      = 1e-3;     //GMRES tolerance for the Schwarz blocks
     double sap_tolerance            = 1e-10;    //Tolerance for the SAP method
 }
 

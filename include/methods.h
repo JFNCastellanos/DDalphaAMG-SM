@@ -14,7 +14,8 @@ public:
         xCG         = spinor(mpi::maxSizeH);
         xGMRES      = spinor(mpi::maxSizeH);
         xSAP        = spinor(mpi::maxSizeH);
-        xFGMRES_AMG = spinor(mpi::maxSizeH);
+        xFGMRES_AMG_kcycle = spinor(mpi::maxSizeH);
+        xFGMRES_AMG_vcycle = spinor(mpi::maxSizeH);
         xFGMRES_SAP = spinor(mpi::maxSizeH);
         xVcycle     = spinor(mpi::maxSizeH);
         xKcycle     = spinor(mpi::maxSizeH);
@@ -27,7 +28,8 @@ public:
     void SAP(const int iterations,const int xblocks, const int tblocks,const bool print);
     void FGMRES_sap(const int len, const int restarts,const bool print);
     
-    void FGMRES_amg(const int nu1, const int nu2,const int cycle,const bool print);
+    void FGMRES_amg_kcycle(const int nu1, const int nu2,const bool print);
+    void FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print);
     void Vcycle(const int iterations,const bool print);
     void Kcycle(const int iterations,const bool print);
     
@@ -37,7 +39,8 @@ public:
     spinor xCG;
     spinor xGMRES;
     spinor xSAP;
-    spinor xFGMRES_AMG;
+    spinor xFGMRES_AMG_kcycle;
+    spinor xFGMRES_AMG_vcycle;
     spinor xFGMRES_SAP;
     spinor xVcycle;
     spinor xKcycle;

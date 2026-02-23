@@ -145,11 +145,10 @@ class FGMRES_AMG : public FGMRES {
 
 public:
     FGMRES_AMG(const spinor& U, const int& m, const int& restarts, const double& tol,
-        const int nu1, const int nu2, const int cycle, const double& m0) : FGMRES(LV::Ntot,LV::dof,mpi::maxSizeH,
+        const int nu1, const int nu2,  const double& m0) : FGMRES(LV::Ntot,LV::dof,mpi::maxSizeH,
                                                             1, 1, mpi::width_x, mpi::width_t,
                                                             m, restarts, tol), 
-    U(U), m0(m0), nu1(nu1), nu2(nu2), cycle(cycle),amg(U, m0, nu1, nu2) {
-    AMGV::cycle = cycle;
+    U(U), m0(m0), nu1(nu1), nu2(nu2), amg(U, m0, nu1, nu2) {
     //--------Set up phase for AMG---------//
     double start = MPI_Wtime();
     amg.setUpPhase(AMGV::Nit);
@@ -164,31 +163,19 @@ public:
 
     ~FGMRES_AMG() { };
     
+    AlgebraicMG amg; //AMG instance for the two-grid method
 private:
     const spinor& U; //Gauge configuration
     const double& m0; //reference to mass parameter
     const int nu1;
     const int nu2;
-    const int cycle;
-    AlgebraicMG amg; //AMG instance for the two-grid method
+    
         
     void func(const spinor& in, spinor& out) override {
         D_phi(U, in, out, m0); 
     }
 
-    void preconditioner(const spinor& in, spinor& out) override {
-        for(int i = 0; i<mpi::maxSizeH; i++)
-            out.val[i] = 0;     
-		if (cycle == 0)
-			amg.v_cycle(0,in, out);
-		else if (cycle == 1)
-			amg.k_cycle(0,in, out);
-        else{
-            if (mpi::rank2d == 0)
-			    printf("Insert a valid cycle 0 (V-cycle) or 1 (K-cycle) in preconditioner of FGMRES_AMG. Instead %d was given\n",AMGV::cycle);
-            MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
-        }
-    }
+    virtual void preconditioner(const spinor& in, spinor& out) = 0; 
 
      /*
     dot product
@@ -243,5 +230,37 @@ private:
     }
 };
 
+
+class FGMRES_AMG_k_cycle : public FGMRES_AMG {
+public:
+    FGMRES_AMG_k_cycle(const spinor& U, const int& m, const int& restarts, const double& tol,
+        const int nu1, const int nu2, const double& m0) : FGMRES_AMG(U, m, restarts, tol,
+        nu1, nu2, m0){
+
+        }
+    ~FGMRES_AMG_k_cycle() { };
+            
+    void preconditioner(const spinor& in, spinor& out) override {
+        for(int i = 0; i<mpi::maxSizeH; i++)
+            out.val[i] = 0;
+		amg.k_cycle(0,in, out);
+    }
+};
+
+class FGMRES_AMG_v_cycle : public FGMRES_AMG {
+public:
+    FGMRES_AMG_v_cycle(const spinor& U, const int& m, const int& restarts, const double& tol,
+        const int nu1, const int nu2, const double& m0) : FGMRES_AMG(U, m, restarts, tol,
+        nu1, nu2, m0){
+
+        }
+    ~FGMRES_AMG_v_cycle() { };
+            
+    void preconditioner(const spinor& in, spinor& out) override {
+        for(int i = 0; i<mpi::maxSizeH; i++)
+            out.val[i] = 0;
+		amg.v_cycle(0,in, out);
+    }
+};
 
 #endif

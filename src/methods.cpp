@@ -55,7 +55,7 @@ void Methods::SAP(const int iterations, const int xblocks, const int tblocks,con
 
 void Methods::FGMRES_sap(const int len, const int restarts, const bool print){
     if (mpi::rank2d == 0)
-        std::cout << "--------------Flexible GMRES with SAP preconditioning version --------------" << std::endl;
+        std::cout << "--------------Flexible GMRES with SAP preconditioning--------------" << std::endl;
     
     int x_ini = 1, t_ini = 1, x_fin = mpi::width_x, t_fin = mpi::width_t;
     FGMRES_SAP fgmres_sap(LV::Ntot, LV::dof, mpi::maxSizeH,
@@ -87,7 +87,6 @@ void Methods::Vcycle(const int iterations,const bool print){
 void Methods::Kcycle(const int iterations,const bool print){
     if (mpi::rank2d == 0)
         std::cout << "--------------Stand-alone AMG with a K-cycle----------------" << std::endl;
-
     AlgebraicMG AMG(U, m0,AMGV::nu1, AMGV::nu2);
     AMGV::cycle = 1; //K-cycle
     start = MPI_Wtime();
@@ -98,21 +97,28 @@ void Methods::Kcycle(const int iterations,const bool print){
         printf("[rank %d] time elapsed K-cycle AMG: %.4fs.\n\n", mpi::rank2d, end - start);
 }
 
-void Methods::FGMRES_amg(const int nu1, const int nu2,const int cycle,const bool print){
-    if (mpi::rank2d == 0 && cycle == 0)
-        std::cout << "--------------FGMRES with AMG V-cycle--------------" << std::endl;
-    else if (mpi::rank2d == 0 && cycle == 1)
-        std::cout << "--------------FGMRES with AMG K-cycle--------------" << std::endl;
-    
-    start = MPI_Wtime();
-    FGMRES_AMG f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2, cycle,m0);
-    f_amg.fgmres(rhs,x0,xFGMRES_AMG,print);
-    end = MPI_Wtime();
-    
+void Methods::FGMRES_amg_kcycle(const int nu1, const int nu2,const bool print){
     if (mpi::rank2d == 0)
-        printf("[rank %d] time elapsed FGMRES AMG: %.4fs.\n\n", mpi::rank2d, end - start);
+        std::cout << "--------------FGMRES with AMG K-cycle--------------" << std::endl;
+    start = MPI_Wtime();
+    FGMRES_AMG_k_cycle f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2,m0);
+    f_amg.fgmres(rhs,x0,xFGMRES_AMG_kcycle,print);
+    end = MPI_Wtime();
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed FGMRES AMG K-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
 }
 
+
+void Methods::FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print){
+    if (mpi::rank2d == 0)
+        std::cout << "--------------FGMRES with AMG V-cycle--------------" << std::endl;
+    start = MPI_Wtime();
+    FGMRES_AMG_v_cycle f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2,m0);
+    f_amg.fgmres(rhs,x0,xFGMRES_AMG_vcycle,print);
+    end = MPI_Wtime();
+    if (mpi::rank2d == 0)
+        printf("[rank %d] time elapsed FGMRES AMG V-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
+}
 
 /*
 void Methods::check_solution(const spinor& x_sol){

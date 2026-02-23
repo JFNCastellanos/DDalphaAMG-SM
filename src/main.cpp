@@ -100,17 +100,18 @@ int main(int argc, char **argv) {
     read_binary(NameData.str(),U);
     double tol = 1e-10;
     Methods methods( U, rhs,  x0 ,m0,tol);
-    methods.BiCG(100000,true);
-    methods.CG(true);
+    //methods.BiCG(10000,true);
+    //methods.CG(true);
     int m = 20, restarts = 1000; 
-    methods.GMRES(m,restarts,true);
+    //methods.GMRES(m,restarts,true);
     int xblocks = 4, tblocks = 4;
     //methods.SAP(500,xblocks,tblocks,true);
-    methods.FGMRES_sap(m,restarts,true);
+    //methods.FGMRES_sap(m,restarts,true);
     //methods.Vcycle(100,true);
     //methods.Kcycle(100,true);
-    int cycle = 1;
-    methods.FGMRES_amg(AMGV::nu1,AMGV::nu2,cycle,true);
+    methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
+
+    methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
 
     //test_open_conf();
 
