@@ -50,3 +50,54 @@ c_double RandomU1() {
 	c_double z(cos(theta), sin(theta));
 	return z;
 }
+
+
+void printParameters(){
+    if (mpi::rank2d == 0){
+    using namespace LV; //Lattice parameters namespace
+        std::cout << "******************* Parameters summary *******************" << std::endl;
+        std::cout << "| Nx = " << Nx << " Nt = " << Nt << std::endl;
+        std::cout << "| Lattice dimension = " << (Nx * Nt) << std::endl;
+        std::cout << "| Number of entries of the Dirac matrix = (" << (2 * Nx * Nt) << ")^2" << std::endl;
+        std::cout << "| Bare mass m0 = " << mass::m0 << std::endl;
+        std::cout << "---------------------------------------------------------------------------------------" << std::endl;  
+        std::cout << "* Blocks, aggregates and test vectors at each level" << std::endl;
+        using namespace LevelV; //Lattice parameters namespace
+        for(int l=0; l< levels-1; l++){
+            std::cout << "| Level " << l << " Block X " << BlocksX[l] 
+            << " Block T " << BlocksT[l] << " Ntest " << Ntest[l] << " Nagg " << Nagg[l]
+            << " Number of lattice blocks " << NBlocks[l] 
+            << " Schwarz Block T " << SAP_Block_t[l] << " Schwarz Block X " << SAP_Block_x[l] << std::endl;
+        }
+        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+        std::cout << "* SAP blocks per rank" << std::endl;
+        for(int l=0; l< levels-1; l++){
+            std::cout << "| Level " << l << " Schwarz Block T " << SAP_Block_t[l] << " Schwarz Block X " << SAP_Block_x[l]  
+            << " Number of blocks " << SAP_Block_t[l]*SAP_Block_x[l] << 
+            " Each block has " << SAP_variables_per_block[l] << " variables" << std::endl;
+        }
+        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+        std::cout << "* Sites and degrees of freedom at each level" << std::endl;
+        for(int l=0; l< levels; l++){
+            std::cout << "| Level " << l << " Nsites " << Nsites[l] 
+            << " Nxsites " << NxSites[l] << " NtSites " << NtSites[l] << " DOF " << DOF[l]
+            << " Colors " << Colors[l] << std::endl;
+        }
+        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+        std::cout << "| GMRES restart length for SAP blocks = " << SAPV::sap_gmres_restart_length << std::endl;
+        std::cout << "| GMRES restarts for SAP blocks = " << SAPV::sap_gmres_restarts << std::endl;
+        std::cout << "| GMRES tolerance for SAP blocks = " << SAPV::sap_gmres_tolerance << std::endl;
+        std::cout << "---------------------------------------------------------------------------------------" << std::endl;
+        std::cout << "| Number of levels = " << levels << std::endl;
+        std::cout << "| nu1 (pre-smoothing) = " << AMGV::nu1 << " nu2 (post-smoothing) = " << AMGV::nu2 << std::endl;
+        std::cout << "| Number of iterations for improving the interpolator = " << AMGV::Nit << std::endl;
+        std::cout << "| Restart length of GMRES at the coarse level = " << LevelV::GMRES_restart_len[LevelV::maxLevel] << std::endl;
+        std::cout << "| Restarts of GMRES at the coarse level = " << LevelV::GMRES_restarts[LevelV::maxLevel] << std::endl;
+        std::cout << "| GMRES tolerance for the coarse level solution = " << LevelV::GMRES_tol[LevelV::maxLevel] << std::endl;
+        std::cout << "* FGMRES with AMG preconditioning parameters" << std::endl;
+        std::cout << "| FGMRES restart length = " << FGMRESV::fgmres_restart_length << std::endl;
+        std::cout << "| FGMRES restarts = " << FGMRESV::fgmres_restarts << std::endl;
+        std::cout << "| FGMRES tolerance = " << FGMRESV::fgmres_tolerance << std::endl;
+        std::cout << "*****************************************************************************************************" << std::endl;
+    }
+}

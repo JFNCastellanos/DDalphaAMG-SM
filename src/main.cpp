@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     if (mpi::rank == 0){
          //---Input data---//
         std::cout << " -----------------------------" << std::endl;
-        std::cout << "|   DDalpha-AMG Schwinger Model   |" << std::endl;
+        std::cout << "| DDalpha-AMG Schwinger Model |" << std::endl;
         std::cout << " -----------------------------" << std::endl;
         std::cout << "Nx " << LV::Nx << " Nt " << LV::Nt << std::endl;
         std::cout << "ranks_x: ";
@@ -54,32 +54,10 @@ int main(int argc, char **argv) {
     initializeMPI(); //2D rank topology
     readParameters("../inputs");
     boundaries();
+    printParameters();
 
     srand((mpi::rank2d+1));
     
-    
-    //int l = 0;
-    //AssembleP_Pdagg(l,U);
-    //Check_PPdagg(l,U);
-    //test_Doperator_fine_level(U);
-    //rank_agglomeration_test();
-    //gather_vector_test();
-    //scatter_vector_test();
-    //coarse_gauge_links_test(U);
-    //test_Dc(U);
-    //check_boundaries(U);
-    //test_P_vc_rank_coarsening(U);
-    //test_Pdagg_rank_coarsening(U);
-    //Check_PPdagg_coarsening(U);
-    //test_PPdagg_any_case(U);
-    //gather_tests();
-    //scatter_tests();
-    //test_Dc_with_rank_coarsening();
-    //test_SAP_in_level_0();
-    //test_SAP_in_every_level();
-    //test_gmres_coarse_level();
-
-    //test_AMG();
     spinor U(mpi::maxSizeH);
     spinor rhs(mpi::maxSizeH);
     spinor x0(mpi::maxSizeH); 
@@ -88,12 +66,14 @@ int main(int argc, char **argv) {
             int n = x*(mpi::width_t+2)+t;
             rhs.val[2*n]      = RandomU1();
             rhs.val[2*n+1]    = RandomU1();
+            U.val[2*n] = RandomU1();
+            U.val[2*n+1] = RandomU1();
         }
     }
     std::ostringstream NameData;
     int i = 0;
     double beta = 2;
-    NameData << "../2D_U1_Ns" << LV::Nx << "_Nt" << LV::Nt
+    NameData << "../confs/2D_U1_Ns" << LV::Nx << "_Nt" << LV::Nt
                 << "_b" << format(beta)
                 << "_m" << format(mass::m0)
                 << "_" << i << ".ctxt";

@@ -130,4 +130,9 @@ Generate a random U(1) variable
 */
 c_double RandomU1(); 
 
+void printParameters();
+
+
+
+
 #endif
