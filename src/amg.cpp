@@ -20,6 +20,7 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 	    }
     }
 	
+	
 	//v_l = P^dagger v_{l-1}
 	for(int l=1; l<LevelV::levels-1; l++){
 		for(int cc = 0; cc<levels[l]->Ntest;cc++){
@@ -39,6 +40,7 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 		}
 	}
 
+	
 	//Smoothing the test vectors
     for(int l=0; l<LevelV::levels-1; l++){
         spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
@@ -50,7 +52,7 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 		levels[l]->orthonormalize(); 
 		levels[l]->makeCoarseLinks(*levels[l+1]); 
 	}
-
+	
     if (mpi::rank2d == 0)std::cout << "Set-up phase finished" << std::endl;
 	
 }
@@ -86,7 +88,7 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
         }
 		levels[l]->Pdagg_v(r_l,eta_l_1);          
 		if (levels[l+1]->ranks_comm != MPI_COMM_NULL)                                   //eta_{l+1} = P^H (eta_l - D_l psi_l)
-			v_cycle(l+1,eta_l_1,psi_l_1);                                                   //psi_{l+1} = V-Cycle(l+1,eta_{l+1})
+			v_cycle(l+1,eta_l_1,psi_l_1);                                               //psi_{l+1} = V-Cycle(l+1,eta_{l+1})
 
 		levels[l]->P_vc(psi_l_1,P_psi);                                                 //P_psi = P_l psi_{l+1}
 
@@ -233,6 +235,8 @@ void AlgebraicMG::applyMultilevel(const int& it, const spinor&rhs, spinor& out,c
 //-------------------Tests for Set Up phase and SAP-------------------//
 
 void AlgebraicMG::testSetUp(){
+	if (mpi::rank2d == 0)
+		std::cout << "******Testing setup phase*******" << std::endl;
     for(int l = 0; l<LevelV::maxLevel; l++){
         if (mpi::rank2d == 0)
             std::cout << "Checking level " << l+1 << std::endl;
@@ -258,7 +262,7 @@ void AlgebraicMG::testSetUp(){
         levels[l]->D_operator(v,temp);
         levels[l]->Pdagg_v(temp,out2);
         
-        //Only check on the workinh ranks of the coarse level ...
+        //Only check on the working ranks of the coarse level ...
         if (levels[l+1]->ranks_comm != MPI_COMM_NULL){
             for(int x = 1; x<=levels[l+1]->Nx; x++){
                 for(int t = 1; t<=levels[l+1]->Nt; t++){
@@ -282,6 +286,8 @@ void AlgebraicMG::testSetUp(){
 }
 
 void AlgebraicMG::testSAP(){
+	if (mpi::rank2d == 0)
+		std::cout << "******Testing SAP*******" << std::endl;
     for(int l = 0; l<LevelV::levels; l++){
         //for(int l = 0; l<1; l++){
         if (levels[l]->ranks_comm != MPI_COMM_NULL){
@@ -299,12 +305,14 @@ void AlgebraicMG::testSAP(){
             }
     
    
-            double tol=1e-10;
+            double tol=1e-12;
             bool print=true;
-            int nu = 100;
+            int nu = 500;
    
+			if (mpi::rank2d == 0)
+				std::cout << "Test SAP for level " << l << std::endl;
+
             levels[l]->sap_l->SAP(rhs,x_level,nu,tol,print); //D^-1 rhs
-        
             levels[l]->D_operator(x_level,D_x_level);//D D^-1 rhs
 
             for(int x=1; x<=levels[l]->Nx; x++){
@@ -313,9 +321,10 @@ void AlgebraicMG::testSAP(){
                 int indx= (x*(levels[l]->Nt+2)+t)*levels[l]->DOF + dof;
                 if (std::abs(D_x_level.val[indx]-rhs.val[indx]) > 1e-8){
                     std::cout << "rhs /= D_operator (D^-1 rhs) on rank " << mpi::rank2d << " at level " << l << std::endl;
+					std::cout << "x, t, dof " << x << ", " << t << ", " << dof << std::endl;
                     std::cout << "D_x_level " << D_x_level.val[indx] << std::endl;
                     std::cout << "rhs       " << rhs.val[indx]  << std::endl;
-                    return ;
+                    //return ;
                 }
             }
             }

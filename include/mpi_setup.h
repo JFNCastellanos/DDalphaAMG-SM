@@ -106,8 +106,8 @@ inline void coarseLevelCommunicators(){
     int rx_ini, rx_fin, rt_ini, rt_fin;
 
     for(int rcl=0; rcl<mpi::ranks_coarse_level; rcl++){
-        rcl_x = rcl / mpi::ranks_t_c;
-        rcl_t = rcl % mpi::ranks_t_c;
+        rcl_x = rcl / mpi::coarse_ranks_x;
+        rcl_t = rcl % mpi::coarse_ranks_t;
         
         rx_ini = rcl_x*mpi::ranks_x_c; rx_fin = rx_ini + mpi::ranks_x_c; 
         rt_ini = rcl_t*mpi::ranks_t_c; rt_fin = rt_ini + mpi::ranks_t_c; 
@@ -158,8 +158,8 @@ inline void coarseLevelCommunicators(){
 
     //temp_comm is only defined for its member ranks
     if (temp_comm != MPI_COMM_NULL){
-        MPI_Comm_rank(temp_comm, &mpi::coarse_rank2d);
         MPI_Cart_create(temp_comm, 2, dims, periods, reorder, &mpi::comm_coarse_level);
+        MPI_Comm_rank(mpi::comm_coarse_level, &mpi::coarse_rank2d);
         //MPI_Cart_shift(cart_comm, Direction, Displacement, - direction,  +direction);
         //Along t direction
         MPI_Cart_shift(mpi::comm_coarse_level, 1, 1, &mpi::left_c, &mpi::right_c);
@@ -174,6 +174,7 @@ inline void coarseLevelCommunicators(){
         mpi::rank2d,mpi::coarse_rank2d, mpi::top_c, mpi::bot_c, mpi::right_c, mpi::left_c);
     }
     */
+    
    
 }
 

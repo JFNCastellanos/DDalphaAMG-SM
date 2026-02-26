@@ -68,6 +68,9 @@ void readParameters(const std::string& inputFile){
     LevelV::GMRES_restarts[maxLevel] = 20;
     LevelV::GMRES_tol[maxLevel] = 0.1;
 
+    for(level = 1; level<LevelV::levels; level++)
+        LevelV::D_operator_communicator[level] = MPI_COMM_NULL;
+
     LevelV::D_operator_communicator[0] = mpi::cart_comm;
     bool comm_is_cart_comm = true;
     for(level = 0; level<LevelV::levels-1; level++){
@@ -76,11 +79,16 @@ void readParameters(const std::string& inputFile){
         int ranks_per_block   = xranks_per_block*tranks_per_block;  //Number of ranks inside a lattice block
         if (ranks_per_block > 1 || comm_is_cart_comm == false){
             comm_is_cart_comm = false;
-            LevelV::D_operator_communicator[level+1] = mpi::comm_coarse_level;
             LevelV::RanksX[level+1] = mpi::coarse_ranks_x;
             LevelV::RanksT[level+1] = mpi::coarse_ranks_t;
+            if (mpi::comm_coarse_level != MPI_COMM_NULL){
+                //std::cout << "coarse comm only exists for rank " << mpi::rank2d << std::endl;
+                LevelV::D_operator_communicator[level+1] = mpi::comm_coarse_level;
+            }
         }
         else{
+            //if (mpi::rank2d == 0)
+            //    std::cout << "Level " << level+1 << " preserves the original communicator" << std::endl;
             LevelV::D_operator_communicator[level+1] = mpi::cart_comm;
             LevelV::RanksX[level+1] = mpi::ranks_x;
             LevelV::RanksT[level+1] = mpi::ranks_t;

@@ -5,7 +5,7 @@
 #include "params.h"
 #include "methods.h"
 #include "io.h"
-
+#include "tests.h"
 
 int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     initializeMPI(); //2D rank topology
     readParameters("../parameters");
     boundaries();
-    printParameters();
+    //printParameters();
     //--------------------------------------//
 
     srand((mpi::rank2d+1));
@@ -66,39 +66,29 @@ int main(int argc, char **argv) {
     spinor U(mpi::maxSizeH);
     spinor rhs(mpi::maxSizeH);
     spinor x0(mpi::maxSizeH);   //Zero vector as initial solution
-    /*
-    for(int x = 1; x<=mpi::width_x; x++){
-        for(int t = 1; t<=mpi::width_t; t++){
-            int n = x*(mpi::width_t+2)+t;
-            rhs.val[2*n]      = RandomU1();
-            rhs.val[2*n+1]    = RandomU1();
-            U.val[2*n] = RandomU1();
-            U.val[2*n+1] = RandomU1();
-        }
-    }
-    */
 
     read_binary(confFile,U);
     read_binary(rhsFile,rhs);
-
     
     double tol = 1e-10;
-    Methods methods( U, rhs,  x0 ,m0,tol);
+    //Methods methods(U,rhs,x0,m0,tol);
     //methods.BiCG(10000,true);
     //methods.CG(true);
-    int m = 20, restarts = 1000; 
+    //int m = 20, restarts = 1000; 
     //methods.GMRES(m,restarts,true);
-    int xblocks = 4, tblocks = 4;
+    //int xblocks = 4, tblocks = 4;
     //methods.SAP(500,xblocks,tblocks,true);
     //methods.FGMRES_sap(m,restarts,true);
     //methods.Vcycle(100,true);
     //methods.Kcycle(100,true);
-    methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
-    methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
+    //methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
+    //methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
     
+    
+    test_AMG();
+    //test_Dc_with_rank_coarsening();
 
-    //test_open_conf();
-
+    
 
  
     //Free coordinate arrays

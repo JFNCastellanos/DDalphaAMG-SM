@@ -198,9 +198,11 @@ void test_Dc_with_rank_coarsening(){
             }
             }  
         }   
-        levels[l]->orthonormalize();         //Orthonormalize test vectors
-        levels[l]->checkOrthogonality();     //Checking orthogonality   
+        levels[l]->orthonormalize();                //Orthonormalize test vectors
+        levels[l]->checkOrthogonality();            //Checking orthogonality   
         levels[l]->makeCoarseLinks(*levels[l+1]);        //Make coarse links
+        if (mpi::rank2d  == 0)
+            std::cout << "Proceed to level " << l+1 << std::endl;
     }
 
     
@@ -230,7 +232,7 @@ void test_Dc_with_rank_coarsening(){
         levels[l]->D_operator(v,temp);
         levels[l]->Pdagg_v(temp,out2);
         
-        //Only check on the workinh ranks of the coarse level ...
+        //Only check on the working ranks of the coarse level ...
         if (levels[l+1]->ranks_comm != MPI_COMM_NULL){
             for(int x = 1; x<=levels[l+1]->Nx; x++){
                 for(int t = 1; t<=levels[l+1]->Nt; t++){
@@ -243,14 +245,16 @@ void test_Dc_with_rank_coarsening(){
                             std::cout << "P^+ D P vc         " <<  out2.val[levels[l+1]->DOF*n+dof] << std::endl;
                             //std::cout << "vc                 " <<  vc.val[levels[l+1]->DOF*n+dof] << std::endl;
                             std::cout << std::endl;      
-                            return; 
+                            //return; 
                         }
                     } 
                 }
             }
-            std::cout << "Dc coincides with P^+ D P at level " << l+1  << " on rank " << mpi::rank2d << std::endl;
+            //std::cout << "Dc coincides with P^+ D P at level " << l+1  << " on rank " << mpi::rank2d << std::endl;
         }
             
+        if (mpi::rank2d == 0)
+            std::cout << "if no error was printed then all good" << std::endl;
         
         
     }
@@ -544,6 +548,7 @@ void test_AMG(){
     int nu2 = 2;
     int Nit = 1;
     AlgebraicMG AMG(U, mass::m0, nu1, nu2); 
+    //std::cout << "rank on cart comm " << mpi::rank2d << " rank on coarse comm " << mpi::coarse_rank2d << std::endl;
     AMG.setUpPhase(Nit);
     AMG.testSetUp();
     AMG.testSAP();

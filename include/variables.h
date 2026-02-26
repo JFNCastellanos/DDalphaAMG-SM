@@ -52,7 +52,7 @@ namespace mpi{
     extern MPI_Group cart_comm_group;                   //Group corresponding to cart_comm.
     extern MPI_Group* coarse_group;                     //Group of ranks associated with rank_c on the coarse grid.
     extern MPI_Comm* coarse_comm;                       //New communicator for agglomerated ranks
-    extern MPI_Comm comm_coarse_level;                  //Communciator for the working ranks on the coarse level
+    extern MPI_Comm comm_coarse_level;                  //Communicator for the working ranks on the coarse level
     extern int top_c;                                     
     extern int bot_c; 
     extern int right_c; 

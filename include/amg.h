@@ -112,7 +112,7 @@ public:
     	
     ~AlgebraicMG() {
         for (auto ptr : levels) delete ptr;
-       // for (auto ptr : fgmres_k_cycle_l) delete ptr;
+        for (auto ptr : fgmres_k_cycle_l) delete ptr;
     }
 
     //Pages 84 and 85 of Rottmann's thesis explain how to implement this ...
