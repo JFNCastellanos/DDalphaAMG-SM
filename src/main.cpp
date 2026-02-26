@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     read_binary(rhsFile,rhs);
     
     double tol = 1e-10;
-    //Methods methods(U,rhs,x0,m0,tol);
+    Methods methods(U,rhs,x0,m0,tol);
     //methods.BiCG(10000,true);
     //methods.CG(true);
     //int m = 20, restarts = 1000; 
@@ -81,14 +81,8 @@ int main(int argc, char **argv) {
     //methods.FGMRES_sap(m,restarts,true);
     //methods.Vcycle(100,true);
     //methods.Kcycle(100,true);
-    //methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
-    //methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
-    
-    
-    test_AMG();
-    //test_Dc_with_rank_coarsening();
-
-    
+    methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
+    methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
 
  
     //Free coordinate arrays

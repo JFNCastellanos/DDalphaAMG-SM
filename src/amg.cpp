@@ -45,14 +45,16 @@ void AlgebraicMG::setUpPhase(const int& Nit){
     for(int l=0; l<LevelV::levels-1; l++){
         spinor rhs((levels[l]->Nt+2)*(levels[l]->Nx+2)*levels[l]->DOF);
 		for (int cc = 0; cc <levels[l]->Ntest; cc++) {
+
 			//Approximately solving D x = 0 with AMGV::SAP_test_vectors_iterations. Tolerance is irrelevant here.
             bool print = false; double tol=1e-10;
-            levels[l]->sap_l->SAP(rhs,levels[l]->tvec[cc],AMGV::SAP_test_vectors_iterations,tol,print); //D^-1 rhs
+			if (levels[l]->ranks_comm != MPI_COMM_NULL)
+            	levels[l]->sap_l->SAP(rhs,levels[l]->tvec[cc],AMGV::SAP_test_vectors_iterations,tol,print); //D^-1 rhs
 		}
 		levels[l]->orthonormalize(); 
 		levels[l]->makeCoarseLinks(*levels[l+1]); 
 	}
-	
+
     if (mpi::rank2d == 0)std::cout << "Set-up phase finished" << std::endl;
 	
 }

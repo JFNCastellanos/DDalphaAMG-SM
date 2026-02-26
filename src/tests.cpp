@@ -548,7 +548,6 @@ void test_AMG(){
     int nu2 = 2;
     int Nit = 1;
     AlgebraicMG AMG(U, mass::m0, nu1, nu2); 
-    //std::cout << "rank on cart comm " << mpi::rank2d << " rank on coarse comm " << mpi::coarse_rank2d << std::endl;
     AMG.setUpPhase(Nit);
     AMG.testSetUp();
     AMG.testSAP();
