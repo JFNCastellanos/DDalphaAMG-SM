@@ -120,16 +120,23 @@ void Methods::FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print){
         printf("[rank %d] time elapsed FGMRES AMG V-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
 }
 
-/*
+
 void Methods::check_solution(const spinor& x_sol){
-    spinor xini(LV::Ntot, c_vector(2, 0)); //Initial guess
-    D_phi(GConf.Conf, x_sol, xini, m0); //D_phi U x
-    for(int i = 0; i< LV::Ntot; i++){
-        if (std::abs(xini[i][0] - rhs[i][0]) > 1e-8 || std::abs(xini[i][1] - rhs[i][1]) > 1e-8) {
-            std::cout << "Solution not correct at index " << i << ": " << xini[i][0] << " != " << rhs[i][0] << " or " << xini[i][1] << " != " << rhs[i][1] << std::endl;
-            return ;
+    spinor x(mpi::maxSizeH);
+    D_phi(U,x_sol,x,m0);
+    int index;
+    for (int nx=1;nx<=mpi::width_x;nx++){
+    for(int nt=1;nt<=mpi::width_t;nt++){
+    for(int mu=0; mu<2; mu++){
+        index = idx(nx,nt,mu);
+        if (std::abs(x.val[index]-rhs.val[index]) > 1e-8 ){
+            std::cout << "Solution differs at nx" << nx << " nt " << nt << " mu " << mu << " rank" << mpi::rank2d << std::endl;
+            std::cout << x.val[index] << "   " << rhs.val[index] << std::endl;
         }
     }
-    std::cout << "Solution is correct" << std::endl;
+    }
+    }
+
+    if (mpi::rank2d == 0)
+        std::cout << "All good with the solution!" << std::endl;
 }
-    */

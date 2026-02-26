@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
     initializeMPI(); //2D rank topology
     readParameters("../parameters");
     boundaries();
-    //printParameters();
+    printParameters();
     //--------------------------------------//
 
     srand((mpi::rank2d+1));
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
     //methods.Kcycle(100,true);
     methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
     methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
-
+    methods.check_solution(methods.xFGMRES_AMG_kcycle);
  
     //Free coordinate arrays
 
