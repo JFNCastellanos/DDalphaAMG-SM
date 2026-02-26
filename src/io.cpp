@@ -53,3 +53,18 @@ void read_binary(const std::string& name,const spinor& U){
         	local_conf_resized, 0, mpi::cart_comm);
 
 }
+
+
+void broadcast_file_name(std::string& File){
+    //Broadcast file name from rank 0 to other ranks
+    int filename_len = 0;
+    if (mpi::rank == 0) 
+        filename_len = static_cast<int>(File.size());
+
+    MPI_Bcast(&filename_len, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+    if (mpi::rank != 0) 
+        File.resize(filename_len);
+    
+    MPI_Bcast(File.data(), filename_len, MPI_CHAR, 0, MPI_COMM_WORLD);
+}

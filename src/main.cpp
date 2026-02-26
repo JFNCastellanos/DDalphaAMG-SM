@@ -1,11 +1,10 @@
 #include <time.h> 
 #include <ctime>
-#include <fstream>
 #include "conjugate_gradient.h"
 #include "sap.h"
-#include "tests.h"
 #include "params.h"
 #include "methods.h"
+#include "io.h"
 
 
 int main(int argc, char **argv) {
@@ -14,7 +13,8 @@ int main(int argc, char **argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &mpi::rank);
         
     //srand(mpi::rank*time(0));
-    
+    std::string confFile;
+    std::string rhsFile;
     
     
     double m0; //bare mass
@@ -35,32 +35,38 @@ int main(int argc, char **argv) {
         std::cin >> mpi::ranks_t;
         std::cout << "Levels: ";
         std::cin >> LevelV::levels;
-        //std::cout << "m0: ";
-        //std::cin >> m0;
-       
+        std::cout << "m0: ";
+        std::cin >> m0;
+        std::cout << "Configuration file path: ";
+        std::cin >> confFile;
+        std::cout << "RHS file path: ";
+        std::cin >> rhsFile;
     }
 
     MPI_Bcast(&mpi::ranks_x, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&mpi::ranks_t, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&LevelV::levels, 1, MPI_INT,  0, MPI_COMM_WORLD);
-    //MPI_Bcast(&m0, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
-    m0 = -0.1884;
+    MPI_Bcast(&m0, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
+    broadcast_file_name(confFile);
+    broadcast_file_name(rhsFile);
     mass::m0 = m0;
 
+    
     //The order in which these functions are called is very important
-
     LevelV::maxLevel = LevelV::levels-1;
     allocate_lattice_arrays(); 
     initializeMPI(); //2D rank topology
-    readParameters("../inputs");
+    readParameters("../parameters");
     boundaries();
     printParameters();
+    //--------------------------------------//
 
     srand((mpi::rank2d+1));
     
     spinor U(mpi::maxSizeH);
     spinor rhs(mpi::maxSizeH);
-    spinor x0(mpi::maxSizeH); 
+    spinor x0(mpi::maxSizeH);   //Zero vector as initial solution
+    /*
     for(int x = 1; x<=mpi::width_x; x++){
         for(int t = 1; t<=mpi::width_t; t++){
             int n = x*(mpi::width_t+2)+t;
@@ -70,14 +76,12 @@ int main(int argc, char **argv) {
             U.val[2*n+1] = RandomU1();
         }
     }
-    std::ostringstream NameData;
-    int i = 0;
-    double beta = 2;
-    NameData << "../confs/2D_U1_Ns" << LV::Nx << "_Nt" << LV::Nt
-                << "_b" << format(beta)
-                << "_m" << format(mass::m0)
-                << "_" << i << ".ctxt";
-    read_binary(NameData.str(),U);
+    */
+
+    read_binary(confFile,U);
+    read_binary(rhsFile,rhs);
+
+    
     double tol = 1e-10;
     Methods methods( U, rhs,  x0 ,m0,tol);
     //methods.BiCG(10000,true);
@@ -90,8 +94,8 @@ int main(int argc, char **argv) {
     //methods.Vcycle(100,true);
     //methods.Kcycle(100,true);
     methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
-
     methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
+    
 
     //test_open_conf();
 

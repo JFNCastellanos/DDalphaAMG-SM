@@ -60,6 +60,7 @@ void printParameters(){
         std::cout << "| Lattice dimension = " << (Nx * Nt) << std::endl;
         std::cout << "| Number of entries of the Dirac matrix = (" << (2 * Nx * Nt) << ")^2" << std::endl;
         std::cout << "| Bare mass m0 = " << mass::m0 << std::endl;
+        std::cout << "| Ranks_x = " << mpi::ranks_x << "  Ranks_t = " << mpi::ranks_t << std::endl;
         std::cout << "---------------------------------------------------------------------------------------" << std::endl;  
         std::cout << "* Blocks, aggregates and test vectors at each level" << std::endl;
         using namespace LevelV; //Lattice parameters namespace
