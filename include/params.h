@@ -103,6 +103,9 @@ void readParameters(const std::string& inputFile){
         MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
     }
 
-    if (mpi::rank2d == 0)
+    if (mpi::rank2d == 0){
         std::cout << "Parameters read from " << NameData.str() << std::endl;
+        if (comm_is_cart_comm == true)
+            std::cout << "No rank coarsening necessary" << std::endl;
+    }
 }

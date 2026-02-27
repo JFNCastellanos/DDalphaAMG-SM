@@ -91,9 +91,9 @@ void printParameters(){
         std::cout << "| Number of levels = " << levels << std::endl;
         std::cout << "| nu1 (pre-smoothing) = " << AMGV::nu1 << " nu2 (post-smoothing) = " << AMGV::nu2 << std::endl;
         std::cout << "| Number of iterations for improving the interpolator = " << AMGV::Nit << std::endl;
-        std::cout << "| Restart length of GMRES at the coarse level = " << LevelV::GMRES_restart_len[LevelV::maxLevel] << std::endl;
-        std::cout << "| Restarts of GMRES at the coarse level = " << LevelV::GMRES_restarts[LevelV::maxLevel] << std::endl;
-        std::cout << "| GMRES tolerance for the coarse level solution = " << LevelV::GMRES_tol[LevelV::maxLevel] << std::endl;
+        std::cout << "| Restart length of GMRES at the coarse level = " << AMGV::gmres_restart_length_coarse_level << std::endl;
+        std::cout << "| Restarts of GMRES at the coarse level = " << AMGV::gmres_restarts_coarse_level << std::endl;
+        std::cout << "| GMRES tolerance for the coarse level solution = " << AMGV::gmres_tol_coarse_level << std::endl;
         std::cout << "* FGMRES with AMG preconditioning parameters" << std::endl;
         std::cout << "| FGMRES restart length = " << FGMRESV::fgmres_restart_length << std::endl;
         std::cout << "| FGMRES restarts = " << FGMRESV::fgmres_restarts << std::endl;

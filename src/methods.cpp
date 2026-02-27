@@ -138,5 +138,5 @@ void Methods::check_solution(const spinor& x_sol){
     }
 
     if (mpi::rank2d == 0)
-        std::cout << "All good with the solution!" << std::endl;
+        std::cout << "Solution verified" << std::endl;
 }
