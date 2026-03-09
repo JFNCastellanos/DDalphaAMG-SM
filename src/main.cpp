@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
     //srand(mpi::rank*time(0));
     std::string confFile;
     std::string rhsFile;
+    std::string pFile;
     
     
     double m0; //bare mass
@@ -41,6 +42,8 @@ int main(int argc, char **argv) {
         std::cin >> confFile;
         std::cout << "RHS file path: ";
         std::cin >> rhsFile;
+        std::cout << "Method parameters file path: ";
+        std::cin >> pFile;
     }
 
     MPI_Bcast(&mpi::ranks_x, 1, MPI_INT,  0, MPI_COMM_WORLD);
@@ -49,6 +52,7 @@ int main(int argc, char **argv) {
     MPI_Bcast(&m0, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
     broadcast_file_name(confFile);
     broadcast_file_name(rhsFile);
+    broadcast_file_name(pFile);
     mass::m0 = m0;
 
     
@@ -56,7 +60,7 @@ int main(int argc, char **argv) {
     LevelV::maxLevel = LevelV::levels-1;
     allocate_lattice_arrays(); 
     initializeMPI(); //2D rank topology
-    readParameters("../parameters");
+    readParameters(pFile);
     boundaries();
     printParameters();
     //--------------------------------------//
@@ -84,11 +88,11 @@ int main(int argc, char **argv) {
     methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
     methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
     if (mpi::rank2d == 0)
-        std::cout << "Checking solution of v-cycle" << std::endl;
+        std::cout << "Checking solution of V-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_vcycle);
 
     if (mpi::rank2d == 0)
-        std::cout << "Checking solution of k-cycle" << std::endl;
+        std::cout << "Checking solution of K-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_kcycle);
  
     //Free coordinate arrays
