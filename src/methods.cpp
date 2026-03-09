@@ -5,9 +5,14 @@ void Methods::BiCG(const int max_it, const bool print){
         std::cout << "--------------Bi-CGstab inversion--------------" << std::endl;
     BiCG::max_iter = max_it;
     BiCG::tol = tol;
+    localFLOPS = 0;
+
     start = MPI_Wtime(); 
     bi_cgstab(U,rhs,x0,xBiCG,m0,print);
     end = MPI_Wtime(); 
+
+    mpi_reduceFLOPS();
+    printFLOPS(FLOPS);
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed Bi-CGstab: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -20,9 +25,15 @@ void Methods::GMRES(const int len, const int restarts,const bool print){
         x_ini, t_ini, 
         x_fin, t_fin, len, restarts, tol, U, m0);
     
+    localFLOPS = 0;
+
     start = MPI_Wtime(); 
     fgmres_fl.fgmres(rhs,x0,xGMRES,print);
     end = MPI_Wtime(); 
+
+    mpi_reduceFLOPS();
+    printFLOPS(FLOPS);
+
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed GMRES: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -30,9 +41,15 @@ void Methods::GMRES(const int len, const int restarts,const bool print){
 void Methods::CG(const bool print){
     if (mpi::rank2d == 0)
         std::cout << "--------Inverting the normal equations with CG----------" << std::endl; 
+
+    localFLOPS = 0;
+
     start = MPI_Wtime();
     conjugate_gradient(U, rhs, xCG, m0,print);
     end = MPI_Wtime();
+
+    mpi_reduceFLOPS();
+    printFLOPS(FLOPS);
 
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed CG: %.4fs.\n\n", mpi::rank2d, end - start);  
@@ -44,9 +61,15 @@ void Methods::SAP(const int iterations, const int xblocks, const int tblocks,con
         std::cout << "--------------SAP as stand-alone solver --------------" << std::endl;
     SAP_fine_level sap(mpi::width_x,  mpi::width_t, xblocks, tblocks, 2, 1);
     sap.set_params(U,mass::m0);
+
+    localFLOPS = 0;
+
     start = MPI_Wtime();
     sap.SAP(rhs,xSAP,iterations,tol,print);
     end = MPI_Wtime();
+
+    mpi_reduceFLOPS();
+    printFLOPS(FLOPS);
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed SAP: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -62,9 +85,14 @@ void Methods::FGMRES_sap(const int len, const int restarts, const bool print){
     x_ini, t_ini, 
     x_fin, t_fin, len, restarts, tol, U, m0); 
 
+    localFLOPS = 0;
+
     start = MPI_Wtime();
     fgmres_sap.fgmres(rhs,x0, xFGMRES_SAP,print);
     end = MPI_Wtime();
+
+    mpi_reduceFLOPS();
+    printFLOPS(FLOPS);
 
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed FGMRES_SAP: %.4fs.\n\n", mpi::rank2d, end - start);
@@ -100,10 +128,16 @@ void Methods::Kcycle(const int iterations,const bool print){
 void Methods::FGMRES_amg_kcycle(const int nu1, const int nu2,const bool print){
     if (mpi::rank2d == 0)
         std::cout << "--------------FGMRES with AMG K-cycle--------------" << std::endl;
+
+    localFLOPS = 0;
     start = MPI_Wtime();
     FGMRES_AMG_k_cycle f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2,m0);
     f_amg.fgmres(rhs,x0,xFGMRES_AMG_kcycle,print);
     end = MPI_Wtime();
+
+    mpi_reduceFLOPS();
+    printFLOPS(FLOPS);
+
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed FGMRES AMG K-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -112,10 +146,16 @@ void Methods::FGMRES_amg_kcycle(const int nu1, const int nu2,const bool print){
 void Methods::FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print){
     if (mpi::rank2d == 0)
         std::cout << "--------------FGMRES with AMG V-cycle--------------" << std::endl;
+
+    localFLOPS = 0; 
+    
     start = MPI_Wtime();
     FGMRES_AMG_v_cycle f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2,m0);
     f_amg.fgmres(rhs,x0,xFGMRES_AMG_vcycle,print);
     end = MPI_Wtime();
+
+    mpi_reduceFLOPS();
+    printFLOPS(FLOPS);
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed FGMRES AMG V-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
 }

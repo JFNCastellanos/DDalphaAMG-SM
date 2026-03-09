@@ -132,7 +132,15 @@ c_double RandomU1();
 
 void printParameters();
 
+inline void mpi_reduceFLOPS(){
+    FLOPS = 0;
+    MPI_Allreduce(&localFLOPS, &FLOPS, 1, MPI_LONG_LONG_INT, MPI_SUM, mpi::cart_comm);
+}
 
-
+inline void printFLOPS(const long long int& x){
+    long double y = x*1.0;
+    if (mpi::rank2d == 0)
+        std::cout << "GFLOPS = " << y/1e9 << std::endl;
+}
 
 #endif

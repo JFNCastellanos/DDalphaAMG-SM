@@ -3,6 +3,9 @@
 double pi=3.14159265359;
 c_double I_number(0, 1); //imaginary number
 
+long long int FLOPS=0;
+long long int localFLOPS=0;
+
 MPI_Datatype global_conf_type;
 MPI_Datatype global_conf_resized;
 MPI_Datatype local_conf_type;
