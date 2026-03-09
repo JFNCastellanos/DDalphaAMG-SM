@@ -22,6 +22,7 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
             n = x*(width_t+2)+t;
             r.val[2*n]   = phi.val[2*n]   - Ad.val[2*n]; //mu0
             r.val[2*n+1] = phi.val[2*n+1] - Ad.val[2*n+1]; //mu1
+            localFLOPS += 2*ca;
         }
     }
 
@@ -30,10 +31,12 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
     c_double r_norm2 = dot(r.val, r.val);
     
     double phi_norm2 = sqrt(std::real(dot(phi.val, phi.val)));
+    localFLOPS += dsq;
 
     while (k<CG::max_iter) {
         D_D_dagger_phi(U, d, Ad, m0); //DD^dagger*d 
         alpha = r_norm2 / dot(d.val, Ad.val); //alpha = (r_i,r_i)/(d_i,Ad_i)
+        localFLOPS += cd;
         for(int x = 1; x<=width_x; x++){
             for(int t = 1; t<=width_t; t++){
                 n =  x*(width_t+2)+t;
@@ -43,12 +46,14 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
                 //r = r - alpha * Ad; //r_{i+1} = r_i - alpha*Ad_i
                 r.val[2*n]      -= alpha*Ad.val[2*n];
                 r.val[2*n+1]    -= alpha*Ad.val[2*n+1];
+
+                localFLOPS += 4*ca;
             }
         }
         
         err_sqr = std::real(dot(r.val, r.val)); //err_sqr = (r_{i+1},r_{i+1})
-        //std::cout << "err_sqr " << err_sqr << std::endl;
 		err = sqrt(err_sqr); // err = sqrt(err_sqr)
+        localFLOPS += dsq;
         if (err < CG::tol*phi_norm2) {
             if (mpi::rank2d == 0 && print == true)
                 std::cout << "CG for DD^+ converged in " << k << " iterations" << " Error " << err << std::endl;
@@ -56,7 +61,7 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
         }
 
         beta = err_sqr / r_norm2; //beta = (r_{i+1},r_{i+1})/(r_i,r_i)
-
+        localFLOPS += cd;
         //d_{i+1} = r_{i+1} + beta*d_i 
         for(int x = 1; x<=width_x; x++){
             for(int t = 1; t<=width_t; t++){
@@ -65,6 +70,7 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
                 d.val[2*n+1]    *= beta;
                 d.val[2*n]      += r.val[2*n];
                 d.val[2*n+1]    += r.val[2*n+1];
+                localFLOPS += 2*ca+2*cm;
             }
         }
         r_norm2 = err_sqr;
@@ -98,7 +104,7 @@ int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, c
     axpy(phi,Dphi, -1.0, r); //r = b - A*x
     r_tilde = r;
 	double norm_phi = sqrt(std::real(dot(phi.val, phi.val))); //norm of the right hand side
-
+    localFLOPS += dsq;
     int index;
     while (k<BiCG::max_iter) {
         rho_i = dot(r.val, r_tilde.val); //r . r_dagger
@@ -107,12 +113,14 @@ int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, c
         }
         else {
             beta = alpha * rho_i / (omega * rho_i_2); //beta_{i-1} = alpha_{i-1} * rho_{i-1} / (omega_{i-1} * rho_{i-2})
+            localFLOPS += 2*cm+cd;
             //d = r + beta * (d - omega * Ad);
             for(int nx = 1; nx<=mpi::width_x; nx++){
             for(int nt = 1; nt<=mpi::width_t; nt++){
             for(int mu=0; mu<LV::dof; mu++){
                 index = idx(nx,nt,mu);
                 d.val[index] = r.val[index] + beta * (d.val[index] - omega * Ad.val[index]); //d_i = r_{i-1} + beta_{i-1} * (d_{i-1} - omega_{i-1} * Ad_{i-1})
+                localFLOPS += 2*ca+2*cm;
             }
             }
             }
@@ -120,6 +128,7 @@ int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, c
 
         D_phi(U, d, Ad, m0);  //A d_i 
         alpha = rho_i / dot(Ad.val, r_tilde.val); //alpha_i = rho_{i-1} / (Ad_i, r_tilde)
+        localFLOPS += cd;
         
         //s = r - alpha * Ad; //s = r_{i-1} - alpha_i * Ad_i
         for(int nx = 1; nx<=mpi::width_x; nx++){
@@ -127,11 +136,13 @@ int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, c
         for(int mu=0; mu<LV::dof; mu++){
                 index = idx(nx,nt,mu);
                 s.val[index] = r.val[index] - alpha * Ad.val[index]; //s_i = r_{i-1} - alpha_i * Ad_i
+                localFLOPS += ca+cm;
         }
         }
         }
 
         err = sqrt(std::real(dot(s.val, s.val)));
+        localFLOPS += dsq;
         
         if (err < BiCG::tol * norm_phi) {
             axpy(x,d, alpha, x); //x = x + alpha * d;
@@ -142,6 +153,7 @@ int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, c
         }
         D_phi(U, s, t,m0);   //A s
         omega = dot(s.val, t.val) / dot(t.val, t.val); //omega_i = t^dagg . s / t^dagg . t
+        localFLOPS += cd;
         //r = s - omega * t; 
         axpy(s,t,-omega,r); //r_i = s - omega_i * t
         //x = x + alpha * d + omega * s; 
@@ -150,6 +162,7 @@ int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, c
         for(int mu=0; mu<LV::dof; mu++){
                 index = idx(nx,nt,mu);
                 x.val[index] = x.val[index] + alpha * d.val[index] + omega * s.val[index]; //x_i = x_{i-1} + alpha_i * d_i + omega_i * s_i
+                localFLOPS += 2*ca+2*cm;
         }
         }
         }

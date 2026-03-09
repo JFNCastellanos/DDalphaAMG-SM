@@ -53,6 +53,7 @@ public:
                     for(int mu=0; mu<parent->DOF; mu++){
                         index = (x*(parent->Nt+2) + t)*parent->DOF + mu;
                         local_z += X.val[index] * std::conj(Y.val[index]);
+                        localFLOPS += ca+cm;
                     }
                 }
             }
@@ -99,6 +100,7 @@ public:
                     for(int mu=0; mu<DOF; mu++){
                     index = (x*(Nt+2) + t)*DOF + mu;
                     local_z += A[index] * std::conj(B[index]);
+                    localFLOPS += ca+cm;
                     }
                 }
             }
@@ -114,6 +116,7 @@ public:
                     for(int dof=0; dof<DOF; dof++){
                         index = x * (Nt+2) + t;
                         out.val[DOF*index+dof] = X.val[DOF*index+dof] + lambda * Y.val[DOF*index+dof];
+                        localFLOPS += ca+cm;
                     }
                 }
             }
@@ -128,6 +131,7 @@ public:
                     for(int dof=0; dof<DOF; dof++){
                         index = x * (Nt+2) + t;
                         Y.val[DOF*index+dof] = lambda * X.val[DOF*index+dof];
+                        localFLOPS += cm;
                     }
                 }
             }

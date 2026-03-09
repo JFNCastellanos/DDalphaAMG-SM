@@ -10,11 +10,14 @@ int FGMRES::fgmres(const spinor& phi, const spinor& x0, spinor& x, const bool& p
     axpy(phi,Dx, -1.0, r); //r = b - A*x
 	double norm_phi = sqrt(std::real(dot(phi.val, phi.val))); //norm of the right hand side
     double err = sqrt(std::real(dot(r.val, r.val))); //Initial error
+    localFLOPS += 2*dsq;
     int maxIt = m;
     int index;
     while (k < restarts) {
         beta = err + 0.0 * I_number;
+        localFLOPS += dd+dcm;
         scal(1.0/beta, r,VmT[0]); //VmT[0] = r / ||r||
+        localFLOPS += dcd; //Division 1/beta
         gm[0] = beta; //gm[0] = ||r||
         //-----Arnoldi process to build the Krylov basis and the Hessenberg matrix-----//
         for (int j = 0; j < m; j++) {
@@ -30,14 +33,17 @@ int FGMRES::fgmres(const spinor& phi, const spinor& x0, spinor& x, const bool& p
                 for(int mu=0; mu<dofs; mu++){
                     index = dofs*(nx*(Nt+2)+nt)+mu;
 					w.val[index] -= Hm[i][j] * VmT[i].val[index];
+                    localFLOPS += ca+cm;
 				}
 				}
                 }
             }
 
             Hm[j + 1][j] = sqrt(std::real(dot(w.val, w.val))); //H[j+1][j] = ||A v_j||
+            localFLOPS += dsq;
             if (std::real(Hm[j + 1][j]) > 0) {
                 scal(1.0 / Hm[j + 1][j], w, VmT[j + 1]); //VmT[j + 1] = w / ||A v_j||
+                localFLOPS += dcd;
             }
             //----Rotate the matrix----//
             rotation(j);
@@ -45,6 +51,7 @@ int FGMRES::fgmres(const spinor& phi, const spinor& x0, spinor& x, const bool& p
             //Rotate gm
             gm[j + 1] = -sn[j] * gm[j];
             gm[j] = std::conj(cn[j]) * gm[j];
+            localFLOPS += 2*cm;
             if (std::abs(gm[j+1]) < tol* norm_phi){
                 maxIt = j+1;
                 break;
@@ -60,6 +67,7 @@ int FGMRES::fgmres(const spinor& phi, const spinor& x0, spinor& x, const bool& p
             index = dofs*(nx*(Nt+2)+nt)+mu;
             for (int j = 0; j < maxIt; j++) {
                 x.val[index] = x.val[index] + eta[j] * ZmT[j].val[index]; 
+                localFLOPS += ca+cm;
             }
         }
         }
@@ -71,6 +79,7 @@ int FGMRES::fgmres(const spinor& phi, const spinor& x0, spinor& x, const bool& p
         
         
         err = sqrt(std::real(dot(r.val, r.val)));
+        localFLOPS += dsq;
         //Checking the residual evolution
         if (err < tol* norm_phi) {
             if (print_message == true && mpi::rank2d == 0){ 
@@ -94,11 +103,13 @@ void FGMRES::rotation(const int& j) {
 		temp = std::conj(cn[i]) * Hm[i][j] + std::conj(sn[i]) * Hm[i + 1][j];
 		Hm[i + 1][j] = -sn[i] * Hm[i][j] + cn[i] * Hm[i + 1][j];
 		Hm[i][j] = temp;
+        localFLOPS += (ca+2*cm)*2;
     }
     //Rotation of the diagonal and element right below the diagonal
     c_double den = sqrt(std::conj(Hm[j][j] ) * Hm[j][j] + std::conj(Hm[j + 1][j]) * Hm[j + 1][j]);
 	sn[j] = Hm[j + 1][j] / den; cn[j] = Hm[j][j] / den;
 	Hm[j][j] = std::conj(cn[j]) * Hm[j][j] + std::conj(sn[j]) * Hm[j + 1][j];
+    localFLOPS += dsq+ca+2*cm  +  2*cd  +  ca+2*cm;
     Hm[j + 1][j] = 0.0;
 
 }
@@ -109,7 +120,9 @@ void FGMRES::solve_upper_triangular(const c_matrix& A, const c_vector& b, const 
 		out[i] = b[i];
 		for (int j = i + 1; j < n; j++) {
 			out[i] -= A[i][j] * out[j];
+            localFLOPS += ca+cm;
 		}
 		out[i] /= A[i][i];
+        localFLOPS += cd;
 	}
 }

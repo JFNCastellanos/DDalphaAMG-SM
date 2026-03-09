@@ -72,6 +72,7 @@ inline c_double dot(c_double* A, c_double* B) {
             for(int mu=0; mu<LV::dof; mu++){
                 index = idx(x,t,mu);
                 local_z += A[index] * std::conj(B[index]);
+                localFLOPS += ca+cm;
             }
         }
     }
@@ -92,6 +93,7 @@ inline void axpy(const spinor& X, const spinor& Y, const T&lambda,  spinor& out)
             for(int mu=0; mu<LV::dof; mu++){
                 index = idx(x,t,mu);
                 out.val[index] = X.val[index] + lambda * Y.val[index];
+                localFLOPS += ca+cm;
             }
         }
     }
@@ -109,6 +111,7 @@ inline void scal(const T& lambda, const spinor& X, spinor& Y) {
             for(int mu=0; mu<LV::dof; mu++){
                 index = idx(x,t,mu);
                 Y.val[index] = lambda * X.val[index];
+                localFLOPS += cm;
             }
         }
     }

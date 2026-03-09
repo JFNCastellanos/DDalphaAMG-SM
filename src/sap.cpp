@@ -93,6 +93,7 @@ int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const 
     for(int dof=0;dof<dofs;dof++){
         n = nx*(Nt+2)+nt;
         r.val[dofs*n+dof] = v.val[dofs*n+dof] - Dphi.val[dofs*n+dof];  //r = v - D x
+        localFLOPS += ca;
     }
     }
     }
@@ -106,6 +107,7 @@ int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const 
                 m = mx * (t_elements + 2) + mt; 
             for(int dof = 0; dof<dofs; dof++){
                 x.val[dofs*Blocks[block][m]+dof] += DB_1_r.val[dofs*Blocks[block][m]+dof]; //x = x + D_B^-1 r
+                localFLOPS += ca;
             }
             }
             }
@@ -117,6 +119,7 @@ int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const 
         for(int dof=0;dof<dofs;dof++){
                 n = nx*(Nt+2)+nt;
                 r.val[dofs*n+dof] = v.val[dofs*n+dof] - Dphi.val[dofs*n+dof];  //r = v - D x
+                localFLOPS += ca;
         }
         }
         }
@@ -128,6 +131,7 @@ int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const 
                 m = mx * (t_elements + 2) + mt; 
             for(int dof = 0; dof<dofs; dof++){
                 x.val[dofs*Blocks[block][m]+dof] += DB_1_r.val[dofs*Blocks[block][m]+dof]; //x = x + D_B^-1 r
+                localFLOPS += ca;
             }
             }
             }
@@ -139,11 +143,13 @@ int SAP_C::SAP(const spinor& v,spinor &x,const int& nu, const double&tol, const 
         for(int dof=0;dof<dofs;dof++){
                 n = nx*(Nt+2)+nt;
                 r.val[dofs*n+dof] = v.val[dofs*n+dof] - Dphi.val[dofs*n+dof];  //r = v - D x
+                localFLOPS += ca;
         }
         }
         }
         //This dot function is a virtual function from SAP_C
         err = sqrt(std::real(dot(r, r))); 
+        localFLOPS += dsq;
         if (err < tol * v_norm) {
             if (print == true && mpi::rank2d == 0)
                 std::cout << "SAP converged in " << i << " iterations, error: " << err << std::endl;
@@ -206,6 +212,7 @@ void SAP_fine_level::D_B(const spinor& U, const spinor& v, spinor& x, const doub
 
     }
     }
+    localFLOPS += 2*81*x_elements*t_elements;
     
 }
 

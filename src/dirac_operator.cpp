@@ -49,6 +49,7 @@ void D_phi(const spinor& U, const spinor&  phi, spinor&  Dphi, const double& m0)
 			);
 		}
 	}
+	localFLOPS += 81*2*width_x*width_t;
 		
 }
 
@@ -80,6 +81,7 @@ void D_dagger_phi(const spinor&  U, const spinor&  phi, spinor&  Dphi, const dou
 			);
 		}
 	}	
+	localFLOPS += 81*2*width_x*width_t;
 }
 
 void D_D_dagger_phi(const spinor&  U, const spinor&  phi, spinor&  Dphi, const double& m0){

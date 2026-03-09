@@ -56,6 +56,8 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 	}
 
     if (mpi::rank2d == 0)std::cout << "Set-up phase finished" << std::endl;
+	mpi_reduceFLOPS();
+	printFLOPS(FLOPS);
 	
 }
 
@@ -85,6 +87,7 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
             indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
 			r_l.val[indx] = eta_l.val[indx] - Dpsi.val[indx];                           //r_l = eta_l - D_l psi_l
+			localFLOPS += ca;
 		}
 		}
         }
@@ -99,6 +102,7 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
             indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
 			psi_l.val[indx] += P_psi.val[indx];                                         //psi_l = psi_l + P_l psi_{l+1}
+			localFLOPS += ca;
 		}
 		}
         }
@@ -140,6 +144,7 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
         	indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
 			r_l.val[indx] = eta_l.val[indx] - Dpsi.val[indx];                           //r_l = eta_l - D_l psi_l
+			localFLOPS += ca;
 		}
 		}
         }
@@ -155,6 +160,7 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
             indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
 			psi_l.val[indx] += P_psi.val[indx];                                         //psi_l = psi_l + P_l psi_{l+1}
+			localFLOPS += cm;
 		}
 		}
         }
@@ -184,11 +190,13 @@ void AlgebraicMG::applyMultilevel(const int& it, const spinor&rhs, spinor& out,c
 	        for (int dof = 0; dof < levels[0]->DOF; dof++) {
                 indx = (x*(levels[0]->Nt+2)+t)*levels[0]->DOF+dof;
 				r.val[indx] = rhs.val[indx] - Dx.val[indx];
+				localFLOPS += ca;
 			}
 			}
             }
 		
 			err = sqrt(std::real(dot(r.val, r.val)));
+			localFLOPS += dsq;
         	if (err < tol* norm) {
             	if (print_message == true && mpi::rank2d == 0) {
             		std::cout << "V-cycle converged in " << i+1 << " cycles" << " Error " << err << std::endl;
@@ -209,11 +217,13 @@ void AlgebraicMG::applyMultilevel(const int& it, const spinor&rhs, spinor& out,c
 	        for (int dof = 0; dof < levels[0]->DOF; dof++) {
                 indx = (x*(levels[0]->Nt+2)+t)*levels[0]->DOF+dof;
 				r.val[indx] = rhs.val[indx] - Dx.val[indx];
+				localFLOPS += ca;
 			}
 			}
             }
 		
 			err = sqrt(std::real(dot(r.val, r.val)));
+			localFLOPS += dsq;
         	if (err < tol* norm) {
             	if (print_message == true && mpi::rank2d == 0) {
             		std::cout << "K-cycle converged in " << i+1 << " cycles" << " Error " << err << std::endl;

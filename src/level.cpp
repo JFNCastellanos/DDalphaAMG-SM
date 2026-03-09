@@ -128,6 +128,7 @@ void Level::P_vc(const spinor& vc,spinor& out){
 				idxout 	= x*(Nt_coarse_rank+2)*colors*2 					+ t*colors*2 		 + c*2 	+ s;
 				idxv 	= bx_shifted*(tblocks_per_coarse_rank+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + s;
 				v->val[idxout] += (*tv)[cc].val[idxout] * vc.val[idxv]; 
+				localFLOPS += ca+cm;
 			}
 			}
 			}
@@ -177,6 +178,7 @@ void Level::Pdagg_v(const spinor& v,spinor& out) {
 				idxout 	= bx_shifted*(tblocks_per_coarse_rank+2)*Ntest*2 	+ bt_shifted*Ntest*2 + cc*2 + s;
 				idxv 	= x*(Nt_coarse_rank+2)*colors*2 					+ t*colors*2 + c*2 	+ s;
 				out.val[idxout] += std::conj((*tv)[cc].val[idxv]) * vf->val[idxv];
+				localFLOPS += ca+cm;
 			}	
 			}
 			}
@@ -228,6 +230,7 @@ void Level::orthonormalize(){
 					for(int c=0; c<colors; c++){
 						indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
 						proj += (*tv)[nt].val[indx] * std::conj((*tv)[ntt].val[indx]);
+						localFLOPS += ca+cm;
 
 					}
 					}
@@ -237,6 +240,7 @@ void Level::orthonormalize(){
 					for(int c=0; c<colors; c++){
 						indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
 						(*tv)[nt].val[indx] -= proj * (*tv)[ntt].val[indx];
+						localFLOPS += ca+cm;
 
 					}
 					}
@@ -249,17 +253,21 @@ void Level::orthonormalize(){
 				for(int c=0; c<colors; c++){
 					indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
 					norm += (*tv)[nt].val[indx] * std::conj((*tv)[nt].val[indx]);
+					localFLOPS += ca+cm;
 
 				}
 				}
 				}
 				norm = sqrt(std::real(norm)) + 0.0*I_number;
+				localFLOPS += dsq;
 				for(int x=xini; x<xfin; x++){
 				for(int t=tini; t<tfin; t++){	
 				for(int c=0; c<colors; c++){
 					indx = x*(Nt_coarse_rank+2)*colors*2 + t*colors*2 + c*2 + s;
-					if (std::abs(norm) > 1e-8)
+					if (std::abs(norm) > 1e-8){
 						(*tv)[nt].val[indx] /= norm;	//For the ranks that don't gather the tv, norm is zero.
+						localFLOPS += cd;
+					}
 
 				}
 				}
@@ -308,6 +316,7 @@ void Level::makeDirac(){
 		for(int mu : {0,1}){
 			G2.val[getG2G3index(n,alf,bet,c,b,mu)] = 0.5 * M[mu][alf][bet] * U.val[2*n+mu];
 			G3.val[getG2G3index(n,alf,bet,c,b,mu)] = 0.5 * P[mu][alf][bet] * std::conj(U.val[2*lpb[2*n+mu]+mu]);
+			localFLOPS += (dcm+cm)*2;
 		}
 		
 	}
@@ -393,16 +402,19 @@ void Level::D_operator(const spinor& v, spinor& out){
 		for(int c = 0; c<colors; c++){
 			indx = n*colors*2+c*2+alf;
 			out.val[indx] = (mass::m0+2)*v.val[indx];
+			localFLOPS += da+dcm;
 		for(int bet = 0; bet<2; bet++){
 		for(int b = 0; b<colors; b++){
 			indx1 = n*colors*2+b*2+bet;
 			out.val[indx] -= G1.val[getG1index(n,alf,bet,c,b)] * v.val[indx1];
+			localFLOPS += ca+cm;
 			for(int mu:{0,1}){
 				indx1 = rpb_l(x,t,mu,Nx,Nt)*colors*2+b*2+bet;
 				indx2 = lpb_l(x,t,mu,Nx,Nt)*colors*2+b*2+bet;
 				out.val[indx] -= ( 	G2.val[getG2G3index(n,alf,bet,c,b,mu)] * rsign_l(t,mu) * v.val[indx1]
 								+ 	G3.val[getG2G3index(n,alf,bet,c,b,mu)] * lsign_l(t,mu) * v.val[indx2] 
 								);
+				localFLOPS += ca +ca + 4*cm;
 			}
 		}
 		}
@@ -484,6 +496,7 @@ void Level::makeCoarseLinks(Level& next_level){
 				//[w*_p^(block,alf)]_{c,alf}(x) [A(x)]^{alf,bet}_{c,b} [w_s^{block,bet}]_{b,bet}(x)
 				indx = n*colors*2 + c*2 + alf;
 				A_coeff.val[indxA] += std::conj((*w)[p].val[indx]) * g1->val[getG1index(n,alf,bet,c,b)] * (*w)[s].val[n*colors*2 + b*2 + bet];
+				localFLOPS += ca+cm*2;
 				for(int mu : {0,1}){
 					rn = rpb_l(x,t,mu,Nx_coarse_rank,Nt_coarse_rank); //(x,t)+hat{mu}
 					ln = lpb_l(x,t,mu,Nx_coarse_rank,Nt_coarse_rank); //(x,t)-hat{mu}
@@ -494,22 +507,27 @@ void Level::makeCoarseLinks(Level& next_level){
 
 					wG2 = std::conj((*w)[p].val[indx]) * g2->val[getG2G3index(n,alf,bet,c,b,mu)]; 
 					wG3 = std::conj((*w)[p].val[indx]) * g3->val[getG2G3index(n,alf,bet,c,b,mu)];
+					localFLOPS += 2*cm;
 
 					//Only diff from zero when n+hat{mu} in Block(x)
 					if (block_r == block){
 						A_coeff.val[indxA] 			+= wG2 * (*w)[s].val[rn*colors*2 + b*2 + bet];
+						localFLOPS += ca+cm;
 					}
 					//Only diff from zero when n+hat{mu} in Block(x+hat{mu})
 					else if (block_r == rb){
 						B_coeff.val[indxBC[mu]] 	+= wG2 * (*w)[s].val[rn*colors*2 + b*2 + bet]; 
+						localFLOPS += ca+cm;
 					}
 					//Only diff from zero when n-hat{mu} in Block(x)
 					if (block_l == block){
 						A_coeff.val[indxA] 			+= wG3 * (*w)[s].val[ln*colors*2 + b*2 + bet];
+						localFLOPS += ca+cm;
 					}
 					//Only diff from zero when n-hat{mu} in Block(x-hat{mu})
 					else if (block_l == lb){
 						C_coeff.val[indxBC[mu]] 	+= wG3 * (*w)[s].val[ln*colors*2 + b*2 + bet];
+						localFLOPS += ca+cm;
 					}
 				}//mu loop
 			}//b loop
@@ -610,10 +628,12 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 		for(int c = 0; c<colors; c++){
 			indx = m*colors*2+c*2+alf;
 			out.val[indx] = (mass::m0+2)*in.val[indx];
+			localFLOPS += da+dcm;
 				for(int bet = 0; bet<2; bet++){
 				for(int b = 0; b<colors; b++){
 					indx1 = m*colors*2+b*2+bet;
 					out.val[indx] -= parent->G1.val[parent->getG1index(n,alf,bet,c,b)] * in.val[indx1];
+					localFLOPS += ca+cm;
 					for(int mu:{0,1}){
 						indx1 = rpb_mu[mu]*colors*2+b*2+bet;
 						indx2 = lpb_mu[mu]*colors*2+b*2+bet;
@@ -621,6 +641,7 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 							( parent->G2.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx1]
 							+ parent->G3.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx2]
 							);
+						localFLOPS += ca+ca+4*cm;
 					}
 
 				}
