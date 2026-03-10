@@ -641,7 +641,7 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 							( parent->G2.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx1]
 							+ parent->G3.val[parent->getG2G3index(n,alf,bet,c,b,mu)] * in.val[indx2]
 							);
-						localFLOPS += ca+ca+4*cm;
+						localFLOPS += ca+ca+2*cm;
 					}
 
 				}

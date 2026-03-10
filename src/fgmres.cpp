@@ -106,7 +106,7 @@ void FGMRES::rotation(const int& j) {
         localFLOPS += (ca+2*cm)*2;
     }
     //Rotation of the diagonal and element right below the diagonal
-    c_double den = sqrt(std::conj(Hm[j][j] ) * Hm[j][j] + std::conj(Hm[j + 1][j]) * Hm[j + 1][j]);
+    c_double den = sqrt(std::real(std::conj(Hm[j][j] ) * Hm[j][j] + std::conj(Hm[j + 1][j]) * Hm[j + 1][j]));
 	sn[j] = Hm[j + 1][j] / den; cn[j] = Hm[j][j] / den;
 	Hm[j][j] = std::conj(cn[j]) * Hm[j][j] + std::conj(sn[j]) * Hm[j + 1][j];
     localFLOPS += dsq+ca+2*cm  +  2*cd  +  ca+2*cm;

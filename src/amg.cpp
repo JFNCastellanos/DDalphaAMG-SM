@@ -160,7 +160,7 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 	    for (int dof = 0; dof < levels[l]->DOF; dof++) {
             indx = (x*(levels[l]->Nt+2)+t)*levels[l]->DOF+dof;
 			psi_l.val[indx] += P_psi.val[indx];                                         //psi_l = psi_l + P_l psi_{l+1}
-			localFLOPS += cm;
+			localFLOPS += ca;
 		}
 		}
         }

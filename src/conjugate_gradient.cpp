@@ -47,7 +47,7 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
                 r.val[2*n]      -= alpha*Ad.val[2*n];
                 r.val[2*n+1]    -= alpha*Ad.val[2*n+1];
 
-                localFLOPS += 4*ca;
+                localFLOPS += 4*(ca+cm);
             }
         }
         

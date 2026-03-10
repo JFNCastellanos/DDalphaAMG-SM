@@ -12,7 +12,7 @@ inline void check_sol(const spinor& U,const spinor& rhs, const spinor& inverse, 
     spinor x(mpi::maxSizeH);
     D_phi(U,inverse,x,m0);
     int index;
-    for (int nx=1;nx<=mpi::width_x;nx++){
+    for(int nx=1;nx<=mpi::width_x;nx++){
     for(int nt=1;nt<=mpi::width_t;nt++){
     for(int mu=0; mu<2; mu++){
         index = idx(nx,nt,mu);

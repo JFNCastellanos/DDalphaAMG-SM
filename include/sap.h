@@ -218,6 +218,7 @@ private:
                 for(int mu=0; mu<LV::dof; mu++){
                     index = idx(x,t,mu);
                     local_z += X.val[index] * std::conj(Y.val[index]);
+                    localFLOPS += ca+cm;
                 }
             }
         }
