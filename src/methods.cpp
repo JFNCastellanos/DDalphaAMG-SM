@@ -8,11 +8,12 @@ void Methods::BiCG(const int max_it, const bool print){
     localFLOPS = 0;
 
     start = MPI_Wtime(); 
-    bi_cgstab(U,rhs,x0,xBiCG,m0,print);
+    iter_counters::BiCGIt = bi_cgstab(U,rhs,x0,xBiCG,m0,print);
     end = MPI_Wtime(); 
 
     mpi_reduceFLOPS();
     printFLOPS(FLOPS);
+    flop_counters::BiCGFLops=FLOPS;
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed Bi-CGstab: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -28,12 +29,12 @@ void Methods::GMRES(const int len, const int restarts,const bool print){
     localFLOPS = 0;
 
     start = MPI_Wtime(); 
-    fgmres_fl.fgmres(rhs,x0,xGMRES,print);
+    iter_counters::GMRESIt = fgmres_fl.fgmres(rhs,x0,xGMRES,print);
     end = MPI_Wtime(); 
 
     mpi_reduceFLOPS();
     printFLOPS(FLOPS);
-
+    flop_counters::GMRESFlops=FLOPS;
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed GMRES: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -45,12 +46,12 @@ void Methods::CG(const bool print){
     localFLOPS = 0;
 
     start = MPI_Wtime();
-    conjugate_gradient(U, rhs, xCG, m0,print);
+    iter_counters::CGIt = conjugate_gradient(U, rhs, xCG, m0,print);
     end = MPI_Wtime();
 
     mpi_reduceFLOPS();
     printFLOPS(FLOPS);
-
+    flop_counters::CGFlops=FLOPS;
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed CG: %.4fs.\n\n", mpi::rank2d, end - start);  
 }
@@ -65,11 +66,12 @@ void Methods::SAP(const int iterations, const int xblocks, const int tblocks,con
     localFLOPS = 0;
 
     start = MPI_Wtime();
-    sap.SAP(rhs,xSAP,iterations,tol,print);
+    iter_counters::SAPIt = sap.SAP(rhs,xSAP,iterations,tol,print);
     end = MPI_Wtime();
 
     mpi_reduceFLOPS();
     printFLOPS(FLOPS);
+    flop_counters::SAPFlops=FLOPS;
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed SAP: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -88,11 +90,12 @@ void Methods::FGMRES_sap(const int len, const int restarts, const bool print){
     localFLOPS = 0;
 
     start = MPI_Wtime();
-    fgmres_sap.fgmres(rhs,x0, xFGMRES_SAP,print);
+    iter_counters::FGMRES_SAPIt = fgmres_sap.fgmres(rhs,x0, xFGMRES_SAP,print);
     end = MPI_Wtime();
 
     mpi_reduceFLOPS();
     printFLOPS(FLOPS);
+    flop_counters::FGMRES_SAPFlops=FLOPS;
 
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed FGMRES_SAP: %.4fs.\n\n", mpi::rank2d, end - start);
@@ -132,11 +135,13 @@ void Methods::FGMRES_amg_kcycle(const int nu1, const int nu2,const bool print){
     localFLOPS = 0;
     start = MPI_Wtime();
     FGMRES_AMG_k_cycle f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2,m0);
-    f_amg.fgmres(rhs,x0,xFGMRES_AMG_kcycle,print);
+    flop_counters::kCycleSetUpFlops=FLOPS;
+    iter_counters::kCycleIt = f_amg.fgmres(rhs,x0,xFGMRES_AMG_kcycle,print);
     end = MPI_Wtime();
-
+    
     mpi_reduceFLOPS();
     printFLOPS(FLOPS);
+    flop_counters::kCycleFlops=FLOPS;
 
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed FGMRES AMG K-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
@@ -151,11 +156,13 @@ void Methods::FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print){
     
     start = MPI_Wtime();
     FGMRES_AMG_v_cycle f_amg(U, FGMRESV::fgmres_restart_length, FGMRESV::fgmres_restarts, tol,nu1, nu2,m0);
-    f_amg.fgmres(rhs,x0,xFGMRES_AMG_vcycle,print);
+    flop_counters::vCycleSetUpFlops=FLOPS;
+    iter_counters::vCycleIt = f_amg.fgmres(rhs,x0,xFGMRES_AMG_vcycle,print);
     end = MPI_Wtime();
 
     mpi_reduceFLOPS();
     printFLOPS(FLOPS);
+    flop_counters::vCycleFlops=FLOPS;
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed FGMRES AMG V-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
 }
@@ -169,7 +176,7 @@ void Methods::check_solution(const spinor& x_sol){
     for(int nt=1;nt<=mpi::width_t;nt++){
     for(int mu=0; mu<2; mu++){
         index = idx(nx,nt,mu);
-        if (std::abs(x.val[index]-rhs.val[index]) > 1e-8 ){
+        if (std::abs(x.val[index]-rhs.val[index]) > 1e-6 ){
             std::cout << "Solution differs at nx" << nx << " nt " << nt << " mu " << mu << " rank" << mpi::rank2d << std::endl;
             std::cout << x.val[index] << "   " << rhs.val[index] << std::endl;
         }

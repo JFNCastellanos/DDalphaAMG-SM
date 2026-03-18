@@ -6,6 +6,28 @@ c_double I_number(0, 1); //imaginary number
 long long int FLOPS=0;
 long long int localFLOPS=0;
 
+namespace iter_counters{
+    long long int kCycleIt=-1;
+    long long int vCycleIt=-1;
+    long long int CGIt=-1;
+    long long int BiCGIt=-1;
+    long long int GMRESIt=-1;
+    long long int SAPIt=-1;
+    long long int FGMRES_SAPIt=-1;
+}
+namespace flop_counters{
+    long long int kCycleFlops=-1;
+    long long int vCycleFlops=-1;
+    long long int kCycleSetUpFlops=-1;
+    long long int vCycleSetUpFlops=-1;
+    long long int CGFlops=-1;
+    long long int BiCGFLops=-1;
+    long long int GMRESFlops=-1;
+    long long int SAPFlops=-1;
+    long long int FGMRES_SAPFlops=-1;
+
+}
+
 MPI_Datatype global_conf_type;
 MPI_Datatype global_conf_resized;
 MPI_Datatype local_conf_type;
@@ -23,6 +45,7 @@ int Coords(const int& x, const int& t){
 }
 
 namespace mass{double m0;}
+
 
 namespace mpi{
     int rank = 0;

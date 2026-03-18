@@ -56,8 +56,8 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
         localFLOPS += dsq;
         if (err < CG::tol*phi_norm2) {
             if (mpi::rank2d == 0 && print == true)
-                std::cout << "CG for DD^+ converged in " << k << " iterations" << " Error " << err << std::endl;
-            return 1;
+                std::cout << "CG for DD^+ converged in " << k+1 << " iterations" << " Error " << err << std::endl;
+            return k+1;
         }
 
         beta = err_sqr / r_norm2; //beta = (r_{i+1},r_{i+1})/(r_i,r_i)
@@ -149,7 +149,7 @@ int bi_cgstab(const spinor& U, const spinor& phi, const spinor& x0, spinor& x, c
             if (print_message == true && mpi::rank2d == 0) {
                 std::cout << "Bi-CG-stab for D converged in " << k+1 << " iterations" << " Error " << err << std::endl;
             }
-            return k;
+            return k+1;
         }
         D_phi(U, s, t,m0);   //A s
         omega = dot(s.val, t.val) / dot(t.val, t.val); //omega_i = t^dagg . s / t^dagg . t

@@ -3,6 +3,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <sstream>
+#include <string> 
 #include <random>
 #include "variables.h"
 
@@ -134,6 +136,7 @@ Generate a random U(1) variable
 c_double RandomU1(); 
 
 void printParameters();
+
 
 inline void mpi_reduceFLOPS(){
     FLOPS = 0;

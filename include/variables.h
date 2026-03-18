@@ -27,6 +27,28 @@ constexpr long long int dsq = 1;    //  sqrt(double) = 1 FLOP
 extern long long int FLOPS;
 extern long long int localFLOPS;
 
+namespace iter_counters{
+    extern long long int kCycleIt;
+    extern long long int vCycleIt;
+    extern long long int CGIt;
+    extern long long int BiCGIt;
+    extern long long int GMRESIt;
+    extern long long int SAPIt;
+    extern long long int FGMRES_SAPIt;
+}
+namespace flop_counters{
+    extern long long int kCycleFlops;
+    extern long long int vCycleFlops;
+    extern long long int kCycleSetUpFlops;
+    extern long long int vCycleSetUpFlops;
+    extern long long int CGFlops;
+    extern long long int BiCGFLops;
+    extern long long int GMRESFlops;
+    extern long long int SAPFlops;
+    extern long long int FGMRES_SAPFlops;
+
+}
+
 
 //Datatypes for reading/writing gauge confs and rhs
 extern MPI_Datatype global_conf_type;

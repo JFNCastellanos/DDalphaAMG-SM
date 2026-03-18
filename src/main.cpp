@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     
     double m0; //bare mass
     
-    CG::max_iter = 10000; //Maximum number of iterations for the conjugate gradient method
+    CG::max_iter = 20000; //Maximum number of iterations for the conjugate gradient method
     CG::tol = 1e-10; //Tolerance for convergence
 
     //To call the sequential program one has to choose ranks_x = ranks_t = 1
@@ -66,7 +66,6 @@ int main(int argc, char **argv) {
     //--------------------------------------//
 
     srand((mpi::rank2d+1));
-    
     spinor U(mpi::maxSizeH);
     spinor rhs(mpi::maxSizeH);
     spinor x0(mpi::maxSizeH);   //Zero vector as initial solution
@@ -96,6 +95,8 @@ int main(int argc, char **argv) {
     methods.check_solution(methods.xFGMRES_AMG_kcycle);
  
     //Free coordinate arrays
+    int cycle = 1; //V
+    writeMetadata(cycle,tol);
 
     free_lattice_arrays();
     MPI_Finalize();
