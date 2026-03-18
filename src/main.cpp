@@ -82,8 +82,8 @@ int main(int argc, char **argv) {
     int xblocks = 4, tblocks = 4;
     methods.SAP(100,xblocks,tblocks,true);
     methods.FGMRES_sap(m,restarts,true);
-    //methods.Vcycle(100,true);
-    //methods.Kcycle(100,true);
+    methods.Vcycle(100,true);
+    methods.Kcycle(100,true);
     methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
     methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
     if (mpi::rank2d == 0)
