@@ -159,7 +159,7 @@ void save_rhs(int i, spinor& rhs){
 
         //x, t, mu, real part, imaginary part
         for (int x = 0; x < LV::Nx; x++) {
-        for (int t = 1; t < LV::Nt; t++) {
+        for (int t = 0; t < LV::Nt; t++) {
             int n = x*LV::Nt + t;
              for (int mu = 0; mu < 2; mu++) {
                 const double& re = std::real(rhs.val[2*n+mu]);

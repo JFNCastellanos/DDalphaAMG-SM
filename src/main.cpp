@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
         for(int i=0;i<nrhs;i++){
             spinor rhs(2*LV::Nx*LV::Nt);
             for (int x = 0; x < LV::Nx; x++) {
-            for (int t = 1; t < LV::Nt; t++) {
+            for (int t = 0; t < LV::Nt; t++) {
                 int n = x * LV::Nt + t;
                 for (int mu = 0; mu < 2; mu++) {
                     rhs.val[2*n+mu] = distribution(randomInt) + I_number * distribution(randomInt);

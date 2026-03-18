@@ -20,27 +20,27 @@ set(SOURCES
     src/main.cpp                #Main program
 )
 
-set(NS "256")   #Lattice dimension x
-set(NT "256")   #Lattice dimension t
+set(NS "64")   #Lattice dimension x
+set(NT "64")   #Lattice dimension t
 
 configure_file(${CMAKE_SOURCE_DIR}/include/config.h.in ${CMAKE_SOURCE_DIR}/include/config.h)
 
 
-add_executable("DDAlpha_${NS}x${NT}" ${SOURCES})
+add_executable("rhs_${NS}x${NT}" ${SOURCES})
 
 
-target_include_directories("DDAlpha_${NS}x${NT}"
+target_include_directories("rhs_${NS}x${NT}"
         PUBLIC 
         ${PROJECT_SOURCE_DIR}/include
 )
-target_compile_options("DDAlpha_${NS}x${NT}" PRIVATE
+target_compile_options("rhs_${NS}x${NT}" PRIVATE
 			-O3
             #-g #For profiling
 )
 
 
 find_package(MPI REQUIRED)
-target_link_libraries("DDAlpha_${NS}x${NT}" PUBLIC MPI::MPI_CXX)
+target_link_libraries("rhs_${NS}x${NT}" PUBLIC MPI::MPI_CXX)
 
 
 #PROJECT_SOURCE_DIR: it indicates where src is located
