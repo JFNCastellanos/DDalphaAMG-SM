@@ -14,6 +14,9 @@ void read_binary(const std::string& name,const spinor& U);
 
 void broadcast_file_name(std::string& name);
 
+void save_rhs(int i,spinor& rhs);
+
+
 void writeMetadata(int cycle,double tol);
 
 #endif

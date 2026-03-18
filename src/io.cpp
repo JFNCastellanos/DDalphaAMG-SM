@@ -144,3 +144,37 @@ void writeMetadata(int cycle,double tol){
     }
 
 }
+
+void save_rhs(int i, spinor& rhs){
+    if (mpi::rank2d == 0) {
+        //rhs_conf0_256x256_b20000_m-01884.rhs
+        std::ostringstream FileName;
+        FileName << "rhs_conf" << i << "_" << LV::Nx << "x" << LV::Nt << ".rhs"; 
+
+        std::ofstream rhsfile(FileName.str(), std::ios::binary);
+        if (!rhsfile) {
+            std::cerr << "Cannot open file " << FileName.str() << std::endl;
+            exit(1);
+        }
+
+        //x, t, mu, real part, imaginary part
+        for (int x = 0; x < LV::Nx; x++) {
+        for (int t = 1; t < LV::Nt; t++) {
+            int n = x*LV::Nt + t;
+             for (int mu = 0; mu < 2; mu++) {
+                const double& re = std::real(rhs.val[2*n+mu]);
+                const double& im = std::imag(rhs.val[2*n+mu]);                
+                rhsfile.write(reinterpret_cast<const char*>(&x), sizeof(int));
+                rhsfile.write(reinterpret_cast<const char*>(&t), sizeof(int));
+                rhsfile.write(reinterpret_cast<const char*>(&mu), sizeof(int));
+                rhsfile.write(reinterpret_cast<const char*>(&re), sizeof(double));
+                rhsfile.write(reinterpret_cast<const char*>(&im), sizeof(double));
+            }
+        }
+        }
+        rhsfile.close();
+    
+
+    }
+}
+ 
