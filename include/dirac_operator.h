@@ -25,7 +25,7 @@ void D_dagger_phi(const spinor& U, const spinor& phi, spinor& Dphi, const double
 
 
 /*
-	Application of D D^+
+	Application of D^+ D
 	It calls the previous functions
 */
 void D_D_dagger_phi(const spinor& U, const spinor& phi, spinor& Dphi, const double& m0);

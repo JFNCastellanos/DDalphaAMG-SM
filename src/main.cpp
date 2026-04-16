@@ -75,31 +75,34 @@ int main(int argc, char **argv) {
     
     double tol = 1e-10;
     Methods methods(U,rhs,x0,m0,tol);
-    methods.BiCG(10000,true);
+    //methods.BiCG(10000,true);
     methods.CG(true);
     int m = 20, restarts = 1000; 
-    methods.GMRES(m,restarts,true);
+    //methods.GMRES(m,restarts,true);
     int xblocks = 4, tblocks = 4;
-    methods.SAP(100,xblocks,tblocks,true);
-    methods.FGMRES_sap(m,restarts,true);
-    methods.Vcycle(100,true);
-    methods.Kcycle(100,true);
+    //methods.SAP(100,xblocks,tblocks,true);
+    //methods.FGMRES_sap(m,restarts,true);
+    //methods.Vcycle(100,true);
+    //methods.Kcycle(100,true);
     methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
     methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
     if (mpi::rank2d == 0)
         std::cout << "Checking solution of V-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_vcycle);
+    writeMetadata(0,tol);
 
     if (mpi::rank2d == 0)
         std::cout << "Checking solution of K-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_kcycle);
- 
-    //Free coordinate arrays
-    int cycle = 1; //V
-    writeMetadata(cycle,tol);
+    writeMetadata(1,tol);
 
+
+     //Free coordinate arrays
     free_lattice_arrays();
     MPI_Finalize();
 
 	return 0;
 }
+
+//-0.18840579710144945
+//-0.1868

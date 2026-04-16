@@ -45,8 +45,10 @@ void Methods::CG(const bool print){
 
     localFLOPS = 0;
 
+    spinor D_dagg_psi(mpi::maxSizeH);
+    D_dagger_phi(U, rhs, D_dagg_psi, m0);
     start = MPI_Wtime();
-    iter_counters::CGIt = conjugate_gradient(U, rhs, xCG, m0,print);
+    iter_counters::CGIt = conjugate_gradient(U, D_dagg_psi, xCG, m0,print);
     end = MPI_Wtime();
 
     mpi_reduceFLOPS();

@@ -56,7 +56,7 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
         localFLOPS += dsq;
         if (err < CG::tol*phi_norm2) {
             if (mpi::rank2d == 0 && print == true)
-                std::cout << "CG for DD^+ converged in " << k+1 << " iterations" << " Error " << err << std::endl;
+                std::cout << "CG for D^+D converged in " << k+1 << " iterations" << " Error " << err << std::endl;
             return k+1;
         }
 
@@ -78,7 +78,7 @@ int conjugate_gradient(const spinor& U, const spinor& phi, spinor& sol, const do
     }
 
     if (rank2d == 0)
-        std::cout << "CG for DD^+ did not converge in " << CG::max_iter << " iterations" << " Error " << err << std::endl;
+        std::cout << "CG for D^+D did not converge in " << CG::max_iter << " iterations" << " Error " << err << std::endl;
     return 0;
 }
 

@@ -84,8 +84,9 @@ void D_dagger_phi(const spinor&  U, const spinor&  phi, spinor&  Dphi, const dou
 	localFLOPS += 81*2*width_x*width_t;
 }
 
+//D^dagger D phi
 void D_D_dagger_phi(const spinor&  U, const spinor&  phi, spinor&  Dphi, const double& m0){
 	spinor ddagg_buffer(mpi::maxSizeH);
-	D_dagger_phi(U, phi, ddagg_buffer, m0);
-	D_phi(U,  ddagg_buffer, Dphi, m0);
+	D_phi(U, phi, ddagg_buffer, m0);
+	D_dagger_phi(U,  ddagg_buffer, Dphi, m0);
 }
