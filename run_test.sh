@@ -13,7 +13,7 @@ CONFPATH="2D_U1_Ns512_Nt512_b40000_m-01023_0.ctxt"
 RHSPATH="rhs_conf0_512x512.rhs"
 PARAMETERS_PATH="parameters"
 CMAKELISTS="CMakeLists.txt"
-COMPILE=0 #1 Compile code, anything different doesn't compile 
+COMPILE=1 #1 Compile code, anything different doesn't compile 
 
 #Two levels
 if [ $LEVELS -eq 2 ]; then
