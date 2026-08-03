@@ -48,7 +48,9 @@ with the following meaning:
 - `B_x`: number of SAP blocks in the x-direction on a local rank
 - `B_t`: number of SAP blocks in the t-direction on a local rank
 
-The code expects one line per level. For example, if the lattice has size $(N_x, N_t)$ and uses $r_x$ and $r_t$ MPI ranks in each direction, then each rank owns a local sublattice of size $(N_x/r_x, N_t/r_t)$. The aggregate count must satisfy:
+The code expects one line per level. 
+
+If the lattice has size $(N_x, N_t)$ and uses $r_x$ and $r_t$ MPI ranks in each direction, then each rank owns a local sublattice of size $(N_x/r_x, N_t/r_t)$. The aggregate count must satisfy:
 
 - $A_i$ divisible by $r_i$
 - each rank receives $A_i/r_i$ aggregates of size $N_i/A_i$ in direction $i$

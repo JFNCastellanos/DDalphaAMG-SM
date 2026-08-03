@@ -77,8 +77,8 @@ if [ $COMPILE -eq 1 ]; then
     cd build
     cmake ../
     make
-        mv DDAlpha_${N}x${N} ../
-cd ../
+    mv DDAlpha_${N}x${N} ../
+    cd ../
 fi
 
 mpirun --oversubscribe -n 16 DDAlpha_${N}x${N} < inputs
