@@ -92,8 +92,7 @@ void readParameters(const std::string& inputFile){
             LevelV::D_operator_communicator[level+1] = mpi::cart_comm;
             LevelV::RanksX[level+1] = mpi::ranks_x;
             LevelV::RanksT[level+1] = mpi::ranks_t;
-        }
-        
+        }  
     }
    
 

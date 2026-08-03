@@ -75,11 +75,12 @@ int main(int argc, char **argv) {
     
     double tol = 1e-12;
     Methods methods(U,rhs,x0,m0,tol);
-    //Comment any method if you don't want to test it against DDalpha
-    methods.BiCG(10000,true);
-    methods.CG(true);
+    //Comment any method if you don't want to test it against DDalpha. Bear in mind that for very ill conditioned systems
+    //and large lattices they might take a long time.
+    //methods.BiCG(10000,true);
+    //methods.CG(true);
     int m = 20, restarts = 1000; 
-    methods.GMRES(m,restarts,true);
+    //methods.GMRES(m,restarts,true);
     int xblocks = 4, tblocks = 4;
     methods.SAP(100,xblocks,tblocks,true);
     methods.FGMRES_sap(m,restarts,true);
