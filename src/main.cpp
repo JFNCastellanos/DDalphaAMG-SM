@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     double m0; //bare mass
     
     CG::max_iter = 20000; //Maximum number of iterations for the conjugate gradient method
-    CG::tol = 1e-10; //Tolerance for convergence
+    CG::tol = 1e-12; //Tolerance for convergence
 
     //To call the sequential program one has to choose ranks_x = ranks_t = 1
     if (mpi::rank == 0){
@@ -73,19 +73,20 @@ int main(int argc, char **argv) {
     read_binary(confFile,U);
     read_binary(rhsFile,rhs);
     
-    double tol = 1e-10;
+    double tol = 1e-12;
     Methods methods(U,rhs,x0,m0,tol);
-    //methods.BiCG(10000,true);
+    //Comment any method if you don't want to test it against DDalpha
+    methods.BiCG(10000,true);
     methods.CG(true);
     int m = 20, restarts = 1000; 
-    //methods.GMRES(m,restarts,true);
+    methods.GMRES(m,restarts,true);
     int xblocks = 4, tblocks = 4;
-    //methods.SAP(100,xblocks,tblocks,true);
-    //methods.FGMRES_sap(m,restarts,true);
-    //methods.Vcycle(100,true);
-    //methods.Kcycle(100,true);
-    methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true);
-    methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true);
+    methods.SAP(100,xblocks,tblocks,true);
+    methods.FGMRES_sap(m,restarts,true);
+    methods.Vcycle(100,true); //V-Cycle stand alone solver
+    methods.Kcycle(100,true); //K-cycle stand alone solver
+    methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true); //V-cycle preconditioner with FGMRES solver
+    methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true); //K-cycle preconditioenr with FGMRES solver
     if (mpi::rank2d == 0)
         std::cout << "Checking solution of V-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_vcycle);

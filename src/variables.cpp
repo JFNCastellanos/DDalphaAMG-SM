@@ -89,19 +89,19 @@ namespace mpi{
 
 namespace CG{
 	int max_iter = 10000; //Maximum number of iterations for the conjugate gradient method
-	double tol = 1e-10; //Tolerance for convergence
+	double tol = 1e-12; //Tolerance for convergence
 }
 
 namespace BiCG{
     int max_iter = 10000; //Maximum number of iterations for the conjugate gradient method
-    double tol = 1e-10; //Tolerance for convergence
+    double tol = 1e-12; //Tolerance for convergence
 }
 
 namespace SAPV {
     int sap_gmres_restart_length    = 5;        //GMRES restart length for the Schwarz blocks. 
     int sap_gmres_restarts          = 5;        //GMRES iterations for the Schwarz blocks.
     double sap_gmres_tolerance      = 1e-3;     //GMRES tolerance for the Schwarz blocks
-    double sap_tolerance            = 1e-10;    //Tolerance for the SAP method
+    double sap_tolerance            = 1e-12;    //Tolerance for the SAP method when used as stand-alone solver
 }
 
 
@@ -114,9 +114,9 @@ namespace AMGV {
 
     int nu1 = 0; //Pre-smoothing iterations
     int nu2 = 2; //Post-smoothing iterations
-    int Nit = 1; //Number of iterations for improving the interpolator
+    int Nit = 1; //Number of bootstrap iterations for improving the interpolator
 
-    bool SetUpDone = false; //Set to true when the setup is done
+    bool SetUpDone = false; //Set to true when the setup is done, do not change
 
     //Parameters for FGMRES used in the k-cycle
     int fgmres_k_cycle_restart_length = 5;
