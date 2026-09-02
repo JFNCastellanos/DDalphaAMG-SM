@@ -1,14 +1,15 @@
 #!/bin/bash
 
+BETA=4
 N=32   #Number of lattice sites on x or t
 SAP_BLOCK_NUMBER=4 #Number of SAP blocks on the x and t direction on a local rank
 BSIZE=8   #Blocks size
 NBLOCKS=$((N/BSIZE)) #Number of blocks across the whole lattice
-NV=5   #Number of test vectors
+NV=10   #Number of test vectors
 RANKS_X=2 #MPI ranks on the x direction
 RANKS_T=2 #MPI ranks on the t direction
 LEVELS=2 #Number of levels
-TM=0.1 #twisted mass
+TM=0.05 #twisted mass
 if [ $TM -eq 0 ]; then
     TM_DIR="0"
 else
@@ -16,7 +17,7 @@ else
 fi
 M0=-0.1033 #Bare mass parameters
 MSTR="${M0/-0./-0}"
-CONFPATH="tm_confs/mu_${TM_DIR}/2D_U1_Ns${N}_Nt${N}_b40000_m${MSTR}_0.ctxt"
+CONFPATH="tm_confs/b${BETA}_${N}x${N}/mu_${TM_DIR}/2D_U1_Ns${N}_Nt${N}_b40000_m${MSTR}_0.ctxt"
 RHSPATH="rhs_conf0_${N}x${N}.rhs"
 PARAMETERS_PATH="parameters"
 CMAKELISTS="CMakeLists.txt"
