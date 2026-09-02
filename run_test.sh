@@ -1,9 +1,9 @@
 #!/bin/bash
 
 BETA=4
-N=32   #Number of lattice sites on x or t
+N=64   #Number of lattice sites on x or t
 SAP_BLOCK_NUMBER=4 #Number of SAP blocks on the x and t direction on a local rank
-BSIZE=8   #Blocks size
+BSIZE=4   #Blocks size
 NBLOCKS=$((N/BSIZE)) #Number of blocks across the whole lattice
 NV=10   #Number of test vectors
 RANKS_X=2 #MPI ranks on the x direction
