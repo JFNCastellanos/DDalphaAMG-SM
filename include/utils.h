@@ -149,4 +149,6 @@ inline void printFLOPS(const long long int& x){
         std::cout << "GFLOPS = " << y/1e9 << std::endl;
 }
 
+void random_rhs(spinor& rhs);
+
 #endif

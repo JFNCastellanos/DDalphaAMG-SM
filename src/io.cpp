@@ -97,6 +97,7 @@ void writeMetadata(int cycle,double tol){
         metadata << "Date: " << start_time_str << "\n";
         metadata << "x ranks: " << mpi::ranks_x << "  t_ranks: " << mpi::ranks_t << "\n";
         metadata << "m0: " << std::setprecision(7) << mass::m0 << "\n";
+        metadata << "twisted mass: " << std::setprecision(7) << mass::tm << "\n";
         metadata << "solvers tolerance: " << std::setprecision(4) << tol << "\n";
         metadata << "#level, blocks_x (global), blocks_t (global), Ntest, SAP_blocks_x (local), SAP_blocks_t (local)\n";
         for (int l = 0; l < LevelV::levels-1; l++) {

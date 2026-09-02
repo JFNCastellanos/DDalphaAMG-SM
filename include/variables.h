@@ -11,7 +11,10 @@ typedef std::complex<double> c_double;
 extern double pi;
 extern c_double I_number; //imaginary number
 
-namespace mass{extern double m0;}
+namespace mass{
+    extern double m0;
+    extern double tm;
+}
 
 //FLOPs involved in different complex double operations
 constexpr long long int ca = 2;     //  + complex addition = 2 FLOPs

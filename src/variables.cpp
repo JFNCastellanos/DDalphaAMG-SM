@@ -44,7 +44,10 @@ int Coords(const int& x, const int& t){
 	return x*mpi::width_t + t;
 }
 
-namespace mass{double m0;}
+namespace mass{
+    double m0;
+    double tm=0;
+}
 
 
 namespace mpi{

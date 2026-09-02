@@ -197,14 +197,14 @@ void SAP_fine_level::D_B(const spinor& U, const spinor& v, spinor& x, const doub
         //When the local neighbors touch the halo, the value of v.val is zero, effectively removing that contribution.
 
        //mu = 0
-		x.val[2*m] = (m0 + 2) * v.val[2*m] - 0.5 * ( 
+		x.val[2*m] = (m0 + 2 - I_number*mass::tm) * v.val[2*m] - 0.5 * ( 
 				U.val[2*n] 	 * rsign[2*n]   	* (v.val[2*rpb_0] - v.val[2*rpb_0+1])
 			+	U.val[2*n+1] * rsign[2*n+1] 	* (v.val[2*rpb_1] + I_number * v.val[2*rpb_1+1])
 			+ std::conj(U.val[2*lpb[2*n]]) 		* lsign[2*n] 	* (v.val[2*lpb_0] + v.val[2*lpb_0+1])
 			+ std::conj(U.val[2*lpb[2*n+1]+1]) 	* lsign[2*n+1]  *  (v.val[2*lpb_1] - I_number*v.val[2*lpb_1+1])
 		);
 		//mu = 1
-		x.val[2*m+1] = (m0 + 2) * v.val[2*m+1] - 0.5 * ( 
+		x.val[2*m+1] = (m0 + 2 + I_number*mass::tm) * v.val[2*m+1] - 0.5 * ( 
 				U.val[2*n] 	 * rsign[2*n] 		* (-v.val[2*rpb_0] + v.val[2*rpb_0+1])
 			+	U.val[2*n+1] * rsign[2*n+1] 	* (-I_number*v.val[2*rpb_1] + v.val[2*rpb_1+1])
 			+ std::conj(U.val[2*lpb[2*n]]) 		* lsign[2*n] 	* (v.val[2*lpb_0] + v.val[2*lpb_0+1])
