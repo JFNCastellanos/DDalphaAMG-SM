@@ -10,6 +10,13 @@
 typedef std::complex<double> c_double;
 extern double pi;
 extern c_double I_number; //imaginary number
+constexpr double l_16 = 1.0/16.0;
+
+namespace clover{
+    extern double csw;
+    extern c_double* Q01;
+}
+
 
 namespace mass{
     extern double m0;
