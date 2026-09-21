@@ -394,6 +394,7 @@ void Level::exchange_halo_l(const spinor& v,const int& Nx, const int& Nt, const 
 void Level::D_operator(const spinor& v, spinor& out){	
 	exchange_halo_l(v,Nx,Nt,mpi::column_type[level],ranks_comm);
 	int indx, indx1, indx2, n;
+	double sign;
 	//n only runs in the interior of the lattice domain
 	for(int x = 1; x<=Nx; x++){
 	for(int t = 1; t<=Nt; t++){
@@ -401,7 +402,9 @@ void Level::D_operator(const spinor& v, spinor& out){
 		for(int alf = 0; alf<2; alf++){
 		for(int c = 0; c<colors; c++){
 			indx = n*colors*2+c*2+alf;
-			out.val[indx] = (mass::m0+2)*v.val[indx];
+			sign = (alf==0) ? 1 : -1;	//this sign is needed for the twisted mass term, which is added to the diagonal.
+			//this is the same for every level since gamma_5 acts always the same 
+			out.val[indx] = (mass::m0+2-I_number*mass::tm*sign)*v.val[indx];
 			localFLOPS += da+dcm;
 		for(int bet = 0; bet<2; bet++){
 		for(int b = 0; b<colors; b++){
@@ -610,6 +613,7 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 	int lpb_mu[2];
     int n, m;
 	int indx, indx1, indx2;
+	double sign;
 	for(int mx = 1; mx <= x_elements; mx++){
     for(int mt = 1; mt <= t_elements; mt++){
 		m = mx * (t_elements + 2) + mt; //Lattice coordinate for the block
@@ -627,7 +631,8 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 		for(int alf = 0; alf<2; alf++){
 		for(int c = 0; c<colors; c++){
 			indx = m*colors*2+c*2+alf;
-			out.val[indx] = (mass::m0+2)*in.val[indx];
+			sign = (alf==0) ? 1 : -1; 
+			out.val[indx] = (mass::m0+2-I_number*mass::tm*sign)*in.val[indx];
 			localFLOPS += da+dcm;
 				for(int bet = 0; bet<2; bet++){
 				for(int b = 0; b<colors; b++){

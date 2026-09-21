@@ -60,6 +60,7 @@ void printParameters(){
         std::cout << "| Lattice dimension = " << (Nx * Nt) << std::endl;
         std::cout << "| Number of entries of the Dirac matrix = (" << (2 * Nx * Nt) << ")^2" << std::endl;
         std::cout << "| Bare mass m0 = " << mass::m0 << std::endl;
+        std::cout << "| Twisted mass mu = " << mass::tm << std::endl;
         std::cout << "| Ranks_x = " << mpi::ranks_x << "  Ranks_t = " << mpi::ranks_t << std::endl;
         std::cout << "---------------------------------------------------------------------------------------" << std::endl;  
         std::cout << "* Blocks, aggregates and test vectors at each level" << std::endl;
@@ -99,5 +100,16 @@ void printParameters(){
         std::cout << "| FGMRES restarts = " << FGMRESV::fgmres_restarts << std::endl;
         std::cout << "| FGMRES tolerance = " << FGMRESV::fgmres_tolerance << std::endl;
         std::cout << "*****************************************************************************************************" << std::endl;
+    }
+}
+
+
+void random_rhs(spinor& rhs){
+    for(int x = 1; x<mpi::width_x; x++){
+        for(int t = 1; t<mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            rhs.val[2*n] = RandomU1();
+            rhs.val[2*n+1] = RandomU1();
+        }
     }
 }

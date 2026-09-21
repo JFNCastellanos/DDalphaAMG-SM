@@ -38,6 +38,8 @@ int main(int argc, char **argv) {
         std::cin >> LevelV::levels;
         std::cout << "m0: ";
         std::cin >> m0;
+        std::cout << "Twisted mass: ";
+        std::cin >> mass::tm;
         std::cout << "Configuration file path: ";
         std::cin >> confFile;
         std::cout << "RHS file path: ";
@@ -50,6 +52,7 @@ int main(int argc, char **argv) {
     MPI_Bcast(&mpi::ranks_t, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&LevelV::levels, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&m0, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
+    MPI_Bcast(&mass::tm, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
     broadcast_file_name(confFile);
     broadcast_file_name(rhsFile);
     broadcast_file_name(pFile);
@@ -71,16 +74,17 @@ int main(int argc, char **argv) {
     spinor x0(mpi::maxSizeH);   //Zero vector as initial solution
 
     read_binary(confFile,U);
-    read_binary(rhsFile,rhs);
+    //read_binary(rhsFile,rhs);
+    random_rhs(rhs);
     
     double tol = 1e-12;
     Methods methods(U,rhs,x0,m0,tol);
     //Comment any method if you don't want to test it against DDalpha. Bear in mind that for very ill conditioned systems
     //and large lattices they might take a long time.
-    //methods.BiCG(10000,true);
-    //methods.CG(true);
-    int m = 20, restarts = 1000; 
-    //methods.GMRES(m,restarts,true);
+    methods.BiCG(10000,true);
+    methods.CG(true);
+    int m = 100, restarts = 1000; 
+    methods.GMRES(m,restarts,true);
     int xblocks = 4, tblocks = 4;
     methods.SAP(100,xblocks,tblocks,true);
     methods.FGMRES_sap(m,restarts,true);
@@ -91,13 +95,14 @@ int main(int argc, char **argv) {
     if (mpi::rank2d == 0)
         std::cout << "Checking solution of V-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_vcycle);
+    
     writeMetadata(0,tol);
-
+    
     if (mpi::rank2d == 0)
         std::cout << "Checking solution of K-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_kcycle);
-    writeMetadata(1,tol);
-
+   writeMetadata(1,tol);
+    
 
      //Free coordinate arrays
     free_lattice_arrays();
@@ -105,6 +110,3 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-
-//-0.18840579710144945
-//-0.1868
