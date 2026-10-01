@@ -8,3 +8,5 @@ metadata*
 DDAlpha*
 inputs
 parameters
+clover/
+run_script_local.sh
