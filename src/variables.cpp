@@ -44,6 +44,11 @@ int Coords(const int& x, const int& t){
 	return x*mpi::width_t + t;
 }
 
+namespace clover{
+   double  csw = 0;
+   c_double* Q01 = nullptr;
+}
+
 namespace mass{
     double m0;
     double tm=0;
@@ -263,4 +268,5 @@ void free_lattice_arrays() {
     delete[] mpi::rank_dictionary;
     
     delete[] mpi::column_type;
+    delete[] clover::Q01;
 }

@@ -23,6 +23,7 @@ inline void assignWidth(){
     mpi::maxSize = mpi::width_t * mpi::width_x;
     mpi::maxSizeH = LV::dof*(mpi::width_x+2)*(mpi::width_t+2); //With halos included
     mpi::sitesH = (mpi::width_x+2)*(mpi::width_t+2);
+    clover::Q01 = new c_double[mpi::sitesH];	//Clover
 }
  
 /*

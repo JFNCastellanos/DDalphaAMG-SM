@@ -1,6 +1,6 @@
 # DDalphaAMG for the Schwinger Model
 
-This project provides an MPI implementation of the DD$\alpha$AMG solver for the Schwinger model with Wilson discretization. The lattice is split across multiple MPI ranks, with each rank owning a subdomain of the 2D grid.
+This project provides an MPI implementation of the DD$\alpha$AMG solver for the Schwinger model with Wilson discretization. A twisted mass term and the clover improvement are also considered. The lattice is split across multiple MPI ranks, with each rank owning a subdomain of the 2D grid.
 
 The solver combines:
 

@@ -40,6 +40,8 @@ int main(int argc, char **argv) {
         std::cin >> m0;
         std::cout << "Twisted mass: ";
         std::cin >> mass::tm;
+        std::cout << "Csw constant: ";
+        std::cin >> clover::csw;
         std::cout << "Configuration file path: ";
         std::cin >> confFile;
         std::cout << "RHS file path: ";
@@ -53,6 +55,7 @@ int main(int argc, char **argv) {
     MPI_Bcast(&LevelV::levels, 1, MPI_INT,  0, MPI_COMM_WORLD);
     MPI_Bcast(&m0, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
     MPI_Bcast(&mass::tm, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
+    MPI_Bcast(&clover::csw, 1, MPI_DOUBLE,  0, MPI_COMM_WORLD);
     broadcast_file_name(confFile);
     broadcast_file_name(rhsFile);
     broadcast_file_name(pFile);
@@ -74,8 +77,9 @@ int main(int argc, char **argv) {
     spinor x0(mpi::maxSizeH);   //Zero vector as initial solution
 
     read_binary(confFile,U);
-    //read_binary(rhsFile,rhs);
-    random_rhs(rhs);
+    clover::Compute_Q(U); //compute clover term
+    read_binary(rhsFile,rhs);
+    //random_rhs(rhs);
     
     double tol = 1e-12;
     Methods methods(U,rhs,x0,m0,tol);

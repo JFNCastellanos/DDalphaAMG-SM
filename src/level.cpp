@@ -300,6 +300,7 @@ void Level::makeDirac(){
 	M[1][1][0] = -I_number; M[1][1][1] = 1.0; 
 
 	int n;
+	double sign;
 	exchange_halo(U.val);
 
 	for(int x = 1; x<=Nx; x++){
@@ -309,7 +310,13 @@ void Level::makeDirac(){
 	for(int bet=0; bet<2;bet++){
 	for(int c = 0; c<colors; c++){
 	for(int b = 0; b<colors; b++){
-		G1.val[getG1index(n,alf,bet,c,b)] 	  = 0; //This coefficient is not used at level 0
+		sign = (alf==0) ? -1 : 1; //This comes from the gamma_5 matrix
+		if (alf == bet){
+			G1.val[getG1index(n,alf,bet,c,b)] = -I_number*l_16*clover::csw*sign*(clover::Q01[n]-std::conj(clover::Q01[n]));
+		}
+		else{	
+			G1.val[getG1index(n,alf,bet,c,b)] = 0;
+		}
 		G2.val[getG2G3index(n,alf,bet,c,b,0)] = 0; G2.val[getG2G3index(n,alf,bet,c,b,1)] = 0;
 		G3.val[getG2G3index(n,alf,bet,c,b,0)] = 0; G3.val[getG2G3index(n,alf,bet,c,b,1)] = 0;
 		//For level = 0 
