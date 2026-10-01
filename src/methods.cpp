@@ -108,7 +108,7 @@ void Methods::Vcycle(const int iterations,const bool print){
         std::cout << "--------------Stand-alone AMG with a V-cycle----------------" << std::endl;
 
     AlgebraicMG AMG(U, m0,AMGV::nu1, AMGV::nu2);
-    AMGV::cycle == 0; //V-cycle
+    AMGV::cycle = 0; //V-cycle
     start = MPI_Wtime();
     AMG.setUpPhase(AMGV::Nit);
     AMG.applyMultilevel(iterations, rhs, xVcycle,tol,print);  
@@ -147,6 +147,11 @@ void Methods::FGMRES_amg_kcycle(const int nu1, const int nu2,const bool print){
 
     if (mpi::rank2d == 0)
         printf("[rank %d] time elapsed FGMRES AMG K-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
+
+    double av_coarse_grid_it = static_cast<double>(iter_counters::Dc_it_k_cycle) / 
+    static_cast<double>(iter_counters::inversion_count_k);
+    if (mpi::rank2d == 0)
+        printf("Average iterations to solve coarsest matrix to a %.4f tolerance is %.2f\n\n",AMGV::gmres_tol_coarse_level, av_coarse_grid_it);
 }
 
 
@@ -166,7 +171,31 @@ void Methods::FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print){
     printFLOPS(FLOPS);
     flop_counters::vCycleFlops=FLOPS;
     if (mpi::rank2d == 0)
-        printf("[rank %d] time elapsed FGMRES AMG V-cycle: %.4fs.\n\n", mpi::rank2d, end - start);
+        printf("[rank %d] time elapsed FGMRES AMG V-cycle: %.4fs.\n", mpi::rank2d, end - start);
+
+    double av_coarse_grid_it = static_cast<double>(iter_counters::Dc_it_v_cycle) / 
+    static_cast<double>(iter_counters::inversion_count_v);
+    if (mpi::rank2d == 0)
+        printf("Average iterations to solve coarsest matrix to a %.4f tolerance is %.2f\n\n",AMGV::gmres_tol_coarse_level, av_coarse_grid_it);
+
+    
+}
+
+
+void Methods::StoreMatrices(){
+    if (mpi::rank2d == 0)
+        std::cout << "--------------Storing matrices----------------" << std::endl;
+    AlgebraicMG AMG(U, m0,AMGV::nu1, AMGV::nu2);
+    AMGV::cycle = 1; //K-cycle
+    start = MPI_Wtime();
+    AMG.setUpPhase(AMGV::Nit);
+    AMG.write_D("D_matrix.bin",0);
+    AMG.write_D("Dc_matrix.bin",LevelV::maxLevel);  
+    end = MPI_Wtime();
+    if (mpi::rank2d == 0){
+        printf("[rank %d] time elapsed K-cycle AMG: %.4fs.\n", mpi::rank2d, end - start);
+        printf("Max level %d\n\n",LevelV::maxLevel);
+    }
 }
 
 

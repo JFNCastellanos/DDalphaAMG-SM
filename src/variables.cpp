@@ -14,6 +14,10 @@ namespace iter_counters{
     long long int GMRESIt=-1;
     long long int SAPIt=-1;
     long long int FGMRES_SAPIt=-1;
+    long long int Dc_it_k_cycle=0;
+    long long int Dc_it_v_cycle=0;
+    long long int inversion_count_v=0;
+    long long int inversion_count_k=0;
 }
 namespace flop_counters{
     long long int kCycleFlops=-1;
@@ -143,7 +147,7 @@ namespace FGMRESV {
 
 namespace LevelV{
     int levels;   //Number of levels
-    int maxLevel; //Maximum level id is levels - 1b
+    int maxLevel; //Maximum level id is levels - 1
 
     int* BlocksX    = nullptr; //Number of lattice blocks on the x direction for aggregates
     int* BlocksT    = nullptr; //Number of lattice blocks on the t direction for aggregates

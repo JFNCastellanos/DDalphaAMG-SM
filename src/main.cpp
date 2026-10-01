@@ -78,11 +78,11 @@ int main(int argc, char **argv) {
 
     read_binary(confFile,U);
     clover::Compute_Q(U); //compute clover term
-    read_binary(rhsFile,rhs);
+    //read_binary(rhsFile,rhs);
     /*Uncomment for trying with a random right hand side or a point source in case a rhs file is not provided*/
     /*Usually point sources are more challenging for the solvers*/
     //random_rhs(rhs);
-    //point_source(rhs);
+    point_source(rhs);
     
     double tol = 1e-12;
     Methods methods(U,rhs,x0,m0,tol);
@@ -97,6 +97,7 @@ int main(int argc, char **argv) {
     //methods.FGMRES_sap(m,restarts,true);
     //methods.Vcycle(100,true); //V-Cycle stand alone solver
     //methods.Kcycle(100,true); //K-cycle stand alone solver
+    methods.StoreMatrices();
     methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true); //V-cycle preconditioner with FGMRES solver
     methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true); //K-cycle preconditioenr with FGMRES solver
     if (mpi::rank2d == 0)

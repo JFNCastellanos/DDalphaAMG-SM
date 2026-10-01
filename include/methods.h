@@ -32,6 +32,7 @@ public:
     void FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print);
     void Vcycle(const int iterations,const bool print);
     void Kcycle(const int iterations,const bool print);
+    void StoreMatrices();
 
     void check_solution(const spinor& x_sol);
 

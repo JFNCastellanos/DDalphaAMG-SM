@@ -87,7 +87,6 @@ namespace clover{
 			U.val[2*n0+1] = bot_right_s1;
 		}
 
-
 		int n, right, down, left, up;
 		int x1_t_1, x_1_t_1, x_1_t1, x1_t1; //n-0+1, n-0-1, n+0-1, n+0+1
 		c_double Umv, Uv_m, U_m_v, U_vm;  //U_{m,v}(n) + U_{v,-m}(n) + U_{-m,-v}(n) + U_{-v,m}(n)
@@ -104,8 +103,6 @@ namespace clover{
 				x_1_t1 = xm*(mpi::width_t+2)+tp; //(x-1,t+1)
 				x1_t1 = xp*(mpi::width_t+2)+tp; //(x+1,t+1)
 				
-
-
 				//U_01(n) = U_0(n) U_1(n+0) U*_0(n+1) U*_1(n)
 				Umv = U.val[2*n] * U.val[2*right+1] * std::conj(U.val[2*down]) * std::conj(U.val[2*n+1]);
 

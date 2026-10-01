@@ -59,6 +59,11 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 	mpi_reduceFLOPS();
 	printFLOPS(FLOPS);
 
+	iter_counters::Dc_it_k_cycle = 0;
+	iter_counters::Dc_it_v_cycle = 0;
+	iter_counters::inversion_count_k = 0;
+	iter_counters::inversion_count_v = 0;
+
 	/*
 	Extensive testing showed that using adaptivity does not improve anything in the case of the Schwinger model, so we don't implement it here.
 	*/
@@ -70,7 +75,8 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
     int indx;
 	if (l == LevelV::maxLevel && levels[l]->ranks_comm != MPI_COMM_NULL){
 		//For the coarsest level we use GMRES to find a solution
-		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);                         //psi_l = D_l^-1 eta_l 
+		iter_counters::Dc_it_v_cycle += levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);  //psi_l = D_l^-1 eta_l 
+		iter_counters::inversion_count_v += 1;
 	}
 	else{
 		//Buffers
@@ -125,7 +131,8 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
     int indx;
 	if (l == LevelV::maxLevel && levels[l]->ranks_comm != MPI_COMM_NULL){
 		//For the coarsest level we just use GMRES to find a solution
-		levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false); //psi_l = D_l^-1 eta_l 
+		iter_counters::Dc_it_k_cycle += levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false); //psi_l = D_l^-1 eta_l 
+		iter_counters::inversion_count_k += 1;
 	}
 	else{
 		//Buffers
@@ -243,7 +250,122 @@ void AlgebraicMG::applyMultilevel(const int& it, const spinor&rhs, spinor& out,c
 			printf("Insert a valid cycle 0 (V-cycle) or 1 (K-cycle). Instead %d was given\n",AMGV::cycle);
         MPI_Abort(mpi::cart_comm, EXIT_FAILURE);
 	}
-    
+
+}
+
+
+namespace {
+	struct SparseEntry {
+		int row;
+		int col;
+		double re;
+		double im;
+	};
+	static_assert(sizeof(SparseEntry) == 2*sizeof(int) + 2*sizeof(double), "SparseEntry must have no padding");
+
+	//Smallest stride >= 3 dividing N (or N itself). Sites with equal coordinate mod stride are then
+	//at least 3 sites apart on the periodic lattice, so their nearest-neighbour stencils never overlap.
+	int probing_stride(const int N){
+		for(int s = 3; s < N; s++)
+			if (N % s == 0) return s;
+		return N;
+	}
+}
+
+/*
+	D_operator only couples a site to itself and its nearest neighbours, so instead of applying it to
+	one unit vector per column we probe all sites of the same "color" (x mod sx, t mod st) at once.
+	This needs sx*st*DOF applications of D_operator instead of Nsites*DOF.
+*/
+void AlgebraicMG::write_D(const std::string& name, const int& l){
+	if (l < 0 || l >= LevelV::levels){
+		if (mpi::rank2d == 0)
+			std::cerr << "write_D: level " << l << " does not exist" << std::endl;
+		return;
+	}
+	Level* lev = levels[l];
+	const MPI_Comm comm = lev->ranks_comm;
+	if (comm == MPI_COMM_NULL) return; //Rank does not hold any part of the lattice at this level
+
+	const long long int flops_backup = localFLOPS;
+
+	const int Nx = lev->Nx, Nt = lev->Nt, DOF = lev->DOF;
+	const int NxG = LevelV::NxSites[l], NtG = LevelV::NtSites[l];
+	int coords[2];
+	MPI_Cart_coords(comm, lev->rank_in_comm, 2, coords);
+	const int x0 = coords[0]*Nx; //Global coordinates of local site (x,t)=(1,1)
+	const int t0 = coords[1]*Nt;
+
+	const int sx = probing_stride(NxG), st = probing_stride(NtG);
+	spinor v((Nx+2)*(Nt+2)*DOF);
+	spinor Dv((Nx+2)*(Nt+2)*DOF);
+	std::vector<SparseEntry> entries;
+
+	for(int px = 0; px < sx; px++){
+	for(int pt = 0; pt < st; pt++){
+	for(int dc = 0; dc < DOF; dc++){
+		v.clearBuffer();
+		for(int x = 1; x <= Nx; x++){
+		for(int t = 1; t <= Nt; t++){
+			if ((x0+x-1) % sx == px && (t0+t-1) % st == pt)
+				v.val[(x*(Nt+2)+t)*DOF + dc] = 1.0;
+		}
+		}
+		lev->D_operator(v, Dv);
+
+		for(int x = 1; x <= Nx; x++){
+		for(int t = 1; t <= Nt; t++){
+			const int gx = x0+x-1, gt = t0+t-1;
+			//The probed site coupling to (gx,gt) is either (gx,gt) itself or one of its neighbours
+			const int cand[5][2] = {{gx,gt}, {(gx+1)%NxG,gt}, {(gx-1+NxG)%NxG,gt}, {gx,(gt+1)%NtG}, {gx,(gt-1+NtG)%NtG}};
+			int col_site = -1;
+			for(const auto& c : cand){
+				if (c[0] % sx == px && c[1] % st == pt){
+					col_site = c[0]*NtG + c[1];
+					break;
+				}
+			}
+			if (col_site < 0) continue;
+			for(int dr = 0; dr < DOF; dr++){
+				const c_double val = Dv.val[(x*(Nt+2)+t)*DOF + dr];
+				if (val != 0.0)
+					entries.push_back({(gx*NtG+gt)*DOF + dr, col_site*DOF + dc, std::real(val), std::imag(val)});
+			}
+		}
+		}
+	}
+	}
+	}
+
+	//Each rank writes its block of entries at its offset in the file
+	long long int n_local = entries.size(), offset = 0, n_total = 0;
+	MPI_Exscan(&n_local, &offset, 1, MPI_LONG_LONG, MPI_SUM, comm);
+	if (lev->rank_in_comm == 0) offset = 0; //MPI_Exscan leaves the first rank's value undefined
+	MPI_Allreduce(&n_local, &n_total, 1, MPI_LONG_LONG, MPI_SUM, comm);
+
+	MPI_Datatype entry_type;
+	MPI_Type_contiguous(sizeof(SparseEntry), MPI_BYTE, &entry_type);
+	MPI_Type_commit(&entry_type);
+
+	MPI_File fh;
+	if (MPI_File_open(comm, name.c_str(), MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh) != MPI_SUCCESS){
+		if (lev->rank_in_comm == 0)
+			std::cerr << "write_D: error opening file " << name << std::endl;
+		MPI_Type_free(&entry_type);
+		localFLOPS = flops_backup;
+		return;
+	}
+	MPI_File_set_size(fh, 0); //Truncate in case the file already exists
+	MPI_File_write_at_all(fh, offset*static_cast<MPI_Offset>(sizeof(SparseEntry)), entries.data(),
+		static_cast<int>(n_local), entry_type, MPI_STATUS_IGNORE);
+	MPI_File_close(&fh);
+	MPI_Type_free(&entry_type);
+
+	if (lev->rank_in_comm == 0)
+		std::cout << "D at level " << l << " (" << NxG*NtG*DOF << " x " << NxG*NtG*DOF << ", DOF " << DOF
+		<< ") written to " << name << " with " << n_total << " non-zero entries" << std::endl;
+
+	localFLOPS = flops_backup;
 }
 
 

@@ -465,7 +465,6 @@ public:
     at level = 2 D_operator is (Dc)_c ...
     */
     void D_operator(const spinor& v, spinor& out);
-
     
 };
 

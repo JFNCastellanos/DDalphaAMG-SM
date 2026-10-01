@@ -45,6 +45,10 @@ namespace iter_counters{
     extern long long int GMRESIt;
     extern long long int SAPIt;
     extern long long int FGMRES_SAPIt;
+    extern long long int Dc_it_k_cycle;
+    extern long long int Dc_it_v_cycle;
+    extern long long int inversion_count_v;
+    extern long long int inversion_count_k;
 }
 namespace flop_counters{
     extern long long int kCycleFlops;

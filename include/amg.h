@@ -132,7 +132,14 @@ public:
 	void k_cycle(const int& l, const spinor& eta_l, spinor& psi_l);
     //Calls K or V-cycle depending on the value of AMGV::cycle. Stand-alone solver
     void applyMultilevel(const int& it, const spinor&rhs, spinor& out,const double tol,const bool print_message);
-private:    
+
+    /*
+    Writes the operator D_operator at level l to the binary file "name" in sparse (COO) format.
+    Each non-zero entry is stored as: row (int), col (int), Re(D) (double), Im(D) (double),
+    with global index = (x*Nt_global + t)*DOF + dof. For l > 0 call it after setUpPhase.
+    */
+    void write_D(const std::string& name, const int& l);
+private:
     const spinor U;
 	double m0; 
 	const int nu1; const int nu2; 
