@@ -150,5 +150,6 @@ inline void printFLOPS(const long long int& x){
 }
 
 void random_rhs(spinor& rhs);
+void point_source(spinor& rhs);
 
 #endif

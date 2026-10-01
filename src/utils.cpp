@@ -105,12 +105,30 @@ void printParameters(){
 }
 
 
+std::complex<double> RandomGauss() {
+    static thread_local std::mt19937_64 gen(std::random_device{}());
+    // sigma per component = 1/sqrt(2)  ->  E[|z|^2] = 1
+    static thread_local std::normal_distribution<double> dist(0.0, 1.0/std::sqrt(2.0));
+    return std::complex<double>(dist(gen), dist(gen));
+}
+
 void random_rhs(spinor& rhs){
-    for(int x = 1; x<mpi::width_x; x++){
-        for(int t = 1; t<mpi::width_t; t++){
+    for(int x = 1; x <= mpi::width_x; x++){
+        for(int t = 1; t <= mpi::width_t; t++){
             int n = x*(mpi::width_t+2)+t;
-            rhs.val[2*n] = RandomU1();
-            rhs.val[2*n+1] = RandomU1();
+            rhs.val[2*n]   = RandomGauss();
+            rhs.val[2*n+1] = RandomGauss();
         }
     }
+}
+
+void point_source(spinor& rhs){
+    for(int x = 1; x <= mpi::width_x; x++){
+        for(int t = 1; t <= mpi::width_t; t++){
+            int n = x*(mpi::width_t+2)+t;
+            rhs.val[2*n]   = 0;
+            rhs.val[2*n+1] = 0;
+        }
+    }
+    rhs.val[2*(mpi::width_t+2+1)] = 1.0;
 }
