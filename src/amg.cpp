@@ -58,6 +58,10 @@ void AlgebraicMG::setUpPhase(const int& Nit){
     if (mpi::rank2d == 0)std::cout << "Set-up phase finished" << std::endl;
 	mpi_reduceFLOPS();
 	printFLOPS(FLOPS);
+
+	/*
+	Extensive testing showed that using adaptivity does not improve anything in the case of the Schwinger model, so we don't implement it here.
+	*/
 	
 }
 

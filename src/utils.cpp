@@ -92,7 +92,8 @@ void printParameters(){
         std::cout << "---------------------------------------------------------------------------------------" << std::endl;
         std::cout << "| Number of levels = " << levels << std::endl;
         std::cout << "| nu1 (pre-smoothing) = " << AMGV::nu1 << " nu2 (post-smoothing) = " << AMGV::nu2 << std::endl;
-        std::cout << "| Number of iterations for improving the interpolator = " << AMGV::Nit << std::endl;
+        //std::cout << "| Number of adaptivity for improving the interpolator = " << AMGV::Nit << std::endl;
+        std::cout << "| Number of SAP iterations for smoothing the test vectors = " << AMGV::SAP_test_vectors_iterations << std::endl;
         std::cout << "| Restart length of GMRES at the coarse level = " << AMGV::gmres_restart_length_coarse_level << std::endl;
         std::cout << "| Restarts of GMRES at the coarse level = " << AMGV::gmres_restarts_coarse_level << std::endl;
         std::cout << "| GMRES tolerance for the coarse level solution = " << AMGV::gmres_tol_coarse_level << std::endl;

@@ -78,16 +78,18 @@ int main(int argc, char **argv) {
 
     read_binary(confFile,U);
     clover::Compute_Q(U); //compute clover term
-    //read_binary(rhsFile,rhs);
+    read_binary(rhsFile,rhs);
+    /*Uncomment for trying with a random right hand side or a point source in case a rhs file is not provided*/
+    /*Usually point sources are more challenging for the solvers*/
     //random_rhs(rhs);
-    point_source(rhs);
+    //point_source(rhs);
     
     double tol = 1e-12;
     Methods methods(U,rhs,x0,m0,tol);
     //Comment any method if you don't want to test it against DDalpha. Bear in mind that for very ill conditioned systems
     //and large lattices they might take a long time.
-    methods.BiCG(10000,true);
-    methods.CG(true);
+    //methods.BiCG(10000,true);
+    //methods.CG(true);
     int m = 100, restarts = 1000; 
     //methods.GMRES(m,restarts,true);
     int xblocks = 4, tblocks = 4;
