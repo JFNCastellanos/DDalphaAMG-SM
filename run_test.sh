@@ -96,7 +96,7 @@ if [ $COMPILE -eq 1 ]; then
     mkdir build
     cd build
     cmake ../
-    make -j 24
+    make -j 10
     mv DDAlpha_${N}x${N} ../
     cd ../
 fi

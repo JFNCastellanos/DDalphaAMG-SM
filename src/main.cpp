@@ -88,16 +88,17 @@ int main(int argc, char **argv) {
     Methods methods(U,rhs,x0,m0,tol);
     //Comment any method if you don't want to test it against DDalpha. Bear in mind that for very ill conditioned systems
     //and large lattices they might take a long time.
+    
     //methods.BiCG(10000,true);
-    //methods.CG(true);
+    methods.CG(true);
     int m = 100, restarts = 1000; 
     //methods.GMRES(m,restarts,true);
-    int xblocks = 4, tblocks = 4;
+    int xblocks = 4, tblocks = 4; //For stand-alone SAP 
     //methods.SAP(100,xblocks,tblocks,true);
-    //methods.FGMRES_sap(m,restarts,true);
+    //methods.FGMRES_sap(m,restarts,true); //FGMRES with SAP preconditioner
     //methods.Vcycle(100,true); //V-Cycle stand alone solver
     //methods.Kcycle(100,true); //K-cycle stand alone solver
-    methods.StoreMatrices();
+    //methods.StoreMatrices(); //Uncomment to store fine-grid D operator and coarsest-grid D operator
     methods.FGMRES_amg_vcycle(AMGV::nu1,AMGV::nu2,true); //V-cycle preconditioner with FGMRES solver
     methods.FGMRES_amg_kcycle(AMGV::nu1,AMGV::nu2,true); //K-cycle preconditioenr with FGMRES solver
     if (mpi::rank2d == 0)

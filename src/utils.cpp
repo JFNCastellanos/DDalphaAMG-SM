@@ -131,5 +131,11 @@ void point_source(spinor& rhs){
             rhs.val[2*n+1] = 0;
         }
     }
-    rhs.val[2*(mpi::width_t+2+1)] = 1.0;
+    //Point source at the global origin (x,t)=(0,0), spin component 0.
+    //Only the rank owning that site, i.e. Cartesian coords (0,0), sets it
+    //(local site (x,t)=(1,1), since index 0 is the halo).
+    if (mpi::coords[0] == 0 && mpi::coords[1] == 0){
+        int n = 1*(mpi::width_t+2)+1;
+        rhs.val[2*n] = 1.0;
+    }
 }
