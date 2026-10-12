@@ -1,6 +1,13 @@
 # DDalphaAMG for the Schwinger Model
 
-This project provides an MPI implementation of the DD$\alpha$AMG solver for the Schwinger model with Wilson discretization. A twisted mass term and the clover improvement are also considered. The lattice is split across multiple MPI ranks, with each rank owning a subdomain of the 2D grid.
+This project provides an MPI implementation of the DD$\alpha$AMG solver for the Schwinger model with Wilson discretization. The lattice is split across multiple MPI ranks, with each rank owning a subdomain of the 2D grid.
+
+On top of the plain Wilson-Dirac operator, the code implements:
+
+- a **twisted mass** term, controlled by the parameter $\mu$ (`mass::tm`),
+- the **clover** (Sheikholeslami–Wohlert) improvement, controlled by the coefficient $c_{sw}$ (`clover::csw`).
+
+Both are read at runtime (see [Section 5](#5-runtime-input-sequence)). Setting $\mu = 0$ and $c_{sw} = 0$ recovers the plain Wilson operator.
 
 The solver combines:
 
@@ -10,7 +17,7 @@ The solver combines:
 - FGMRES as the outer solver,
 - both V-cycle and K-cycle variants.
 
-This code is intended for testing and benchmarking solver performance. It is not designed as a production-ready component for an HMC simulation workflow.
+This code is intended for testing and benchmarking solver performance. It is not designed as a production-ready component for an HMC simulation.
 
 ---
 
@@ -102,6 +109,8 @@ mpi ranks on x
 mpi ranks on t
 number of levels
 m0 (bare mass parameter)
+twisted mass mu
+clover coefficient csw
 path to the configuration file
 path to the rhs file
 path to the parameters file
@@ -111,7 +120,44 @@ The relevant solver information and metadata are written to output metadata file
 
 ---
 
-## 6. Example configuration
+## 6. Assembling the finest-grid and coarsest-grid matrices
+
+Besides solving the system, the code can assemble the Dirac operator on the finest grid and on the coarsest grid and write both to disk. This is disabled by default. To enable it, uncomment the following line in [src/main.cpp](src/main.cpp) and rebuild:
+
+```cpp
+//methods.StoreMatrices(); //Uncomment to store fine-grid D operator and coarsest-grid D operator
+```
+
+This runs the multigrid setup phase and then writes two files to the working directory:
+
+- `D_matrix.bin`: the Dirac operator on the finest level (level 0),
+- `Dc_matrix.bin`: the coarse-grid operator on the coarsest level (level `levels-1`).
+
+The twisted mass and clover terms are included in the assembled matrices when they are non-zero.
+
+Both files store the matrix in sparse coordinate (COO) format, as a flat binary list with no header. Each entry is 24 bytes:
+
+```text
+int32 row, int32 col, float64 re, float64 im
+```
+
+Row and column indices are global and refer to the site $(x, t)$ and internal degree of freedom $d$ through $(x \cdot N_t + t) \cdot \mathrm{DOF} + d$, where $N_t$ is the number of sites in the t-direction on that level. $\mathrm{DOF} = 2$ on the finest level and $2 N_v$ on a coarse level, where $N_v$ is the number of test vectors of the level above. The matrix dimension is printed to standard output when each file is written. Entries are not sorted.
+
+For example, the files can be loaded in Python with:
+
+```python
+import numpy as np
+import scipy.sparse as sp
+
+dt = np.dtype([("row", "<i4"), ("col", "<i4"), ("re", "<f8"), ("im", "<f8")])
+e = np.fromfile("D_matrix.bin", dtype=dt)
+n = max(e["row"].max(), e["col"].max()) + 1
+D = sp.coo_matrix((e["re"] + 1j * e["im"], (e["row"], e["col"])), shape=(n, n)).tocsr()
+```
+
+---
+
+## 7. Example configuration
 
 A reference example is provided by [run_test.sh](run_test.sh). It sets up a test run for a $512^2$ lattice with:
 
@@ -143,6 +189,8 @@ The script writes runtime inputs in the form:
 4
 4
 -0.1023
+0.0
+0.0
 2D_U1_Ns512_Nt512_b40000_m-01023_0.ctxt
 rhs_conf0_512x512.rhs
 parameters
@@ -150,7 +198,7 @@ parameters
 
 ---
 
-## 7. How to run the provided test script
+## 8. How to run the provided test script
 
 From the project root, execute:
 
