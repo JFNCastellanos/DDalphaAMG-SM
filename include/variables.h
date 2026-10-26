@@ -5,6 +5,7 @@
 #include <vector>
 #include <complex>
 #include <iomanip>
+#include <cmath>
 #include "mpi.h"
 
 typedef std::complex<double> c_double;
@@ -74,10 +75,20 @@ namespace iter_counters{
     extern long long int FGMRES_SAPIt;
     extern long long int Dc_it_k_cycle;
     extern long long int Dc_it_v_cycle;
+    extern long long int Dc_it_sq_k_cycle; //Sum of the squared coarse-grid iterations (for the standard deviation)
+    extern long long int Dc_it_sq_v_cycle;
     extern long long int inversion_count_v;
     extern long long int inversion_count_k;
     extern long long int max_Dc_iter_reached_v;
     extern long long int max_Dc_iter_reached_k;
+
+    //Sample standard deviation of the coarse-grid iterations, from their sum, the sum of their squares and the number of inversions
+    inline double Dc_it_std(const long long int sum, const long long int sum_sq, const long long int n){
+        if (n < 2) return 0.0;
+        const double mean = static_cast<double>(sum) / static_cast<double>(n);
+        const double var = (static_cast<double>(sum_sq) - static_cast<double>(n) * mean * mean) / static_cast<double>(n - 1);
+        return (var > 0.0) ? std::sqrt(var) : 0.0; //Guard against a slightly negative variance from rounding
+    }
 }
 namespace flop_counters{
     extern long long int kCycleFlops;

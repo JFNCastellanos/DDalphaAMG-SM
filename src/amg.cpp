@@ -61,6 +61,8 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 
 	iter_counters::Dc_it_k_cycle = 0;
 	iter_counters::Dc_it_v_cycle = 0;
+	iter_counters::Dc_it_sq_k_cycle = 0;
+	iter_counters::Dc_it_sq_v_cycle = 0;
 	iter_counters::inversion_count_k = 0;
 	iter_counters::inversion_count_v = 0;
 	iter_counters::max_Dc_iter_reached_k = 0;
@@ -82,6 +84,7 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 			iter_counters::max_Dc_iter_reached_v+=1;
 
 		iter_counters::Dc_it_v_cycle += iterations;
+		iter_counters::Dc_it_sq_v_cycle += static_cast<long long int>(iterations) * iterations;
 		iter_counters::inversion_count_v += 1;
 	}
 	else{
@@ -142,6 +145,7 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
 			iter_counters::max_Dc_iter_reached_k+=1;
 
 		iter_counters::Dc_it_k_cycle += iterations;
+		iter_counters::Dc_it_sq_k_cycle += static_cast<long long int>(iterations) * iterations;
 		iter_counters::inversion_count_k += 1;
 	}
 	else{

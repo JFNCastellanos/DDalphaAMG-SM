@@ -135,16 +135,18 @@ void writeMetadata(int cycle,double tol){
         if (cycle == 0){
             metadata << "#V cycle fgmres iterations,  Setup phase FLOPS, Total FLOPS\n";
             metadata << iter_counters::vCycleIt << std::setw(30) << flop_counters::vCycleSetUpFlops << std::setw(30) << flop_counters::vCycleFlops << "\n";
-            metadata << "#V cycle average gmres iterations on coarse grid,  Number of times the max iterations was reached for inverting coarsest matrix\n";
+            metadata << "#V cycle average gmres iterations on coarse grid,  Standard deviation,  Number of times the max iterations was reached for inverting coarsest matrix\n";
             double av_coarse_grid_it = static_cast<double>(iter_counters::Dc_it_v_cycle) / static_cast<double>(iter_counters::inversion_count_v);
-            metadata << av_coarse_grid_it << std::setw(30) << iter_counters::max_Dc_iter_reached_v << "\n";
+            double std_coarse_grid_it = iter_counters::Dc_it_std(iter_counters::Dc_it_v_cycle, iter_counters::Dc_it_sq_v_cycle, iter_counters::inversion_count_v);
+            metadata << av_coarse_grid_it << std::setw(30) << std_coarse_grid_it << std::setw(30) << iter_counters::max_Dc_iter_reached_v << "\n";
         } 
         else{
             metadata << "#K cycle fgmres iterations,  Setup phase FLOPS, Total FLOPS\n";
             metadata << iter_counters::kCycleIt << std::setw(30) << flop_counters::kCycleSetUpFlops << std::setw(30) << flop_counters::kCycleFlops << "\n";
-            metadata << "#K cycle average gmres iterations on coarse grid,  Number of times the max iterations was reached for inverting coarsest matrix\n";
+            metadata << "#K cycle average gmres iterations on coarse grid,  Standard deviation,  Number of times the max iterations was reached for inverting coarsest matrix\n";
             double av_coarse_grid_it = static_cast<double>(iter_counters::Dc_it_k_cycle) / static_cast<double>(iter_counters::inversion_count_k);
-            metadata << av_coarse_grid_it << std::setw(30) << iter_counters::max_Dc_iter_reached_k << "\n";
+            double std_coarse_grid_it = iter_counters::Dc_it_std(iter_counters::Dc_it_k_cycle, iter_counters::Dc_it_sq_k_cycle, iter_counters::inversion_count_k);
+            metadata << av_coarse_grid_it << std::setw(30) << std_coarse_grid_it << std::setw(30) << iter_counters::max_Dc_iter_reached_k << "\n";
         }
     
         metadata.close();
