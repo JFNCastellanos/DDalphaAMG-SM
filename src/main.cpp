@@ -84,7 +84,7 @@ int main(int argc, char **argv) {
     //random_rhs(rhs);
     point_source(rhs);
     
-    double tol = 1e-12;
+    double tol = 1e-10;
     Methods methods(U,rhs,x0,m0,tol);
     //Comment any method if you don't want to test it against DDalpha. Bear in mind that for very ill conditioned systems
     //and large lattices they might take a long time.
