@@ -224,3 +224,12 @@ You can change the values for:
 
 directly in the script before running it.
 
+---
+
+## 9. FLOP counter
+
+The code counts floating-point operations manually: each kernel adds its operations to a counter, using the costs defined in [include/variables.h](include/variables.h) (for instance, a complex multiplication counts as 6 FLOPs). Sign flips (negations and complex conjugations) are not counted. The total for each method is printed as GFLOPS and written to the metadata files.
+
+The operations of the twisted mass and clover terms are only counted when $\mu \neq 0$ and $c_{sw} \neq 0$, respectively. The computation of the clover term itself (`clover::Compute_Q`) is not counted, since it is done only once.
+
+> **Note:** the Dirac operators always evaluate the twisted mass and clover terms, even when $\mu$ or $c_{sw}$ is zero. Therefore, the manual counter coincides with the FLOPs measured by an instrumented build (e.g. hardware counters read with `perf`) only when **both** $\mu$ and $c_{sw}$ are different from zero. In any other case, including the plain Wilson operator, the manual counter reports fewer FLOPs than are actually executed. Once again, we stress that this code is for testing, not for production runs. 

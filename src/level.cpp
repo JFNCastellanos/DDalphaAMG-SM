@@ -313,6 +313,8 @@ void Level::makeDirac(){
 		sign = (alf==0) ? -1 : 1; //This comes from the gamma_5 matrix
 		if (alf == bet){
 			G1.val[getG1index(n,alf,bet,c,b)] = -I_number*l_16*clover::csw*sign*(clover::Q01[n]-std::conj(clover::Q01[n]));
+			if (clover::csw != 0)
+				localFLOPS += 3*dcm+ca+cm;
 		}
 		else{	
 			G1.val[getG1index(n,alf,bet,c,b)] = 0;
@@ -402,6 +404,7 @@ void Level::D_operator(const spinor& v, spinor& out){
 	exchange_halo_l(v,Nx,Nt,mpi::column_type[level],ranks_comm);
 	int indx, indx1, indx2, n;
 	double sign;
+	const long long int tm_flops = tm_FLOPS_per_dof(); //Zero if mass::tm = 0
 	//n only runs in the interior of the lattice domain
 	for(int x = 1; x<=Nx; x++){
 	for(int t = 1; t<=Nt; t++){
@@ -410,9 +413,9 @@ void Level::D_operator(const spinor& v, spinor& out){
 		for(int c = 0; c<colors; c++){
 			indx = n*colors*2+c*2+alf;
 			sign = (alf==0) ? 1 : -1;	//this sign is needed for the twisted mass term, which is added to the diagonal.
-			//this is the same for every level since gamma_5 acts always the same 
+			//this is the same for every level since gamma_5 acts always the same
 			out.val[indx] = (mass::m0+2-I_number*mass::tm*sign)*v.val[indx];
-			localFLOPS += da+dcm;
+			localFLOPS += da+dcm+tm_flops;
 		for(int bet = 0; bet<2; bet++){
 		for(int b = 0; b<colors; b++){
 			indx1 = n*colors*2+b*2+bet;
@@ -621,6 +624,7 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
     int n, m;
 	int indx, indx1, indx2;
 	double sign;
+	const long long int tm_flops = tm_FLOPS_per_dof(); //Zero if mass::tm = 0
 	for(int mx = 1; mx <= x_elements; mx++){
     for(int mt = 1; mt <= t_elements; mt++){
 		m = mx * (t_elements + 2) + mt; //Lattice coordinate for the block
@@ -640,7 +644,7 @@ void Level::SAP_level_l::D_local(const spinor& in, spinor& out, const int& block
 			indx = m*colors*2+c*2+alf;
 			sign = (alf==0) ? 1 : -1; 
 			out.val[indx] = (mass::m0+2-I_number*mass::tm*sign)*in.val[indx];
-			localFLOPS += da+dcm;
+			localFLOPS += da+dcm+tm_flops;
 				for(int bet = 0; bet<2; bet++){
 				for(int b = 0; b<colors; b++){
 					indx1 = m*colors*2+b*2+bet;

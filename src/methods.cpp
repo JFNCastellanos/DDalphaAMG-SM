@@ -150,8 +150,11 @@ void Methods::FGMRES_amg_kcycle(const int nu1, const int nu2,const bool print){
 
     double av_coarse_grid_it = static_cast<double>(iter_counters::Dc_it_k_cycle) / 
     static_cast<double>(iter_counters::inversion_count_k);
-    if (mpi::rank2d == 0)
-        printf("Average iterations to solve coarsest matrix to a %.4f tolerance is %.2f\n\n",AMGV::gmres_tol_coarse_level, av_coarse_grid_it);
+    if (mpi::rank2d == 0){
+        printf("Average iterations to solve coarsest matrix to a %.4f tolerance is %.2f\n",AMGV::gmres_tol_coarse_level, av_coarse_grid_it);
+        printf("Number of times the maximum iterations number was reached for solving Dc: %lld\n\n",iter_counters::max_Dc_iter_reached_k);
+    }
+    writeMetadata(1,tol);
 }
 
 
@@ -175,8 +178,11 @@ void Methods::FGMRES_amg_vcycle(const int nu1, const int nu2,const bool print){
 
     double av_coarse_grid_it = static_cast<double>(iter_counters::Dc_it_v_cycle) / 
     static_cast<double>(iter_counters::inversion_count_v);
-    if (mpi::rank2d == 0)
-        printf("Average iterations to solve coarsest matrix to a %.4f tolerance is %.2f\n\n",AMGV::gmres_tol_coarse_level, av_coarse_grid_it);
+    if (mpi::rank2d == 0){
+        printf("Average iterations to solve coarsest matrix to a %.4f tolerance is %.2f\n",AMGV::gmres_tol_coarse_level, av_coarse_grid_it);
+        printf("Number of times the maximum iterations number was reached for solving Dc: %lld\n\n",iter_counters::max_Dc_iter_reached_v);
+    }
+    writeMetadata(0,tol);
 
     
 }

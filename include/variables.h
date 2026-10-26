@@ -34,6 +34,33 @@ constexpr long long int dcm = 2;    //  double * complex = 2 FLOPs
 constexpr long long int dcd = 7;    //  double / complex_double = 7 FLOPs (4 mul + 1 add + 2 div)
 constexpr long long int dsq = 1;    //  sqrt(double) = 1 FLOP
 
+/*
+    FLOPs of the twisted mass and clover terms. They are only counted when mass::tm or clover::csw are different from zero.
+    As for the Wilson operator, sign flips (negations and complex conjugations) are not counted.
+
+    Fine-level operators (D, D^+ and D_B in SAP), per lattice site:
+    the diagonal term (m0 + 2 -/+ I*tm -/+ I*l_16*csw*DeltaQ) * phi, with DeltaQ = Q01 - Q01^*, replaces
+    the Wilson term (m0 + 2) * phi, which is already included in the 81 FLOPs per spin component.
+*/
+inline long long int tm_clover_FLOPS_per_site(){
+    const bool tm = (mass::tm != 0), sw = (clover::csw != 0);
+    long long int spin_flops = 0;                   //FLOPs per spin component
+    if (tm || sw) spin_flops += da + (cm - dcm);    //(m0 + 2) -/+ complex, and complex * phi instead of double * phi
+    if (tm)       spin_flops += dcm;                //I*tm
+    if (sw)       spin_flops += 2*dcm + cm;         //I*l_16*csw*DeltaQ
+    if (tm && sw) spin_flops += ca;                 //Sum of the twisted mass and clover terms
+    return 2*spin_flops + (sw ? ca : 0);            //Two spin components + DeltaQ
+}
+
+/*
+    Level::D_operator and SAP_level_l::D_local, per degree of freedom:
+    the diagonal term (m0 + 2 - I*tm*sign) * v replaces (m0 + 2) * v (da + dcm).
+    The clover term enters through G1, whose FLOPs are counted in the same way for every level.
+*/
+inline long long int tm_FLOPS_per_dof(){
+    return (mass::tm != 0) ? 2*dcm + da + (cm - dcm) : 0;  //I*tm*sign, (m0 + 2) - complex, and complex * v instead of double * v
+}
+
 extern long long int FLOPS;
 extern long long int localFLOPS;
 
@@ -49,6 +76,8 @@ namespace iter_counters{
     extern long long int Dc_it_v_cycle;
     extern long long int inversion_count_v;
     extern long long int inversion_count_k;
+    extern long long int max_Dc_iter_reached_v;
+    extern long long int max_Dc_iter_reached_k;
 }
 namespace flop_counters{
     extern long long int kCycleFlops;

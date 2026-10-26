@@ -215,7 +215,8 @@ void SAP_fine_level::D_B(const spinor& U, const spinor& v, spinor& x, const doub
     }
     }
     localFLOPS += 2*81*x_elements*t_elements;
-    
+    localFLOPS += tm_clover_FLOPS_per_site()*x_elements*t_elements;
+
 }
 
 

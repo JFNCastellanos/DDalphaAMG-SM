@@ -18,6 +18,8 @@ namespace iter_counters{
     long long int Dc_it_v_cycle=0;
     long long int inversion_count_v=0;
     long long int inversion_count_k=0;
+    long long int max_Dc_iter_reached_v=0;
+    long long int max_Dc_iter_reached_k=0;
 }
 namespace flop_counters{
     long long int kCycleFlops=-1;

@@ -3,6 +3,7 @@
 
 #include "amg.h"
 #include "conjugate_gradient.h"
+#include "io.h"
 
 //Class for comparing different matrix-inversion methods.
 class Methods {
@@ -19,6 +20,10 @@ public:
         xFGMRES_SAP = spinor(mpi::maxSizeH);
         xVcycle     = spinor(mpi::maxSizeH);
         xKcycle     = spinor(mpi::maxSizeH);
+        CG::tol = tol;
+        BiCG::tol = tol;
+        SAPV::sap_tolerance = tol;
+        FGMRESV::fgmres_tolerance = tol;
     }
     ~Methods(){}
 
