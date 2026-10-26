@@ -16,8 +16,12 @@ namespace iter_counters{
     long long int FGMRES_SAPIt=-1;
     long long int Dc_it_k_cycle=0;
     long long int Dc_it_v_cycle=0;
+    long long int Dc_it_sq_k_cycle=0;
+    long long int Dc_it_sq_v_cycle=0;
     long long int inversion_count_v=0;
     long long int inversion_count_k=0;
+    long long int max_Dc_iter_reached_v=0;
+    long long int max_Dc_iter_reached_k=0;
 }
 namespace flop_counters{
     long long int kCycleFlops=-1;
@@ -118,7 +122,7 @@ namespace SAPV {
 
 
 namespace AMGV {
-    int SAP_test_vectors_iterations = 4; //Number of SAP iterations to smooth test vectors
+    int SAP_test_vectors_iterations = 2; //Number of SAP iterations to smooth test vectors
     //Parameters for the coarse level solver. They can be changed in the main function
     int gmres_restarts_coarse_level = 10; 
     int gmres_restart_length_coarse_level = 400; //GMRES restart length for the coarse level

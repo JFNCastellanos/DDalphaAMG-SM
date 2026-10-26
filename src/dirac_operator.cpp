@@ -27,8 +27,7 @@ void D_phi(const spinor& U, const spinor&  phi, spinor&  Dphi, const double& m0)
 	MPI_Status status;
 	c_double DeltaQ;
 
-	//Flop counter must be updated with the twisted mass term: 02/09/62
-	//Communicate halos 
+	//Communicate halos
 	exchange_halo(phi.val);
 	exchange_halo(U.val);
 	int n;
@@ -53,7 +52,8 @@ void D_phi(const spinor& U, const spinor&  phi, spinor&  Dphi, const double& m0)
 		}
 	}
 	localFLOPS += 81*2*width_x*width_t;
-		
+	localFLOPS += tm_clover_FLOPS_per_site()*width_x*width_t;
+
 }
 
 void D_dagger_phi(const spinor&  U, const spinor&  phi, spinor&  Dphi, const double& m0){
@@ -84,8 +84,9 @@ void D_dagger_phi(const spinor&  U, const spinor&  phi, spinor&  Dphi, const dou
 			+	U.val[2*n+1] 	* rsign[2*n+1] 		* (I_number * phi.val[2*rpb[2*n+1]] + phi.val[2*rpb[2*n+1]+1])
 			);
 		}
-	}	
+	}
 	localFLOPS += 81*2*width_x*width_t;
+	localFLOPS += tm_clover_FLOPS_per_site()*width_x*width_t;
 }
 
 //D^dagger D phi

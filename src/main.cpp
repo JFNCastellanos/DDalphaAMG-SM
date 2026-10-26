@@ -20,9 +20,6 @@ int main(int argc, char **argv) {
     
     double m0; //bare mass
     
-    CG::max_iter = 20000; //Maximum number of iterations for the conjugate gradient method
-    CG::tol = 1e-12; //Tolerance for convergence
-
     //To call the sequential program one has to choose ranks_x = ranks_t = 1
     if (mpi::rank == 0){
          //---Input data---//
@@ -68,7 +65,7 @@ int main(int argc, char **argv) {
     initializeMPI(); //2D rank topology
     readParameters(pFile);
     boundaries();
-    printParameters();
+    
     //--------------------------------------//
 
     srand((mpi::rank2d+1));
@@ -84,8 +81,9 @@ int main(int argc, char **argv) {
     //random_rhs(rhs);
     point_source(rhs);
     
-    double tol = 1e-10;
+    double tol = 1e-10; //tolerance for all the methods
     Methods methods(U,rhs,x0,m0,tol);
+    printParameters();
     //Comment any method if you don't want to test it against DDalpha. Bear in mind that for very ill conditioned systems
     //and large lattices they might take a long time.
     
@@ -105,12 +103,10 @@ int main(int argc, char **argv) {
         std::cout << "Checking solution of V-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_vcycle);
     
-    writeMetadata(0,tol);
-    
     if (mpi::rank2d == 0)
         std::cout << "Checking solution of K-cycle" << std::endl;
     methods.check_solution(methods.xFGMRES_AMG_kcycle);
-   writeMetadata(1,tol);
+
     
 
      //Free coordinate arrays

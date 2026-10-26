@@ -61,8 +61,12 @@ void AlgebraicMG::setUpPhase(const int& Nit){
 
 	iter_counters::Dc_it_k_cycle = 0;
 	iter_counters::Dc_it_v_cycle = 0;
+	iter_counters::Dc_it_sq_k_cycle = 0;
+	iter_counters::Dc_it_sq_v_cycle = 0;
 	iter_counters::inversion_count_k = 0;
 	iter_counters::inversion_count_v = 0;
+	iter_counters::max_Dc_iter_reached_k = 0;
+	iter_counters::max_Dc_iter_reached_v = 0;
 
 	/*
 	Extensive testing showed that using adaptivity does not improve anything in the case of the Schwinger model, so we don't implement it here.
@@ -75,7 +79,12 @@ void AlgebraicMG::v_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
     int indx;
 	if (l == LevelV::maxLevel && levels[l]->ranks_comm != MPI_COMM_NULL){
 		//For the coarsest level we use GMRES to find a solution
-		iter_counters::Dc_it_v_cycle += levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);  //psi_l = D_l^-1 eta_l 
+		int iterations = levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);  //psi_l = D_l^-1 eta_l 
+		if (iterations == AMGV::gmres_restart_length_coarse_level*AMGV::gmres_restarts_coarse_level && mpi::rank2d == 0)
+			iter_counters::max_Dc_iter_reached_v+=1;
+
+		iter_counters::Dc_it_v_cycle += iterations;
+		iter_counters::Dc_it_sq_v_cycle += static_cast<long long int>(iterations) * iterations;
 		iter_counters::inversion_count_v += 1;
 	}
 	else{
@@ -131,7 +140,12 @@ void AlgebraicMG::k_cycle(const int& l, const spinor& eta_l, spinor& psi_l){
     int indx;
 	if (l == LevelV::maxLevel && levels[l]->ranks_comm != MPI_COMM_NULL){
 		//For the coarsest level we just use GMRES to find a solution
-		iter_counters::Dc_it_k_cycle += levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false); //psi_l = D_l^-1 eta_l 
+		int iterations = levels[l]->gmres_l->fgmres(eta_l, eta_l, psi_l, false);  //psi_l = D_l^-1 eta_l 
+		if (iterations == AMGV::gmres_restart_length_coarse_level*AMGV::gmres_restarts_coarse_level && mpi::rank2d == 0)
+			iter_counters::max_Dc_iter_reached_k+=1;
+
+		iter_counters::Dc_it_k_cycle += iterations;
+		iter_counters::Dc_it_sq_k_cycle += static_cast<long long int>(iterations) * iterations;
 		iter_counters::inversion_count_k += 1;
 	}
 	else{
